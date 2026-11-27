@@ -1,325 +1,239 @@
-/** Procedural editorial archival plate illustrations (pure #FFF/#000/#0000FF/#FF9E4D/#FF0000 print grammar). */
+/// <reference types="vite/client" />
+/**
+ * Fine-Press Lithograph Archival Plates & Muybridge Stride Sprites (`public/plates/*.webp`).
+ * Zero Canvas2D procedural toy shapes: all 16 archival plates + 5 stride frames are
+ * preloaded and decoded (`img.decode()`) before `window.motionReady` resolves.
+ */
 
 export interface ArchivalPlateSpec {
-  id: string;
-  label: string;
-  cluster: number;
-  kind:
-    | 'recipe-grid'
-    | 'salinity-curve'
-    | 'onggi-pores'
-    | 'salt-bloom'
-    | 'hopper-crystal'
-    | 'cubic-lattice'
-    | 'diapir-strata'
-    | 'drill-core'
-    | 'fluid-bubble'
-    | 'polarizer-cross'
-    | 'ice-core-bubbles'
-    | 'sandstone-wind';
+  readonly id: string;
+  readonly plateNo: string;
+  readonly code: string;
+  readonly label: string;
+  readonly src: string;
+  readonly cluster: number;
 }
 
-export const ARCHIVAL_PLATES: ArchivalPlateSpec[] = [
-  { id: 'img_00', label: '표준 염도 계량 도표', cluster: 0, kind: 'recipe-grid' },
-  { id: 'img_01', label: '가열 시간·수분 증발 곡선', cluster: 0, kind: 'salinity-curve' },
-  { id: 'img_02', label: '옹기 미세 기공 단면도', cluster: 1, kind: 'onggi-pores' },
-  { id: 'img_03', label: '항아리 유약 위 소금 꽃', cluster: 1, kind: 'salt-bloom' },
-  { id: 'img_04', label: '정육면체 호퍼 결정 계단', cluster: 2, kind: 'hopper-crystal' },
-  { id: 'img_05', label: '염화나트륨 입방 격자', cluster: 2, kind: 'cubic-lattice' },
-  { id: 'img_06', label: '페름기 암염 돔 단층도', cluster: 3, kind: 'diapir-strata' },
-  { id: 'img_07', label: '지하 812m 시추 코어 기록', cluster: 3, kind: 'drill-core' },
-  { id: 'img_08', label: '암염 음결정 유체 기포', cluster: 4, kind: 'fluid-bubble' },
-  { id: 'img_09', label: '편광 현미경 간섭 소광 십자', cluster: 4, kind: 'polarizer-cross' },
-  { id: 'img_10', label: '남극 빙하 3000m 고대 기포', cluster: 5, kind: 'ice-core-bubbles' },
-  { id: 'img_11', label: '사막 사암 풍성 사층리', cluster: 5, kind: 'sandstone-wind' },
+const BASE = import.meta.env.BASE_URL || './';
+
+export const ARCHIVAL_PLATES: readonly ArchivalPlateSpec[] = [
+  {
+    id: 'plate-01',
+    plateNo: 'PL.01',
+    code: 'EBULLITION / VORONOI',
+    label: '끓는 표면 거품 보로노이 세포막',
+    src: `${BASE}plates/plate-01.webp`,
+    cluster: 0,
+  },
+  {
+    id: 'plate-02',
+    plateNo: 'PL.02',
+    code: 'ONGGI SEM / 4.2μm',
+    label: '옹기 미세 기공과 소금 꽃 단면',
+    src: `${BASE}plates/plate-02.webp`,
+    cluster: 1,
+  },
+  {
+    id: 'plate-03',
+    plateNo: 'PL.03',
+    code: 'NaCl HOPPER / 90.0°',
+    label: '정육면체 호퍼 결정 계단',
+    src: `${BASE}plates/plate-03.webp`,
+    cluster: 2,
+  },
+  {
+    id: 'plate-04',
+    plateNo: 'PL.04',
+    code: 'CHRONOPHOTO / 5-STRIDE',
+    label: '크로노포토그래피 5연속 질주 실루엣',
+    src: `${BASE}plates/plate-04.webp`,
+    cluster: 1,
+  },
+  {
+    id: 'plate-05',
+    plateNo: 'PL.05',
+    code: 'DIAPIR DOME / -812M',
+    label: '지하 812m 암염 돔 습곡 동판화',
+    src: `${BASE}plates/plate-05.webp`,
+    cluster: 3,
+  },
+  {
+    id: 'plate-06',
+    plateNo: 'PL.06',
+    code: 'VARVE CORE / H-204',
+    label: '지질 시추 코어 연층 기록',
+    src: `${BASE}plates/plate-06.webp`,
+    cluster: 3,
+  },
+  {
+    id: 'plate-07',
+    plateNo: 'PL.07',
+    code: 'PERMIAN / 280 MA',
+    label: '페름기 암염 유체 포유물과 고대 기포',
+    src: `${BASE}plates/plate-07.webp`,
+    cluster: 4,
+  },
+  {
+    id: 'plate-08',
+    plateNo: 'PL.08',
+    code: 'LAUE X-RAY / 5.64Å',
+    label: '염화나트륨 X선 결정 회절무늬',
+    src: `${BASE}plates/plate-08.webp`,
+    cluster: 2,
+  },
+  {
+    id: 'plate-09',
+    plateNo: 'PL.09',
+    code: 'EPICA CORE / -3000M',
+    label: '남극 3,000m 빙하 코어 포획 기포',
+    src: `${BASE}plates/plate-09.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-10',
+    plateNo: 'PL.10',
+    code: 'AEOLIAN / CROSS-BED',
+    label: '고대 사막 사암 풍성 사층리',
+    src: `${BASE}plates/plate-10.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-11',
+    plateNo: 'PL.11',
+    code: 'STOMATA / 300 MA',
+    label: '석탄기 양치류 화석 기공',
+    src: `${BASE}plates/plate-11.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-12',
+    plateNo: 'PL.12',
+    code: 'SPHERULE / COSMIC',
+    label: '성층권 미세 우주진 구형 입자',
+    src: `${BASE}plates/plate-12.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-13',
+    plateNo: 'PL.13',
+    code: 'DISSOLUTION / PLUME',
+    label: '녹아내리는 결정과 상승 기포열',
+    src: `${BASE}plates/plate-13.webp`,
+    cluster: 4,
+  },
+  {
+    id: 'plate-14',
+    plateNo: 'PL.14',
+    code: 'OSCILLOGRAM / ACOUSTIC',
+    label: '고대 바람 음향 파형 오실로그램',
+    src: `${BASE}plates/plate-14.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-15',
+    plateNo: 'PL.15',
+    code: 'SALTERN / EVAPORATION',
+    label: '해안 염전 증발지 기하학',
+    src: `${BASE}plates/plate-15.webp`,
+    cluster: 0,
+  },
+  {
+    id: 'plate-16',
+    plateNo: 'PL.16',
+    code: 'SASTRUGI / POLAR WIND',
+    label: '극지 바람 사스트루기 설원 지평선',
+    src: `${BASE}plates/plate-16.webp`,
+    cluster: 5,
+  },
 ];
 
-const cache = new Map<string, string>();
+export const STRIDE_SOURCES: readonly string[] = [
+  `${BASE}plates/stride-01.webp`,
+  `${BASE}plates/stride-02.webp`,
+  `${BASE}plates/stride-03.webp`,
+  `${BASE}plates/stride-04.webp`,
+  `${BASE}plates/stride-05.webp`,
+];
 
-/** Renders a razor-sharp 240x160 editorial print-plate data URL matching team original flat color blocks + ink lines. */
-export function renderEditorialPlate(spec: ArchivalPlateSpec): string {
-  const existing = cache.get(spec.id);
-  if (existing) return existing;
+const PLATE_BY_ID = new Map<string, ArchivalPlateSpec>(ARCHIVAL_PLATES.map((p) => [p.id, p]));
+const DECODED_IMAGES = new Map<string, HTMLImageElement>();
+const DECODED_STRIDES: HTMLImageElement[] = [];
 
-  const w = 240;
-  const h = 160;
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d')!;
+let preloadPromise: Promise<void> | null = null;
 
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, w, h);
+export function getPlateById(id: string): ArchivalPlateSpec {
+  const found = PLATE_BY_ID.get(id);
+  if (!found) {
+    throw new Error(`Unknown archival plate id: ${id}`);
+  }
+  return found;
+}
 
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 1.25;
+export function getDecodedPlate(id: string): HTMLImageElement | undefined {
+  return DECODED_IMAGES.get(id);
+}
 
-  switch (spec.kind) {
-    case 'recipe-grid': {
-      ctx.fillStyle = '#0000ff';
-      ctx.fillRect(14, 14, 72, 22);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '11px "Noto Serif KR", Georgia, serif';
-      ctx.fillText('ALIGNED 0.8', 20, 29);
-      ctx.strokeStyle = '#000000';
-      for (let r = 0; r < 5; r++) {
-        ctx.beginPath();
-        ctx.moveTo(14, 48 + r * 22);
-        ctx.lineTo(w - 14, 48 + r * 22);
-        ctx.stroke();
+export function getDecodedStride(frameIndex: number): HTMLImageElement | undefined {
+  const n = DECODED_STRIDES.length;
+  if (n === 0) return undefined;
+  return DECODED_STRIDES[((frameIndex % n) + n) % n];
+}
+
+async function loadAndDecodeImage(src: string): Promise<HTMLImageElement> {
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = src;
+  if (typeof img.decode === 'function') {
+    await img.decode();
+  } else {
+    await new Promise<void>((resolve, reject) => {
+      if (img.complete && img.naturalWidth > 0) {
+        resolve();
+        return;
       }
-      for (let c = 0; c < 4; c++) {
-        ctx.beginPath();
-        ctx.moveTo(14 + c * 70, 48);
-        ctx.lineTo(14 + c * 70, 136);
-        ctx.stroke();
-      }
-      ctx.fillStyle = '#0000ff';
-      ctx.fillRect(84, 70, 70, 22);
-      break;
-    }
-    case 'salinity-curve': {
-      ctx.strokeStyle = '#000000';
-      ctx.beginPath();
-      ctx.moveTo(24, 18);
-      ctx.lineTo(24, 138);
-      ctx.lineTo(220, 138);
-      ctx.stroke();
-      for (let i = 1; i <= 4; i++) {
-        ctx.strokeStyle = 'rgba(0,0,0,0.16)';
-        ctx.beginPath();
-        ctx.moveTo(24, 138 - i * 26);
-        ctx.lineTo(220, 138 - i * 26);
-        ctx.stroke();
-      }
-      ctx.strokeStyle = '#0000ff';
-      ctx.lineWidth = 2.2;
-      ctx.beginPath();
-      for (let x = 0; x <= 190; x += 4) {
-        const u = x / 190;
-        const y = 132 - Math.pow(u, 1.65) * 96;
-        if (x === 0) ctx.moveTo(26 + x, y);
-        else ctx.lineTo(26 + x, y);
-      }
-      ctx.stroke();
-      ctx.fillStyle = '#ff0000';
-      ctx.beginPath();
-      ctx.arc(154, 74, 4.5, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-    case 'onggi-pores': {
-      ctx.fillStyle = '#ffd09a';
-      ctx.fillRect(14, 14, w - 28, h - 28);
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1.2;
-      for (let i = 0; i < 18; i++) {
-        const cx = 32 + ((i * 53) % 176);
-        const cy = 28 + ((i * 37) % 104);
-        const rx = 8 + (i % 5) * 3.5;
-        const ry = 6 + ((i + 2) % 4) * 3;
-        ctx.fillStyle = i % 3 === 0 ? '#ffffff' : '#ff9e4d';
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, rx, ry, (i * 0.7) % Math.PI, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-      }
-      ctx.strokeStyle = '#ff0000';
-      ctx.beginPath();
-      ctx.moveTo(24, 132);
-      ctx.bezierCurveTo(80, 108, 132, 46, 214, 30);
-      ctx.stroke();
-      break;
-    }
-    case 'salt-bloom': {
-      ctx.fillStyle = '#ff9e4d';
-      ctx.fillRect(14, 14, w - 28, h - 28);
-      ctx.strokeStyle = '#000000';
-      ctx.fillStyle = '#ffffff';
-      const drawCluster = (cx: number, cy: number, r: number) => {
-        for (let k = 0; k < 8; k++) {
-          const a = (k * Math.PI) / 4;
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
-          ctx.stroke();
-          ctx.fillRect(cx + Math.cos(a) * r * 0.65 - 3, cy + Math.sin(a) * r * 0.65 - 3, 6, 6);
-          ctx.strokeRect(cx + Math.cos(a) * r * 0.65 - 3, cy + Math.sin(a) * r * 0.65 - 3, 6, 6);
-        }
-      };
-      drawCluster(76, 82, 34);
-      drawCluster(164, 70, 28);
-      drawCluster(130, 114, 20);
-      break;
-    }
-    case 'hopper-crystal': {
-      ctx.fillStyle = '#ffaf66';
-      ctx.fillRect(14, 14, w - 28, h - 28);
-      const cx = w / 2;
-      const cy = h / 2;
-      for (let k = 7; k >= 1; k--) {
-        const s = k * 15;
-        ctx.fillStyle = k % 2 === 0 ? '#ffffff' : '#ffd09a';
-        ctx.fillRect(cx - s * 1.18, cy - s * 0.82, s * 2.36, s * 1.64);
-        ctx.strokeStyle = '#000000';
-        ctx.strokeRect(cx - s * 1.18, cy - s * 0.82, s * 2.36, s * 1.64);
-      }
-      ctx.strokeStyle = '#ff0000';
-      ctx.beginPath();
-      ctx.moveTo(cx - 105, cy - 66);
-      ctx.lineTo(cx + 105, cy + 66);
-      ctx.moveTo(cx + 105, cy - 66);
-      ctx.lineTo(cx - 105, cy + 66);
-      ctx.stroke();
-      break;
-    }
-    case 'cubic-lattice': {
-      for (let y = 20; y <= 140; y += 24) {
-        for (let x = 24; x <= 216; x += 24) {
-          ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-          ctx.strokeRect(x - 12, y - 12, 24, 24);
-          ctx.fillStyle = ((x + y) / 24) % 2 === 0 ? '#0000ff' : '#ff9e4d';
-          ctx.beginPath();
-          ctx.arc(x, y, 3.6, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      break;
-    }
-    case 'diapir-strata': {
-      for (let i = 0; i < 9; i++) {
-        ctx.beginPath();
-        const baseY = 26 + i * 14;
-        for (let x = 14; x <= w - 14; x += 6) {
-          const dx = (x - w / 2) / 58;
-          const dome = Math.exp(-dx * dx) * 34 * (1 - i * 0.06);
-          const y = baseY + 18 - dome;
-          if (x === 14) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.strokeStyle = i === 4 ? '#ff0000' : '#000000';
-        ctx.lineWidth = i === 4 ? 1.8 : 1.1;
-        ctx.stroke();
-      }
-      break;
-    }
-    case 'drill-core': {
-      const bands = ['#ffffff', '#ffd09a', '#ffffff', '#ffaf66', '#ffffff', '#ff9e4d', '#ffffff', '#0000ff', '#ffffff', '#ffc080'];
-      for (let i = 0; i < bands.length; i++) {
-        const y0 = 16 + i * 12.8;
-        ctx.fillStyle = bands[i]!;
-        ctx.fillRect(54, y0, 132, 12.8);
-        ctx.strokeStyle = '#000000';
-        ctx.strokeRect(54, y0, 132, 12.8);
-        ctx.beginPath();
-        ctx.moveTo(34, y0 + 6);
-        ctx.lineTo(50, y0 + 6);
-        ctx.stroke();
-      }
-      ctx.strokeStyle = '#ff0000';
-      ctx.beginPath();
-      ctx.moveTo(192, 16);
-      ctx.lineTo(192, 144);
-      ctx.stroke();
-      break;
-    }
-    case 'fluid-bubble': {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(14, 14, w - 28, h - 28);
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1.6;
-      ctx.strokeRect(42, 26, 156, 108);
-      ctx.fillStyle = '#ffd09a';
-      ctx.fillRect(54, 38, 132, 84);
-      ctx.strokeRect(54, 38, 132, 84);
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(114, 80, 26, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#ff0000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(154, 64, 7, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1.1;
-      ctx.stroke();
-      break;
-    }
-    case 'polarizer-cross': {
-      const cx = w / 2;
-      const cy = h / 2;
-      for (let r = 64; r >= 12; r -= 12) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = r % 24 === 0 ? '#0000ff' : '#ff9e4d';
-        ctx.lineWidth = 2.4;
-        ctx.stroke();
-      }
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(22, cy);
-      ctx.lineTo(w - 22, cy);
-      ctx.moveTo(cx, 16);
-      ctx.lineTo(cx, h - 16);
-      ctx.stroke();
-      ctx.fillStyle = '#ff0000';
-      ctx.beginPath();
-      ctx.arc(cx + 16, cy - 12, 5, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-    case 'ice-core-bubbles': {
-      ctx.fillStyle = '#0000ff';
-      ctx.fillRect(14, 14, w - 28, h - 28);
-      for (let i = 0; i < 24; i++) {
-        const cx = 30 + ((i * 47) % 180);
-        const cy = 28 + ((i * 29) % 104);
-        const r = 3.5 + (i % 5) * 2.4;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fill();
-        if (i % 6 === 0) {
-          ctx.strokeStyle = '#ff0000';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
-      }
-      break;
-    }
-    case 'sandstone-wind': {
-      ctx.fillStyle = '#ffd09a';
-      ctx.fillRect(14, 14, w - 28, h - 28);
-      for (let row = 0; row < 4; row++) {
-        const y0 = 24 + row * 31;
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(14, y0);
-        ctx.lineTo(w - 14, y0);
-        ctx.stroke();
-        for (let k = 0; k < 8; k++) {
-          const sx = 24 + k * 27 + (row % 2) * 10;
-          ctx.beginPath();
-          ctx.moveTo(sx, y0);
-          ctx.quadraticCurveTo(sx - 10, y0 + 22, sx - 24, y0 + 31);
-          ctx.strokeStyle = k === 4 ? '#ff0000' : '#000000';
-          ctx.lineWidth = 1.1;
-          ctx.stroke();
-        }
-      }
-      break;
-    }
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error(`Failed to load plate image: ${src}`));
+    });
+  }
+  if (!img.complete || img.naturalWidth <= 0) {
+    throw new Error(`Decoded plate image has zero dimensions: ${src}`);
+  }
+  return img;
+}
+
+/**
+ * Preload & decode all 16 archival plates + 5 Muybridge stride frames,
+ * plus verify every `<img>` element already mounted in the document.
+ */
+export function preloadAllPlates(root: ParentNode = document): Promise<void> {
+  if (!preloadPromise) {
+    preloadPromise = (async () => {
+      const plateTasks = ARCHIVAL_PLATES.map(async (spec) => {
+        const img = await loadAndDecodeImage(spec.src);
+        DECODED_IMAGES.set(spec.id, img);
+      });
+      const strideTasks = STRIDE_SOURCES.map(async (src, idx) => {
+        const img = await loadAndDecodeImage(src);
+        DECODED_STRIDES[idx] = img;
+      });
+      await Promise.all([...plateTasks, ...strideTasks]);
+    })();
   }
 
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(0.75, 0.75, w - 1.5, h - 1.5);
-
-  const url = canvas.toDataURL('image/png');
-  cache.set(spec.id, url);
-  return url;
+  return preloadPromise.then(async () => {
+    const domImgs = Array.from(root.querySelectorAll('img'));
+    await Promise.all(
+      domImgs.map(async (img) => {
+        if (img.complete && img.naturalWidth > 0) return;
+        if (typeof img.decode === 'function') {
+          await img.decode();
+        } else {
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error(`DOM img failed: ${img.src}`));
+          });
+        }
+      }),
+    );
+  });
 }

@@ -1,5 +1,6 @@
-# Dependencies & build output
+# Dependencies, staging cache & build output
 node_modules/
+.cache/
 dist/
 
 # Rendered videos, stills & temporary captures (never commit large media binaries)

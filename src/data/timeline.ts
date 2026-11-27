@@ -1,7 +1,7 @@
 /**
- * Timeline constants, scene markers, and bottom editorial narrative captions.
- * 기획·카피·연출 담당 팀원은 엔진 코드(`src/engine/stage.ts`)를 건드리지 않고
- * 이 파일에서 씬 라벨과 하단 내러티브 캡션을 안전하게 수정할 수 있습니다.
+ * Four-Act Musical & Spatial Timeline (`120.0s @ 120 BPM = 240 beats`).
+ * Note: Raw moving-image stage (`?raw=1`) is 100% Zero-UI (no bottom caption bar or app chrome).
+ * `SCENES` and `STAGE_CAPTIONS` are used exclusively by the external Studio Preview controller (`src/studio.ts`).
  */
 
 export const STAGE_W = 6480;
@@ -18,10 +18,10 @@ export interface SceneMarker {
 }
 
 export const SCENES: readonly SceneMarker[] = [
-  { id: 'scene-1', label: 'Scene 1 (카드스택)', t: 0.0, start: 0, end: 28 },
-  { id: 'scene-2', label: 'Scene 2 (원문분해·벡터)', t: 28.0, start: 28, end: 46 },
-  { id: 'scene-3', label: 'Scene 3 (3D나선·구름·궤도)', t: 46.0, start: 46, end: 88 },
-  { id: 'scene-4', label: 'Scene 4 (구절분해·재검색)', t: 88.0, start: 88, end: 120 },
+  { id: 'act-1', label: 'Act I · 정렬의 프레스와 사선 건축 (00:00)', t: 0.0, start: 0, end: 30 },
+  { id: 'act-2', label: 'Act II · 판면 해부와 벡터 스펙트럼 (00:30)', t: 30.0, start: 30, end: 46 },
+  { id: 'act-3', label: 'Act III · 6종 해체 시공간 유영 (00:46)', t: 46.0, start: 46, end: 88 },
+  { id: 'act-4', label: 'Act IV · 0.14 각성과 기원의 소거 (01:28)', t: 88.0, start: 88, end: 120 },
 ];
 
 export interface StageCaption {
@@ -32,16 +32,14 @@ export interface StageCaption {
 }
 
 export const STAGE_CAPTIONS: readonly StageCaption[] = [
-  { a: 0.3, b: 4.0, text: '검색어 하나 — 김치찌개 끓이는 법', seg: 0 },
-  { a: 4.0, b: 10.0, text: 'aligned — 상위 결과가 하나의 표준 레시피로 정렬됩니다', seg: 0 },
-  { a: 10.0, b: 23.0, text: '01~04 skewed — 가까이에서 멀리로, 사선 검색이 30m 전 폭으로 갈라집니다', seg: 1 },
-  { a: 23.0, b: 28.0, text: '04 skewed 끝단 카드 선택 — 원문 페이지 분해 진입', seg: 1 },
-  { a: 28.0, b: 37.0, text: '원문 페이지 개방 · 의미 단위 수직 절단 (CUTS)', seg: 2 },
-  { a: 37.0, b: 46.0, text: '조각 200개 · 1024차원 벡터 바코드 · 쌍별 코사인 유사도 스캔', seg: 3 },
-  { a: 46.0, b: 64.0, text: '읽는 순서 [2D → 3D 수평 나선 Helix] — 교량 전 폭을 감는 3차원 활자 나선', seg: 4 },
-  { a: 64.0, b: 76.0, text: '상호 유사도 [2D 스프링 → 3D 구름 Cloud] — 의미 성운과 붉은 유사도 실선망', seg: 5 },
-  { a: 76.0, b: 88.0, text: '검색어 유사도 [타원 궤도 Orbit] — 가장 먼 변방도 0.14 하한으로 남습니다', seg: 6 },
-  { a: 88.0, b: 101.0, text: '변방(0.14) 조각 포커스 · 더 잘게 구절 분해 · 이 조각으로 다시 검색', seg: 6 },
-  { a: 101.0, b: 107.0, text: '"수억 년 전의 바람" — 5,000px 대륙 횡단 재검색 도약', seg: 7 },
-  { a: 107.0, b: 118.4, text: '2차 aligned · 01~04 skewed 전개 — 지나온 길은 history 레일에 그대로 남습니다', seg: 7 },
+  { a: 0.0, b: 8.0, text: 'Act I.1 — 평균의 프레스: 손맛의 기억들이 단일 통계 공식으로 압착됩니다', seg: 0 },
+  { a: 8.0, b: 11.0, text: 'Act I.2 — 크로노포토그래피 질주: 정지된 규격을 가르고 사선의 지평을 엽니다', seg: 1 },
+  { a: 11.0, b: 30.0, text: 'Act I.3 — 01→04 Skewed 모놀리스 군도와 사선 History 리본, 04 도판 다이빙', seg: 2 },
+  { a: 30.0, b: 39.0, text: 'Act II.1 — 풀블리드 파인프레스 스프레드 개방 및 120 BPM 단두대 절단 (CUTS)', seg: 3 },
+  { a: 39.0, b: 46.0, text: 'Act II.2 — 1024-DIM 바코드 스펙트럼 각인 · 코사인 계측 레이저 스캔', seg: 4 },
+  { a: 46.0, b: 61.5, text: 'Act III.1 — 선형 세로단(2D)에서 30m 수평 나선(3D Helix · DOF)으로 전이', seg: 5 },
+  { a: 61.5, b: 76.0, text: 'Act III.2 — 의미 인력 스프링(2D) 베지어 동맥망과 3D 의미 성운(Cloud) 관통', seg: 6 },
+  { a: 76.0, b: 88.0, text: 'Act III.3 — 질문 타원 궤도(2D Orbit · ε 0.14)와 3D 질문 구체(Sphere Shell)', seg: 6 },
+  { a: 88.0, b: 101.5, text: 'Act IV.1 — 0.14 주변부 문장 각성 · 5가닥 현수선 공명 · 3D 활자 단층 분열', seg: 7 },
+  { a: 101.5, b: 120.0, text: 'Act IV.2 — "수억 년 전의 바람" 수평 돌풍 · 기원 소거 · 제2 사선 지평 · 순백 순환', seg: 7 },
 ];

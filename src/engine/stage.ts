@@ -1,23 +1,18 @@
 /**
- * Single Unbroken 6480x432 (15:1) Deterministic Live Web-Art Motion Engine.
- * Inherits 100% of Team 2 (art-hackathon) visual grammar & Three.js 3D mechanics:
- * - Scene 1 (0–28s): Query typing -> top-left dock -> 10 blue aligned cards + 3D floor shadows ->
- *                    3,860px Near-to-Far axis + 01~04 skewed orange 3D stacks + red rule arrows +
- *                    runner wave bump + right 3D oblique history conveyor + card selection & [분해] click!
- * - Scene 2 (28–46s): Panoramic 5,640px #chrome preview -> #FF0000 sentence CUTS ->
- *                     44-tick 1px black 1024-dim vector barcodes -> pairwise #FF0000 cosine laser scan & burst!
- * - Scene 3 (46–88s): Full-span 200-fragment 6-mode 2D/3D morphing:
- *                     Reading 2D -> [3D] Horizontal 30m Helix (Three.js perspective + billboarding) ->
- *                     Meaning 2D Springs -> [3D] Volumetric Cloud + 440+ taut #FF0000 threads ->
- *                     Query Similarity Elliptical Orbit (scale=0.72+t, opacity=0.14+0.86t, 0.14 floor)!
- * - Scene 4 (88–120s): Peripheral 0.14 focus ("결정이 녹을 때 수억 년 전의 바람이 분다") + 0.16 dim +
- *                      5 red neighbor threads + 1px solid #000 focus panel -> [더 잘게 분해] arc split ->
- *                      [이 조각으로 다시 검색] -> 5,000px continental flight -> Gen 2 full-span card finale ->
- *                      pure #FFFFFF seamless 0 LSB loop wash!
+ * Museum-Grade Zero-UI 6480 × 432 (15:1) Deterministic Four-Act Moving-Image Engine (`src/engine/stage.ts`)
+ *
+ * Strictly adheres to:
+ *   - 100% Pure `renderAt(t)` determinism (`0 LSB` difference under arbitrary timestamp jumps)
+ *   - Zero App UI Chrome (`0` buttons, `0` inputs, `0` browser nav glyphs, `0` popup panels, `0` tutorial formulas)
+ *   - Silkscreen overprint materiality (`mix-blend-mode: multiply` across `#0000FF`, `#FF9E4D..#FFD09A`, `#FF0000`, and 16 lithographs)
+ *   - Catmull-Rom camera rig + Three.js 3D perspective + optical Focal-Plane DOF (`blur()` + contrast attenuation)
+ *   - 120 BPM percussive hard cuts contrasted against weightless slow drifts & vast pure-white negative space (`>= 85%`)
  */
 
 import * as THREE from 'three';
 import {
+  ALIGNED_FORMULA,
+  ALIGNED_MEMORY_LINES,
   GEN1_ALIGNED_CARDS,
   GEN1_SKEWED_STATIONS,
   GEN2_ALIGNED_CARDS,
@@ -25,22 +20,25 @@ import {
   getCorpus,
   QUERY_GEN1,
   QUERY_GEN2,
-  TARGET_FRAGMENT_TEXT,
   TARGET_PHRASE_PIECES,
   type CardSpec,
   type SkewedStationSpec,
 } from '../data/corpus.ts';
-import { DURATION, STAGE_CAPTIONS, STAGE_H, STAGE_W } from '../data/timeline.ts';
-import { renderEditorialPlate } from '../illustrations.ts';
+import { DURATION, STAGE_H, STAGE_W } from '../data/timeline.ts';
+import { getDecodedPlate, getDecodedStride, getPlateById } from '../illustrations.ts';
 import { computePanoramicLayouts } from '../layouts/deconstruct-layout.ts';
 import {
   beatPulse,
+  catmullRom,
   clamp,
   clampRedGain,
+  easeInCubic,
   easeInOut,
   easeInOutCubic,
   easeOutCubic,
   easeOutExpo,
+  evalCameraRig,
+  hardCutFlash,
   hash,
   lerp,
   ORANGE,
@@ -48,45 +46,44 @@ import {
   span,
   stepArc,
   win,
+  type CameraKeyframe,
 } from '../math.ts';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 let stageFilterSeq = 0;
 
-interface PlacedCard {
-  spec: CardSpec;
-  el: HTMLElement;
-  shadow: SVGPolygonElement;
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-  h: number;
-  at: number;
-  gen: 1 | 2;
-  stationIdx?: number;
+interface PlacedMonolith {
+  readonly spec: CardSpec;
+  readonly el: HTMLElement;
+  readonly shadow: SVGPolygonElement;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly w: number;
+  readonly h: number;
+  readonly at: number;
+  readonly gen: 1 | 2;
+  readonly stationIdx?: number;
 }
 
-interface RuleArrow {
-  gen: 1 | 2;
-  line: SVGPathElement;
-  head: SVGPathElement;
-  at: number;
-  dur: number;
+interface FloorTrajectory {
+  readonly gen: 1 | 2;
+  readonly curve: SVGPathElement;
+  readonly head: SVGPathElement;
+  readonly at: number;
+  readonly dur: number;
 }
 
-interface AxisStationDom {
-  gen: 1 | 2;
-  spec: SkewedStationSpec;
-  labelEl: HTMLElement;
-  dotEl: HTMLElement;
-  at: number;
+interface AxisStationNode {
+  readonly gen: 1 | 2;
+  readonly spec: SkewedStationSpec;
+  readonly stationEl: HTMLElement;
+  readonly dotEl: HTMLElement;
+  readonly at: number;
 }
 
 export interface MotionStageOptions {
-  /** Use half-resolution 2D canvas for the small top overview strip so dual-viewport runs at 60fps. */
   canvasScale?: number;
-  /** Red-channel RGB gain in [0.50, 1.00] for LED red-tint rehearsal calibration (default 1.0). */
   redGain?: number;
 }
 
@@ -112,13 +109,28 @@ function makeEl<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+/** Deterministic Catmull-Rom 2D/3D viewport camera score across 120.0s */
+const CAMERA_SCORE: readonly CameraKeyframe[] = [
+  { t: 0.0, cx: 3240, cy: 216, zoom: 1.0, hold: true },
+  { t: 11.0, cx: 3240, cy: 216, zoom: 1.0 },
+  { t: 12.4, cx: 1420, cy: 210, zoom: 1.28 },
+  { t: 15.2, cx: 3180, cy: 214, zoom: 1.24 },
+  { t: 17.8, cx: 4720, cy: 214, zoom: 1.22 },
+  { t: 19.8, cx: 3240, cy: 216, zoom: 1.0, hold: true }, // Full 30m Overview (20.0s..25.6s)
+  { t: 25.6, cx: 3240, cy: 216, zoom: 1.0 },
+  { t: 27.6, cx: 5160, cy: 204, zoom: 1.62 },
+  { t: 29.96, cx: 5485, cy: 184, zoom: 2.75, hold: true }, // Vertical dive into 04 Skewed plate-07!
+  { t: 30.0, cx: 3240, cy: 216, zoom: 1.0, hold: true },   // Hard cut -> Full-bleed Archive Spread & Acts II-IV
+  { t: 120.0, cx: 3240, cy: 216, zoom: 1.0, hold: true },
+];
+
 export function createMotionStage(host: HTMLElement, options: MotionStageOptions = {}): MotionStageHandle {
   const canvasScale = options.canvasScale ?? 1;
   const corpus = getCorpus();
-  const { fragments, targetIndex, neighborIndices, topEdges, neighbors } = corpus;
+  const { fragments, targetIndex, neighborIndices, topEdges } = corpus;
   const layouts = computePanoramicLayouts(fragments, corpus.rankedPairs, targetIndex, neighborIndices);
 
-  /* --- 0. Hidden SVG feColorMatrix Filter for LED Red-Tint Calibration (?rgain=0.50..1.00) --- */
+  /* --- 0. SVG feColorMatrix Filter for Rehearsal Red-Tint Calibration (`?rgain=0.50..1.00`) --- */
   const filterId = `stage-rgain-filter-${++stageFilterSeq}`;
   const filterSvg = document.createElementNS(SVG_NS, 'svg');
   filterSvg.setAttribute('class', 'stage-filter-defs');
@@ -158,7 +170,36 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
   };
   setRedGain(options.redGain ?? 1.0);
 
-  /* --- 1. Floor SVG (Shadow Layer + Red Rule Arrows) --- */
+  /* --- 1. Swiss Precision Hairline Registration Grid (`0.5px` Vernier ticks & fiducials) --- */
+  const gridSvg = document.createElementNS(SVG_NS, 'svg');
+  gridSvg.setAttribute('class', 'swiss-grid-svg');
+  gridSvg.setAttribute('viewBox', `0 0 ${STAGE_W} ${STAGE_H}`);
+  let gridMarkup = `<line x1="40" y1="18" x2="${STAGE_W - 40}" y2="18" stroke="#000000" stroke-width="0.45" stroke-opacity="0.35"/>`;
+  gridMarkup += `<line x1="40" y1="${STAGE_H - 18}" x2="${STAGE_W - 40}" y2="${STAGE_H - 18}" stroke="#000000" stroke-width="0.45" stroke-opacity="0.35"/>`;
+  for (let x = 180; x <= STAGE_W - 180; x += 360) {
+    const major = x % 720 === 0;
+    const h = major ? 7 : 4;
+    gridMarkup += `<line x1="${x}" y1="18" x2="${x}" y2="${18 - h}" stroke="#000000" stroke-width="0.5" stroke-opacity="0.55"/>`;
+    gridMarkup += `<line x1="${x}" y1="${STAGE_H - 18}" x2="${x}" y2="${STAGE_H - 18 + h}" stroke="#000000" stroke-width="0.5" stroke-opacity="0.55"/>`;
+    if (major) {
+      // Delicate crosshair fiducial at horizon y=216
+      gridMarkup += `<path d="M${x - 4} 216 L${x + 4} 216 M${x} 212 L${x} 220" stroke="#000000" stroke-width="0.45" stroke-opacity="0.28"/>`;
+    }
+  }
+  gridSvg.innerHTML = gridMarkup;
+  world.append(gridSvg);
+
+  /* --- 1B. Micro-Monospace Telemetry Band (y = 4px, Ryoji Ikeda precision) --- */
+  const telemetryBar = makeEl('div', 'swiss-telemetry-bar', root);
+  const telLeft = makeEl('span', 'telemetry-tag', telemetryBar);
+  telLeft.style.left = '44px';
+  const telCenter = makeEl('span', 'telemetry-tag', telemetryBar);
+  telCenter.style.left = '3240px';
+  telCenter.style.transform = 'translateX(-50%)';
+  const telRight = makeEl('span', 'telemetry-tag', telemetryBar);
+  telRight.style.right = '520px';
+
+  /* --- 2. Floor SVG (Compact Architectural Cast Shadows + 3D Floor Bezier Trajectories) --- */
   const floorSvg = document.createElementNS(SVG_NS, 'svg');
   floorSvg.setAttribute('class', 'stage-floor-svg');
   floorSvg.setAttribute('viewBox', `0 0 ${STAGE_W} ${STAGE_H}`);
@@ -166,32 +207,94 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
   const shadowLayer = document.createElementNS(SVG_NS, 'g');
   shadowLayer.setAttribute('fill', '#000000');
-  shadowLayer.setAttribute('opacity', '0.10');
-  shadowLayer.style.filter = 'blur(4px)';
   floorSvg.append(shadowLayer);
 
-  const arrowLayer = document.createElementNS(SVG_NS, 'g');
-  floorSvg.append(arrowLayer);
+  const trajLayer = document.createElementNS(SVG_NS, 'g');
+  floorSvg.append(trajLayer);
 
-  /* --- 2. High-Precision 2D Canvas (CUTS, 44-tick Vector Barcodes, Pairwise Lasers, Red Threads, Flight Trail) --- */
-  const canvas = makeEl('canvas', 'stage-canvas', world);
-  canvas.width = Math.round(STAGE_W * canvasScale);
-  canvas.height = Math.round(STAGE_H * canvasScale);
-  const ctx = canvas.getContext('2d')!;
+  /* --- 3. Act I.1: Opening Press of Alignment (`00:00 – 00:08`) --- */
+  const pressLayer = makeEl('div', 'press-layer', world);
 
-  /* --- 3. Scene 2 #chrome Panoramic Document Window --- */
-  const chrome = makeEl('div', 'page-chrome', world);
-  const chromeBar = makeEl('div', 'page-chrome-bar', chrome);
-  makeEl('span', 'page-chrome-nav', chromeBar, '← → ↻');
-  makeEl('span', 'page-chrome-url', chromeBar, 'https://archive.geology.kr/halite-fluid-inclusion-280ma');
-  makeEl('span', 'page-chrome-meta', chromeBar, '자연사 아카이브 · 페름기 암염 유체 포유물 원문 (200 fragments · 1024-dim)');
+  const voronoiImgA = document.createElement('img');
+  voronoiImgA.className = 'press-voronoi-plate';
+  voronoiImgA.src = getPlateById('plate-01').src;
+  voronoiImgA.alt = '';
+  voronoiImgA.style.left = '2520px';
+  voronoiImgA.style.top = '0px';
+  pressLayer.append(voronoiImgA);
 
-  /* --- 4. Card Space Layer (Gen 1 & Gen 2 Aligned + Skewed 3D Cards) --- */
+  const voronoiImgB = document.createElement('img');
+  voronoiImgB.className = 'press-voronoi-plate';
+  voronoiImgB.src = getPlateById('plate-15').src;
+  voronoiImgB.alt = '';
+  voronoiImgB.style.left = '5160px';
+  voronoiImgB.style.top = '0px';
+  pressLayer.append(voronoiImgB);
+
+  const pressHeroQuery = makeEl('div', 'press-hero-query', pressLayer, QUERY_GEN1);
+
+  const pressMemories = ALIGNED_MEMORY_LINES.map((m) => {
+    const lineEl = makeEl('div', 'press-memory-line', pressLayer, m.text);
+    const slabEl = makeEl('div', 'press-blue-slab', pressLayer);
+    return { spec: m, lineEl, slabEl };
+  });
+
+  const pressFormula = makeEl('div', 'press-formula-stamp', pressLayer, ALIGNED_FORMULA);
+  const pressMasterBlueBar = makeEl('div', 'press-blue-slab', pressLayer);
+  pressMasterBlueBar.style.left = '140px';
+  pressMasterBlueBar.style.top = '192px';
+  pressMasterBlueBar.style.width = '6200px';
+  pressMasterBlueBar.style.height = '48px';
+
+  /* --- 4. Architectural Query Datum Header (Top-Left, Zero Input Chrome) --- */
+  const datumAnchor = makeEl('div', 'datum-query-anchor', world);
+  const datumKicker = makeEl('span', 'datum-query-kicker', datumAnchor, 'QUERY.01 / ALIGNED AXIS');
+  const datumText = makeEl('span', 'datum-query-text', datumAnchor, QUERY_GEN1);
+  const datumRule = makeEl('div', 'datum-query-rule', datumAnchor);
+  datumRule.style.width = '320px';
+
+  /* --- 5. Act II: 6,200 × 432 Full-Bleed Fine-Press Archive Spread (`30.0 – 39.0s`) --- */
+  const spreadLayer = makeEl('div', 'archive-spread', world);
+  const heroSpreadEls = layouts.heroSpreadSlots.map((slot) => {
+    const wrap = makeEl('div', 'spread-hero-slot', spreadLayer);
+    wrap.style.left = `${slot.x}px`;
+    wrap.style.top = `${slot.y}px`;
+    wrap.style.width = `${slot.w}px`;
+    wrap.style.height = `${slot.h}px`;
+
+    const img = document.createElement('img');
+    img.src = getPlateById(slot.plateId).src;
+    img.alt = slot.caption;
+    wrap.append(img);
+
+    const meta = makeEl('div', 'spread-hero-meta', wrap);
+    makeEl('span', 'spread-hero-code', meta, slot.code);
+    makeEl('span', 'spread-hero-cap', meta, slot.caption);
+    return { slot, wrap };
+  });
+
+  /* --- 5B. Horizon Lithograph Backdrop (Polar Sastrugi `plate-16` behind Gen 2 Monoliths) --- */
+  const sastrugiBackdrop = document.createElement('img');
+  sastrugiBackdrop.src = getPlateById('plate-16').src;
+  sastrugiBackdrop.alt = '';
+  sastrugiBackdrop.style.position = 'absolute';
+  sastrugiBackdrop.style.left = '4320px';
+  sastrugiBackdrop.style.top = '156px';
+  sastrugiBackdrop.style.width = '1840px';
+  sastrugiBackdrop.style.height = '276px';
+  sastrugiBackdrop.style.objectFit = 'cover';
+  sastrugiBackdrop.style.mixBlendMode = 'multiply';
+  sastrugiBackdrop.style.pointerEvents = 'none';
+  sastrugiBackdrop.style.zIndex = '3';
+  sastrugiBackdrop.style.opacity = '0';
+  world.append(sastrugiBackdrop);
+
+  /* --- 6. Act I & Act IV: 3D Architectural Silkscreen & Lithograph Monoliths --- */
   const cardLayer = makeEl('div', 'card-layer', world);
-  const placedCards: PlacedCard[] = [];
-  const ruleArrows: RuleArrow[] = [];
+  const monoliths: PlacedMonolith[] = [];
+  const trajectories: FloorTrajectory[] = [];
 
-  const addPlacedCard = (
+  const addMonolith = (
     spec: CardSpec,
     x: number,
     y: number,
@@ -200,1085 +303,1349 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     h: number,
     at: number,
     stationIdx?: number,
-  ): PlacedCard => {
-    const el = makeEl('article', 'art-card', cardLayer);
-    el.style.width = `${w}px`;
-    el.style.height = `${h}px`;
+  ): PlacedMonolith => {
+    const el = makeEl('article', 'monolith-card', cardLayer);
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
+    el.style.width = `${w}px`;
+    el.style.height = `${h}px`;
     el.style.zIndex = String(Math.round(100 + z));
 
-    const tabCls = spec.group === 'aligned' ? 'art-card-tab aligned' : `art-card-tab skewed-${spec.rank ?? 1}`;
-    const tabTxt = spec.group === 'aligned' ? 'aligned' : `0${spec.rank ?? 1} skewed`;
-    makeEl('div', tabCls, el, tabTxt);
-    makeEl('div', 'art-card-title', el, spec.title);
-    makeEl('div', 'art-card-url', el, spec.url);
-    makeEl('div', 'art-card-rule', el);
-    makeEl('div', 'art-card-snippet', el, spec.snippet);
+    const bandCls = spec.group === 'aligned' ? 'monolith-band aligned' : `monolith-band skewed-${spec.rank ?? 1}`;
+    const band = makeEl('div', bandCls, el);
+    makeEl('span', '', band, spec.indexCode);
+    makeEl('span', '', band, spec.metric);
+
+    if (spec.plateId) {
+      const pWrap = makeEl('div', 'monolith-plate-wrap', el);
+      pWrap.style.height = spec.group === 'skewed' ? '114px' : '74px';
+      const img = document.createElement('img');
+      img.src = getPlateById(spec.plateId).src;
+      img.alt = spec.title;
+      pWrap.append(img);
+
+      if (spec.group === 'skewed' && spec.rank) {
+        const slab = makeEl('div', 'monolith-tint-slab', pWrap);
+        slab.style.background = ORANGE[spec.rank];
+        makeEl('span', 'monolith-rank-num', pWrap, `0${spec.rank}`);
+      }
+    }
+
+    const body = makeEl('div', 'monolith-body', el);
+    makeEl('div', 'monolith-title', body, spec.title);
+    makeEl('div', 'monolith-snippet', body, spec.snippet);
 
     const shadow = document.createElementNS(SVG_NS, 'polygon');
     shadowLayer.append(shadow);
 
-    const rec: PlacedCard = { spec, el, shadow, x, y, z, w, h, at, gen: spec.gen, stationIdx };
-    placedCards.push(rec);
+    const rec: PlacedMonolith = { spec, el, shadow, x, y, z, w, h, at, gen: spec.gen, stationIdx };
+    monoliths.push(rec);
     return rec;
   };
 
-  const addSvgArrow = (gen: 1 | 2, pts: [number, number][], at: number, dur = 0.72, color = '#ff0000', width = 1.5) => {
-    const line = document.createElementNS(SVG_NS, 'path');
-    line.setAttribute('d', pts.map(([px, py], idx) => `${idx ? 'L' : 'M'}${px} ${py}`).join(''));
-    line.setAttribute('pathLength', '1');
-    line.setAttribute('fill', 'none');
-    line.setAttribute('stroke', color);
-    line.setAttribute('stroke-width', String(width));
-    line.setAttribute('vector-effect', 'non-scaling-stroke');
+  const addBezierTrajectory = (
+    gen: 1 | 2,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    dipY: number,
+    at: number,
+    dur = 0.85,
+  ) => {
+    const cx1 = lerp(x0, x1, 0.28);
+    const cx2 = lerp(x0, x1, 0.76);
+    const curve = document.createElementNS(SVG_NS, 'path');
+    curve.setAttribute('d', `M${x0.toFixed(1)} ${y0.toFixed(1)} C${cx1.toFixed(1)} ${dipY.toFixed(1)}, ${cx2.toFixed(1)} ${dipY.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`);
+    curve.setAttribute('pathLength', '1');
+    curve.setAttribute('fill', 'none');
+    curve.setAttribute('stroke', '#ff0000');
+    curve.setAttribute('stroke-width', '1.45');
+    curve.style.mixBlendMode = 'multiply';
 
-    const [ex, ey] = pts[pts.length - 1]!;
-    const [px, py] = pts[pts.length - 2]!;
-    const len = Math.hypot(ex - px, ey - py) || 1;
-    const ux = (ex - px) / len;
-    const uy = (ey - py) / len;
+    // Tangent direction at endpoint from (cx2, dipY) -> (x1, y1)
+    const dx = x1 - cx2;
+    const dy = y1 - dipY;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
     const head = document.createElementNS(SVG_NS, 'path');
     head.setAttribute(
       'd',
-      `M${ex - ux * 10 - uy * 5.5} ${ey - uy * 10 + ux * 5.5}L${ex} ${ey}L${ex - ux * 10 + uy * 5.5} ${ey - uy * 10 - ux * 5.5}`,
+      `M${(x1 - ux * 10 - uy * 5).toFixed(1)} ${(y1 - uy * 10 + ux * 5).toFixed(1)} L${x1.toFixed(1)} ${y1.toFixed(1)} L${(x1 - ux * 10 + uy * 5).toFixed(1)} ${(y1 - uy * 10 - ux * 5).toFixed(1)}`,
     );
     head.setAttribute('fill', 'none');
-    head.setAttribute('stroke', color);
-    head.setAttribute('stroke-width', String(width));
-    head.setAttribute('vector-effect', 'non-scaling-stroke');
-    arrowLayer.append(line, head);
-    ruleArrows.push({ gen, line, head, at, dur });
+    head.setAttribute('stroke', '#ff0000');
+    head.setAttribute('stroke-width', '1.45');
+
+    trajLayer.append(curve, head);
+    trajectories.push({ gen, curve, head, at, dur });
   };
 
-  // --- GEN 1 Cards (Scene 1: 4.0s .. 17.5s) ---
-  // Left diagonal 3D trunk (10 unique aligned cards cascading cleanly across x = 110 .. 1640!)
-  const g1Trunk: PlacedCard[] = GEN1_ALIGNED_CARDS.map((spec, i) => {
-    const row = i % 2;
-    const x = 116 + i * 144 + (row === 1 ? 18 : 0);
-    const y = 92 + (i % 5) * 32 + row * 12;
-    const w = 236 + (i % 3) * 14;
-    const h = 136;
-    return addPlacedCard(spec, x, y, i * 12, w, h, 4.0 + i * 0.34);
+  // --- GEN 1 Monoliths (Act I: 6.2s .. 30.0s) ---
+  const g1Trunk: PlacedMonolith[] = GEN1_ALIGNED_CARDS.map((spec, i) => {
+    const x = 112 + i * 154;
+    const y = 96 + (i % 4) * 38;
+    const w = 248;
+    const h = spec.plateId ? 192 : 124;
+    return addMonolith(spec, x, y, i * 10, w, h, 6.2 + i * 0.22);
   });
 
-  // 4 Skewed stations across x = 1860 .. 5860 (3 staggered 3D cards per station = 12 unique cards!)
-  const g1Stacks: PlacedCard[][] = GEN1_SKEWED_STATIONS.map((st, sIdx) =>
+  const g1Stacks: PlacedMonolith[][] = GEN1_SKEWED_STATIONS.map((st, sIdx) =>
     st.cards.map((spec, cIdx) => {
-      const x = st.x - 120 + cIdx * 116;
-      const y = 118 + cIdx * 34;
-      const w = 248 + cIdx * 10;
-      const h = 132;
-      return addPlacedCard(spec, x, y, 40 + sIdx * 20 + cIdx * 18, w, h, 11.2 + sIdx * 1.15 + cIdx * 0.28, sIdx);
+      const x = st.x - 168 + cIdx * 124;
+      const y = 104 + cIdx * 32;
+      const w = 282;
+      const h = 224;
+      return addMonolith(spec, x, y, 40 + sIdx * 24 + cIdx * 20, w, h, 11.2 + sIdx * 1.15 + cIdx * 0.28, sIdx);
     }),
   );
-  const chosenCard = g1Stacks[3]![2]!; // Terminal 04 skewed card at x ≈ 5252
+  const diveTargetCard = g1Stacks[3]![2]!; // 04 Skewed Permian fluid inclusion monolith at x ≈ 5420
 
-  // Red orthogonal rule arrows from blue aligned trunk to each 01~04 skewed stack (Scene 1: 15.5s .. 18.0s)
   g1Stacks.forEach((stack, sIdx) => {
     const src = g1Trunk[Math.min(g1Trunk.length - 1, 5 + sIdx)]!;
-    const dst = stack[2]!;
-    const railY = 344 + sIdx * 10;
-    const startX = src.x + src.w;
-    const targetX = dst.x + dst.w * 0.5;
-    addSvgArrow(
+    const dst = stack[1]!;
+    addBezierTrajectory(
       1,
-      [
-        [startX, Math.min(railY, src.y + src.h - 8)],
-        [startX + 42, railY],
-        [targetX, railY],
-        [targetX, dst.y + dst.h + 4],
-      ],
-      15.5 + sIdx * 0.35,
-      0.85,
+      src.x + src.w * 0.75,
+      src.y + src.h,
+      dst.x + dst.w * 0.42,
+      dst.y + dst.h + 2,
+      392 + sIdx * 6,
+      15.2 + sIdx * 0.4,
+      0.95,
     );
   });
 
-  // --- GEN 2 Cards (Scene 4 Finale: 107.0s .. 118.2s) ---
-  const g2Trunk: PlacedCard[] = GEN2_ALIGNED_CARDS.map((spec, i) => {
-    const x = 116 + i * 176;
-    const y = 94 + (i % 4) * 34;
-    const w = 242 + (i % 2) * 16;
-    const h = 136;
-    return addPlacedCard(spec, x, y, i * 14, w, h, 107.0 + i * 0.25);
+  // --- GEN 2 Monoliths (Act IV: 106.4s .. 119.5s — 16 unique monoliths: 4 Aligned + 12 Skewed) ---
+  const g2Trunk: PlacedMonolith[] = GEN2_ALIGNED_CARDS.map((spec, i) => {
+    const x = 118 + i * 336;
+    const y = 106 + (i % 2) * 46;
+    const w = 296;
+    const h = 216;
+    return addMonolith(spec, x, y, 20 + i * 16, w, h, 106.5 + i * 0.28);
   });
 
-  const g2Stacks: PlacedCard[][] = GEN2_SKEWED_STATIONS.map((st, sIdx) =>
+  const g2Stacks: PlacedMonolith[][] = GEN2_SKEWED_STATIONS.map((st, sIdx) =>
     st.cards.map((spec, cIdx) => {
-      const x = st.x - 120 + cIdx * 116;
-      const y = 118 + cIdx * 34;
-      const w = 248 + cIdx * 10;
-      const h = 132;
-      return addPlacedCard(spec, x, y, 40 + sIdx * 20 + cIdx * 18, w, h, 109.2 + sIdx * 0.85 + cIdx * 0.22, sIdx);
+      const x = st.x - 166 + cIdx * 122;
+      const y = 102 + cIdx * 32;
+      const w = 282;
+      const h = 224;
+      return addMonolith(spec, x, y, 42 + sIdx * 24 + cIdx * 20, w, h, 108.0 + sIdx * 0.72 + cIdx * 0.22, sIdx);
     }),
   );
 
   g2Stacks.forEach((stack, sIdx) => {
-    const src = g2Trunk[Math.min(g2Trunk.length - 1, 4 + sIdx)]!;
-    const dst = stack[2]!;
-    const railY = 344 + sIdx * 10;
-    const startX = src.x + src.w;
-    const targetX = dst.x + dst.w * 0.5;
-    addSvgArrow(
+    const src = g2Trunk[Math.min(g2Trunk.length - 1, sIdx)]!;
+    const dst = stack[1]!;
+    addBezierTrajectory(
       2,
-      [
-        [startX, Math.min(railY, src.y + src.h - 8)],
-        [startX + 42, railY],
-        [targetX, railY],
-        [targetX, dst.y + dst.h + 4],
-      ],
-      112.6 + sIdx * 0.25,
-      0.75,
+      src.x + src.w * 0.72,
+      src.y + src.h,
+      dst.x + dst.w * 0.42,
+      dst.y + dst.h + 2,
+      392 + sIdx * 6,
+      110.2 + sIdx * 0.3,
+      0.85,
     );
   });
 
-  /* --- 5. Horizontal Near-to-Far Axis + 4 Orange Station Labels + Runner Dot (Gen 1 & Gen 2) --- */
+  /* --- 7. Skewed Distance Datum Axis (`01 -> 04`) --- */
   const axisLayer = makeEl('div', 'axis-layer', world);
-  const AXIS_X0 = 1780;
-  const AXIS_X1 = 5640;
-  const AXIS_Y = 82;
+  const AXIS_X0 = 1840;
+  const AXIS_X1 = 5780;
+  const AXIS_Y = 74;
 
   const axisBar = makeEl('div', 'axis-bar', axisLayer);
   axisBar.style.left = `${AXIS_X0}px`;
   axisBar.style.top = `${AXIS_Y}px`;
   axisBar.style.width = `${AXIS_X1 - AXIS_X0}px`;
 
-  const nearEnd = makeEl('div', 'axis-end', axisLayer, '가까이');
-  nearEnd.style.left = `${AXIS_X0 - 58}px`;
-  nearEnd.style.top = `${AXIS_Y - 10}px`;
-
-  const farEnd = makeEl('div', 'axis-end', axisLayer, '멀리');
-  farEnd.style.left = `${AXIS_X1 + 12}px`;
-  farEnd.style.top = `${AXIS_Y - 10}px`;
-
-  const runnerEl = makeEl('div', 'axis-runner', axisLayer);
-  runnerEl.style.top = `${AXIS_Y - 5}px`;
-
-  const axisStations: AxisStationDom[] = [];
-  const registerStations = (list: SkewedStationSpec[], gen: 1 | 2, baseAt: number, step: number) => {
+  const axisNodes: AxisStationNode[] = [];
+  const registerAxis = (list: readonly SkewedStationSpec[], gen: 1 | 2, baseAt: number, step: number) => {
     list.forEach((st, idx) => {
-      const labelEl = makeEl('div', 'axis-term', axisLayer);
-      labelEl.style.left = `${st.x - 16}px`;
-      labelEl.style.top = '34px';
-      makeEl('div', 'axis-term-main', labelEl, st.label);
-      makeEl('div', 'axis-term-sub', labelEl, st.sublabel);
+      const stationEl = makeEl('div', 'axis-station', axisLayer);
+      stationEl.style.left = `${st.x - 160}px`;
+      stationEl.style.top = '28px';
+      makeEl('div', 'axis-station-code', stationEl, st.code);
+      makeEl('div', 'axis-station-title', stationEl, st.label);
 
       const dotEl = makeEl('div', 'axis-dot', axisLayer);
-      dotEl.style.left = `${st.x - 6}px`;
-      dotEl.style.top = `${AXIS_Y - 5.5}px`;
+      dotEl.style.left = `${st.x - 5}px`;
+      dotEl.style.top = `${AXIS_Y - 5}px`;
       dotEl.style.background = ORANGE[st.rank];
-      axisStations.push({ gen, spec: st, labelEl, dotEl, at: baseAt + idx * step });
+
+      axisNodes.push({ gen, spec: st, stationEl, dotEl, at: baseAt + idx * step });
     });
   };
-  registerStations(GEN1_SKEWED_STATIONS, 1, 10.6, 1.15);
-  registerStations(GEN2_SKEWED_STATIONS, 2, 108.8, 0.85);
+  registerAxis(GEN1_SKEWED_STATIONS, 1, 11.0, 1.15);
+  registerAxis(GEN2_SKEWED_STATIONS, 2, 107.8, 0.72);
 
-  /* --- 6. Card Selection Detail Bar (되돌아가기 · 분해 · 검색 이어가기) --- */
-  const detailBar = makeEl('div', 'detail-bar', world);
-  detailBar.style.left = `${chosenCard.x + chosenCard.w * 0.5}px`;
-  detailBar.style.top = '352px';
-  makeEl('span', '', detailBar, '되돌아가기');
-  const detailDeconstructBtn = makeEl('span', '', detailBar, '분해');
-  makeEl('span', '', detailBar, '검색 이어가기');
-
-  /* --- 7. Right-Edge 3D Oblique History Conveyor Rail (exact art-hackathon history-rail.ts!) --- */
+  /* --- 8. Right-Edge 3D Oblique History Ribbon (Pierces Top & Bottom Frame) --- */
   const historyWrap = makeEl('aside', 'history-rail-wrap', world);
   const historyScene = makeEl('div', 'history-scene', historyWrap);
   const historyList = makeEl('ol', 'history-list', historyScene);
-  makeEl('li', 'history-title', historyList, 'history');
+  makeEl('li', 'history-head', historyList, 'HISTORY / TRACE');
 
-  const historyItems: { el: HTMLElement; card: CardSpec; at: number }[] = [];
-  const allVisitedSeq: { card: CardSpec; at: number }[] = [
-    ...g1Trunk.slice(0, 6).map((c) => ({ card: c.spec, at: c.at + 0.3 })),
-    ...g1Stacks.map((st) => ({ card: st[2]!.spec, at: st[2]!.at + 0.3 })),
-    ...g2Trunk.slice(0, 5).map((c) => ({ card: c.spec, at: c.at + 0.25 })),
-    ...g2Stacks.map((st) => ({ card: st[2]!.spec, at: st[2]!.at + 0.25 })),
+  const historyItems: { el: HTMLElement; at: number }[] = [];
+  const visitedCards: { spec: CardSpec; at: number }[] = [
+    ...g1Trunk.slice(0, 5).map((c) => ({ spec: c.spec, at: c.at + 0.3 })),
+    ...g1Stacks.map((st) => ({ spec: st[2]!.spec, at: st[2]!.at + 0.25 })),
+    ...g2Trunk.map((c) => ({ spec: c.spec, at: c.at + 0.25 })),
+    ...g2Stacks.map((st) => ({ spec: st[2]!.spec, at: st[2]!.at + 0.25 })),
   ];
-  for (const item of allVisitedSeq) {
+  for (const item of visitedCards) {
     const li = makeEl('li', 'history-page', historyList);
+    const topRow = makeEl('div', 'history-page-top', li);
     const badge = makeEl(
       'span',
-      'history-page-badge',
-      li,
-      item.card.group === 'aligned' ? 'aligned' : `0${item.card.rank ?? 1} skewed`,
+      'history-badge',
+      topRow,
+      item.spec.group === 'aligned' ? 'ALIGNED' : `0${item.spec.rank ?? 1} SKEWED`,
     );
-    if (item.card.group === 'aligned') {
+    if (item.spec.group === 'aligned') {
       badge.style.background = '#0000ff';
       badge.style.color = '#ffffff';
     } else {
-      badge.style.background = ORANGE[item.card.rank ?? 1];
+      badge.style.background = ORANGE[item.spec.rank ?? 1];
       badge.style.color = '#000000';
     }
-    makeEl('div', 'history-page-link', li, item.card.title);
-    makeEl('p', '', li, item.card.snippet);
-    historyItems.push({ el: li, card: item.card, at: item.at });
+    makeEl('span', '', topRow, item.spec.metric);
+    makeEl('div', 'history-page-title', li, item.spec.title);
+    makeEl('p', 'history-page-snip', li, item.spec.snippet);
+    historyItems.push({ el: li, at: item.at });
   }
 
-  /* --- 8. Top-Left Query Line & Flying Chained Query ("김치찌개 끓이는 법 → 수억 년 전의 바람") --- */
-  const queryLine = makeEl('div', 'query-line', root);
-  const queryBox = makeEl('div', 'query-box', root);
-  makeEl('span', 'q-label', queryBox, '검색어:');
-  const queryValue = makeEl('span', '', queryBox, QUERY_GEN1);
-  const queryCaret = makeEl('span', 'query-caret', queryBox);
-  const querySep = makeEl('div', 'query-sep', root, '→');
-  const queryNext = makeEl('div', 'query-next', root, QUERY_GEN2);
+  /* --- 9. High-Precision 2D Silkscreen Canvas --- */
+  const canvas = makeEl('canvas', 'stage-canvas', world);
+  canvas.width = Math.round(STAGE_W * canvasScale);
+  canvas.height = Math.round(STAGE_H * canvasScale);
+  const ctx = canvas.getContext('2d')!;
 
-  // Measure query widths deterministically (matching Noto Serif KR 26px metrics)
-  const q1Width = 304; // "검색어: 김치찌개 끓이는 법"
-  const q2Width = 204; // "수억 년 전의 바람"
-  const SEP_X = 80 + q1Width + 14;
-  const NEXT_X = SEP_X + 36;
-  querySep.style.left = `${SEP_X}px`;
-
-  /* --- 9. Scene 3 Top-Center Deconstruct Header + Mode Bar --- */
-  const deconHead = makeEl('header', 'deconstruct-head', root);
-  const deconTitleRow = makeEl('div', 'deconstruct-title-row', deconHead);
-  makeEl('div', 'deconstruct-title', deconTitleRow, '분해: 암염 유체 기포에 봉인된 고생대 대기');
-  const deconSummary = makeEl(
-    'div',
-    'deconstruct-summary',
-    deconTitleRow,
-    `조각 ${fragments.length}개 · 글 ${fragments.filter((f) => f.type === 'text').length} · 이미지 ${fragments.filter((f) => f.type === 'img').length} · 연결 ${topEdges.length}개`,
-  );
-  const deconModes = makeEl('div', 'deconstruct-modes', deconHead);
-  const modeReadEl = makeEl('span', 'deconstruct-mode-item', deconModes, '읽는 순서');
-  const modeMeaningEl = makeEl('span', 'deconstruct-mode-item', deconModes, '상호 유사도');
-  const modeQueryEl = makeEl('span', 'deconstruct-mode-item', deconModes, '검색어 유사도');
-  const depthBadgeEl = makeEl('span', 'deconstruct-depth-badge', deconModes, '3D');
-
-  /* --- 10. 200 Unique Deconstructed Fragments + 3 Split Phrase Pieces --- */
+  /* --- 10. 200 Multi-Layered Deconstructed Fragments (`70 Anchors + 110 Sentences + 20 Plates`) --- */
   const fragLayer = makeEl('div', 'frag-layer', world);
   const fragEls: HTMLElement[] = fragments.map((f) => {
-    const el = makeEl('div', `frag${f.isHeading ? ' is-heading' : ''}${f.type === 'img' ? ' is-img' : ''}`, fragLayer);
+    const cls =
+      f.type === 'img' ? 'frag is-img' : f.tier === 'anchor' ? 'frag is-anchor' : 'frag is-sentence';
+    const el = makeEl('div', cls, fragLayer);
     if (f.type === 'img' && f.plate) {
       const img = document.createElement('img');
-      img.src = renderEditorialPlate(f.plate);
+      img.src = f.plate.src;
       img.alt = f.plate.label;
       el.append(img);
-      makeEl('span', 'frag-lab', el, f.plate.label);
+      makeEl('span', 'frag-lab', el, `${f.plate.code} · ${f.plate.label}`);
     } else {
       el.textContent = f.content;
-      const baseFs = f.isHeading ? 21 : f.content.length <= 15 ? 19 : 15.5;
-      el.style.fontSize = `${baseFs}px`;
+      el.style.fontSize = `${f.baseFontPx}px`;
     }
     return el;
   });
 
-  const pieceEls: HTMLElement[] = TARGET_PHRASE_PIECES.map((p) => makeEl('div', 'piece-frag', world, p.text));
+  /* --- 11. Special Telemetry Callouts, Central Orbit Sanctuary & Act IV Fault-Line / Gale --- */
+  const specialLayer = makeEl('div', 'special-layer', world);
+  const laserTelemetryEl = makeEl('div', 'laser-telemetry', specialLayer);
 
-  /* --- 11. Editorial Notes & Scene 4 Focus Panel --- */
-  const noteLayer = makeEl('div', 'note-layer', root);
+  const orbitSanctuaryEl = makeEl('div', 'orbit-center-sanctuary', specialLayer);
+  makeEl('span', 'orbit-center-kicker', orbitSanctuaryEl, 'ORIGIN NUCLEUS · COS 1.000');
+  makeEl('span', 'orbit-center-query', orbitSanctuaryEl, QUERY_GEN1);
 
-  const formulaEl = makeEl('div', 'editorial-formula', noteLayer);
-  formulaEl.innerHTML =
-    `<span><i>w</i><sub><i>ij</i></sub></span><span>=</span>` +
-    `<span class="frac"><span>1 + cos(<i>e</i><sub><i>i</i></sub>, <i>e</i><sub><i>j</i></sub>)</span><span>2</span></span>` +
-    `<span class="pair-count"><i>n</i>(<i>n</i>−1)/2 = 19,900쌍</span>`;
+  const peripheryBeaconEl = makeEl('div', 'periphery-beacon', specialLayer);
 
-  const pairCalloutEl = makeEl('div', 'pair-callout', noteLayer);
-  const orbitQueryEl = makeEl('div', 'orbit-query-mark', noteLayer, QUERY_GEN1);
-  const orbitLawEl = makeEl(
-    'div',
-    'orbit-law-box',
-    noteLayer,
-    '불투명도 = 0.14 + 0.86t\n크기 = 0.72 + t\nt : 정규화한 검색어 유사도',
-  );
-  const floorCalloutEl = makeEl('div', 'floor-callout', noteLayer, '0.14');
+  // Act IV 3D Fault-Line Shards (`z: -70, +90, -50` + `#FF0000 × #0000FF` silkscreen overprint on center shard!)
+  const shardEls = TARGET_PHRASE_PIECES.map((p, idx) => {
+    const base = makeEl('div', 'fault-shard', specialLayer, p.text);
+    base.style.fontSize = idx === 1 ? '82px' : '38px';
+    base.style.fontWeight = idx === 1 ? '700' : '400';
+    return base;
+  });
+  const centerShardOverprint = makeEl('div', 'fault-shard-overprint', specialLayer, QUERY_GEN2);
+  centerShardOverprint.style.fontSize = '82px';
 
-  // Authentic art-hackathon 1px solid #000 focus panel (Scene 4: 88.8–101.2s)
-  // Positioned at x = 5350..5790 so both the peripheral fragment (x ≈ 4940..5260) and full panel fit inside a 1280px 1:1 viewport!
-  const focusPanel = makeEl('section', 'focus-panel', root);
-  focusPanel.style.left = '5350px';
-  focusPanel.style.top = '94px';
-  const focusContentEl = makeEl('p', 'focus-panel-content', focusPanel, TARGET_FRAGMENT_TEXT);
-  makeEl('p', 'focus-panel-sim', focusPanel, `검색어 "${QUERY_GEN1}"와의 유사도 0.14`);
-  const focusActions = makeEl('div', 'focus-panel-actions', focusPanel);
-  const btnResearchEl = makeEl('div', 'focus-btn research', focusActions, '이 조각으로 다시 검색');
-  const btnBreakEl = makeEl('div', 'focus-btn break', focusActions, '더 잘게 분해');
-  makeEl('p', 'focus-panel-label', focusPanel, '가까운 조각 (Top 5)');
-  const focusNbOl = makeEl('ol', 'focus-neighbors', focusPanel);
-  for (const nb of neighbors[targetIndex] ?? []) {
-    const fNb = fragments[nb.index]!;
-    makeEl('li', '', focusNbOl, `${nb.weight.toFixed(2)}  ${fNb.content}`);
-  }
+  // Act IV Horizontal Gale Hero Text ("수억 년 전의 바람" sweeping 6,480px)
+  const galeOverprintEl = makeEl('div', 'gale-wind-overprint', specialLayer, QUERY_GEN2);
+  const galeBannerEl = makeEl('div', 'gale-wind-banner', specialLayer, QUERY_GEN2);
 
-  /* --- 12. Bottom Editorial Rule, Concise Rhythm Caption & 8-Segment Progress --- */
-  const bottomRule = makeEl('div', 'bottom-rule', root);
-  const bottomCaption = makeEl('div', 'bottom-caption', root);
-  const bottomSegsWrap = makeEl('div', 'bottom-segs', root);
-  const segEls = Array.from({ length: 8 }, () => makeEl('div', 'bottom-seg', bottomSegsWrap));
-
-  /* --- 13. Loop Pure-White Wash --- */
+  /* --- 12. Loop Pure-White Wash --- */
   const fadeWash = makeEl('div', 'stage-fade', root);
 
-  /* --- Three.js Perspective Camera calibrated to 1 world unit = 1px @ z=0 across 6480x432! --- */
+  /* --- Three.js Perspective Camera (`1 world unit = 1px @ z=0`) --- */
   const CAM_FOV_DEG = 22;
   const Z_CAM = (STAGE_H * 0.5) / Math.tan(THREE.MathUtils.degToRad(CAM_FOV_DEG * 0.5)); // ≈ 1111.21
   const camera3D = new THREE.PerspectiveCamera(CAM_FOV_DEG, STAGE_W / STAGE_H, 10, 40000);
   const tmpVec = new THREE.Vector3();
 
-  /** Project a 3D world point (centered at 0,0,0 -> screen 6480x432) through Three.js PerspectiveCamera */
-  const project3D = (wx: number, wy: number, wz: number): { sx: number; sy: number; depthScale: number; zNdc: number } => {
+  const project3D = (
+    wx: number,
+    wy: number,
+    wz: number,
+  ): { sx: number; sy: number; depthScale: number; distFromFocal: number } => {
     tmpVec.set(wx, wy, wz);
-    const dist = Math.max(250, tmpVec.distanceTo(camera3D.position));
+    const dist = Math.max(220, tmpVec.distanceTo(camera3D.position));
+    // Focal plane sits slightly forward of origin (z = +55) so foreground anchors pop razor-sharp!
+    const distFromFocal = wz - 55;
     tmpVec.project(camera3D);
     return {
       sx: (tmpVec.x + 1) * 0.5 * STAGE_W,
       sy: (1 - tmpVec.y) * 0.5 * STAGE_H,
-      depthScale: clamp(Z_CAM / dist, 0.72, 1.32),
-      zNdc: tmpVec.z,
+      depthScale: clamp(Z_CAM / dist, 0.66, 1.42),
+      distFromFocal,
     };
   };
 
-  /* --- Pre-defined Scene 2 Pairwise Laser Measurements (41.0s .. 44.2s) --- */
+  /* --- Pre-defined Act II Pairwise Cosine Laser Scans (`40.6s .. 43.8s`) --- */
   const pairLasers = [
-    { a: 1, b: 29, score: '0.88', t0: 41.0, t1: 41.8 },
-    { a: 45, b: 84, score: '0.79', t0: 41.8, t1: 42.6 },
-    { a: 112, b: 148, score: '0.64', t0: 42.6, t1: 43.4 },
-    { a: 1, b: targetIndex, score: '0.14', t0: 43.4, t1: 44.2 },
+    { a: 2, b: 26, score: 'COS 0.884', t0: 40.5, t1: 41.35 },
+    { a: 42, b: 82, score: 'COS 0.792', t0: 41.35, t1: 42.2 },
+    { a: 108, b: 146, score: 'COS 0.641', t0: 42.2, t1: 43.05 },
+    { a: 2, b: targetIndex, score: 'COS 0.140 · ε', t0: 43.05, t1: 43.9 },
   ];
 
-  /* --- Deterministic All-Pairs Burst Subset (650 long-range pairs for crisp 44–46s burst) --- */
+  /* --- Deterministic Crimson Radial All-Pairs Scan (`43.9s .. 46.0s`) --- */
   const burstPairs: [number, number, number][] = [];
-  for (let k = 0; k < 650; k++) {
+  for (let k = 0; k < 720; k++) {
     const a = Math.floor(hash(k * 17 + 3) * fragments.length);
     const b = Math.floor(hash(k * 29 + 11) * fragments.length);
     if (a !== b) burstPairs.push([a, b, hash(k * 53 + 7)]);
   }
 
-  // Reusable per-frame fragment screen coordinate buffer
-  const screenPos: { x: number; y: number; s: number; o: number; zIdx: number }[] = fragments.map(() => ({
-    x: 0,
-    y: 0,
-    s: 1,
-    o: 0,
-    zIdx: 10,
-  }));
+  // Reusable per-frame fragment screen buffer
+  const screenPos: { x: number; y: number; z: number; s: number; o: number; blur: number; zIdx: number }[] =
+    fragments.map(() => ({
+      x: 0,
+      y: 0,
+      z: 0,
+      s: 1,
+      o: 0,
+      blur: 0,
+      zIdx: 10,
+    }));
 
-  /** Smooth Action Focal X for Live Studio Preview Auto-Follow Camera */
+  /** Studio Preview Auto-Follow X coordinate */
   function getFocusX(tRaw: number): number {
     const t = ((tRaw % DURATION) + DURATION) % DURATION;
-    if (t < 2.2) return 1020;
-    if (t < 4.0) return lerp(1020, 740, easeInOut(progress(t, 2.2, 4.0)));
-    if (t < 10.0) return lerp(740, 1340, easeInOut(progress(t, 4.0, 10.0)));
-    if (t < 18.5) return lerp(1340, 4800, easeInOut(progress(t, 10.0, 18.5)));
-    if (t < 23.0) return lerp(1900, 5400, easeInOut(progress(t, 18.5, 23.0)));
-    if (t < 28.0) return 5260;
-    if (t < 33.0) return lerp(5260, 1600, easeInOut(progress(t, 28.0, 33.0)));
-    if (t < 37.0) return lerp(1600, 5100, easeInOut(progress(t, 33.0, 37.0)));
-    if (t < 41.0) return lerp(5100, 3240, easeInOut(progress(t, 37.0, 41.0)));
+    if (t < 3.0) return 1180;
+    if (t < 8.0) return lerp(1180, 3420, easeInOut(progress(t, 3.0, 7.0)));
+    if (t < 11.0) return lerp(900, 5600, progress(t, 8.0, 10.9));
+    if (t < 18.2) return lerp(1420, 4800, easeInOut(progress(t, 11.0, 18.0)));
+    if (t < 25.6) return lerp(4800, 3240, easeInOut(progress(t, 18.2, 21.0)));
+    if (t < 30.0) return lerp(3240, 5480, easeInOut(progress(t, 25.6, 29.5)));
+    if (t < 34.5) return lerp(1600, 4800, easeInOut(progress(t, 30.0, 34.5)));
+    if (t < 39.0) return lerp(1200, 5200, progress(t, 34.5, 38.8));
     if (t < 46.0) return 3240;
-    if (t < 54.0) return lerp(2400, 4100, easeInOut(progress(t, 46.0, 54.0)));
-    if (t < 64.0) return lerp(1500, 4980, easeInOut(progress(t, 54.0, 64.0)));
-    if (t < 76.0) return lerp(4980, 3240, easeInOut(progress(t, 64.0, 76.0)));
-    if (t < 86.0) return 3240;
-    if (t < 88.8) return lerp(3240, 5210, easeInOut(progress(t, 86.0, 88.8)));
-    if (t < 101.2) return 5210;
-    if (t < 107.0) return lerp(5210, 960, easeInOut(progress(t, 101.2, 106.5)));
-    if (t < 118.2) return lerp(960, 4900, easeInOut(progress(t, 107.0, 117.0)));
+    if (t < 52.0) return 3240;
+    if (t < 61.5) return lerp(1800, 4680, easeInOut(progress(t, 52.0, 61.5)));
+    if (t < 68.5) return 3240;
+    if (t < 76.0) return lerp(2000, 4500, easeInOut(progress(t, 68.5, 76.0)));
+    if (t < 88.0) return 3240;
+    if (t < 101.5) return 4880;
+    if (t < 106.5) return lerp(5600, 960, easeInOut(progress(t, 101.5, 106.2)));
+    if (t < 118.0) return lerp(1400, 4900, easeInOut(progress(t, 106.5, 117.5)));
     return 3240;
   }
 
   /**
-   * Core deterministic frame renderer: identical timestamp t ALWAYS produces identical pixels!
+   * Pure deterministic renderer: `renderAt(t)` depends EXCLUSIVELY on `tRaw`.
    */
   function renderAt(tRaw: number): void {
     const t = ((tRaw % DURATION) + DURATION) % DURATION;
     const pulse = beatPulse(t, 1);
+    const beatIdx = Math.floor(t * 2);
 
+    // Reset 2D canvas cleanly
     ctx.setTransform(canvasScale, 0, 0, canvasScale, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.setLineDash([]);
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
     ctx.clearRect(0, 0, STAGE_W, STAGE_H);
 
-    // Master scene visibility windows
-    const inScene1 = t < 28.5;
-    const inDeconstruct = t >= 27.6 && t < 103.5;
-    const inScene4Cards = t >= 106.5;
-
-    // ---------------------------------------------------------------------
-    // A. TOP-LEFT QUERY LINE & 5,000px CONTINENTAL FLIGHT (motion_concept.html)
-    // ---------------------------------------------------------------------
-    const queryHideForDecon = win(t, 28.2, 102.4, 0.45);
-    const qBaseVis = span(t, 0.15, 0.5) * (1 - queryHideForDecon);
-
-    const typedCount = Math.floor(progress(t, 0.25, 2.15) * (QUERY_GEN1.length + 0.999));
-    queryValue.textContent = t < 2.25 ? QUERY_GEN1.slice(0, typedCount) : QUERY_GEN1;
-
-    const dockU = span(t, 2.25, 3.75, easeInOut);
-    const heroScale = 2.05;
-    const heroX = 860;
-    const heroY = 172;
-    const curQScale = lerp(heroScale, 1, dockU);
-    const curQX = lerp(heroX, 80, dockU);
-    const curQY = lerp(heroY, 14, dockU);
-    queryBox.style.transform = `translate(${curQX - 80}px, ${curQY - 14}px) scale(${curQScale})`;
-    queryBox.style.opacity = String(qBaseVis);
-
-    const blink = Math.floor(t * 2.0) % 2 === 0;
-    queryCaret.style.opacity = t < 2.25 && (blink || t < 2.15) ? '1' : '0';
-
-    // 5,000px Continental Flight of "수억 년 전의 바람" (101.0s .. 106.5s) -> docks right after '→'
-    const flyU = span(t, 101.2, 106.2, easeInOut);
-    const flyVis = t >= 101.0 ? span(t, 101.0, 101.3) : 0;
-    const [flyX, flyY] = stepArc(4960, 226, NEXT_X, 14, flyU, -108);
-    const flyScale = lerp(1.55, 1.0, flyU);
-    queryNext.style.opacity = String(flyVis);
-    queryNext.style.transform = `translate(${flyX}px, ${flyY}px) scale(${flyScale})`;
-    queryNext.style.color = flyU < 0.85 ? '#ff0000' : '#000000';
-    queryNext.style.background = flyU < 0.95 ? 'rgba(255,255,255,0.92)' : 'none';
-    queryNext.style.padding = flyU < 0.95 ? '0 8px' : '0';
-
-    // Draw delicate sweeping #FF0000 dashed flight arc across the 5,000px white span during 101.2..106.6s!
-    if (t >= 101.2 && t < 107.4) {
-      const trailAlpha = (1 - progress(t, 106.2, 107.4)) * 0.82;
-      if (trailAlpha > 0.01) {
-        ctx.save();
-        ctx.strokeStyle = `rgba(255, 0, 0, ${trailAlpha})`;
-        ctx.lineWidth = 1.6;
-        ctx.setLineDash([7, 6]);
-        ctx.beginPath();
-        const steps = 64;
-        const maxU = Math.min(1, flyU);
-        for (let k = 0; k <= steps; k++) {
-          const u = (k / steps) * maxU;
-          const [ax, ay] = stepArc(4960, 226, NEXT_X + 60, 32, u, -108);
-          if (k === 0) ctx.moveTo(ax, ay);
-          else ctx.lineTo(ax, ay);
-        }
-        ctx.stroke();
-        ctx.restore();
-      }
+    // -----------------------------------------------------------------------
+    // 0. CATMULL-ROM WORLD CAMERA RIG (`world.style.transform`)
+    // -----------------------------------------------------------------------
+    const cam = evalCameraRig(CAMERA_SCORE, t);
+    if (cam.zoom <= 1.0005) {
+      world.style.transform = 'none';
+    } else {
+      const visW = STAGE_W / cam.zoom;
+      const visH = STAGE_H / cam.zoom;
+      const clampedCx = clamp(cam.cx, visW * 0.5, STAGE_W - visW * 0.5);
+      const clampedCy = clamp(cam.cy, visH * 0.5, STAGE_H - visH * 0.5);
+      const leftX = clampedCx - visW * 0.5;
+      const topY = clampedCy - visH * 0.5;
+      world.style.transform = `scale(${cam.zoom.toFixed(5)}) translate3d(${(-leftX).toFixed(2)}px, ${(-topY).toFixed(2)}px, 0px)`;
     }
 
-    const sepOn = span(t, 105.6, 106.3);
-    querySep.style.opacity = String(sepOn);
+    // Update top micro-monospace Swiss telemetry bar
+    const phaseLabel =
+      t < 8.0
+        ? 'ACT I.1 / PRESS OF ALIGNMENT'
+        : t < 11.0
+          ? 'ACT I.2 / CHRONOPHOTOGRAPHY STRIDE'
+          : t < 30.0
+            ? 'ACT I.3 / SKEWED 3D ARCHIPELAGO [01→04]'
+            : t < 39.0
+              ? 'ACT II.1 / ARCHIVE SPREAD & GUILLOTINE CUTS'
+              : t < 46.0
+                ? 'ACT II.2 / 1024-DIM SPECTRUM & COSINE SCAN'
+                : t < 52.0
+                  ? 'ACT III.1 / LINEAR COLUMNS [2D]'
+                  : t < 61.5
+                    ? 'ACT III.2 / MONUMENTAL HELIX [3D · DOF]'
+                    : t < 68.5
+                      ? 'ACT III.3 / SEMANTIC AFFINITY ARTERIES [2D]'
+                      : t < 76.0
+                        ? 'ACT III.4 / VOLUMETRIC NEBULA [3D · SPLINE]'
+                        : t < 82.5
+                          ? 'ACT III.5 / QUERY ORBIT [2D · ε 0.14]'
+                          : t < 88.0
+                            ? 'ACT III.6 / SPHERE SHELL [3D · RADIAL]'
+                            : t < 95.0
+                              ? 'ACT IV.1 / PERIPHERAL AWAKENING [ε 0.14]'
+                              : t < 101.5
+                                ? 'ACT IV.2 / 3D TYPOGRAPHIC FAULT FRACTURE'
+                                : 'ACT IV.3 / PALEO-WIND GALE & GEN-2 HORIZON';
 
-    // 1px black query underline growing in lockstep with typed text, then extending on Gen 2 dock!
-    const qLineGrow = span(t, 0.25, 2.15, easeOutCubic);
-    const lineX = lerp(heroX, 80, dockU);
-    const lineY = lerp(heroY + 34 * heroScale + 8, 52, dockU);
-    const fullDockW = lerp(q1Width, NEXT_X + q2Width - 80, sepOn);
-    const lineW = lerp(q1Width * heroScale, fullDockW, dockU) * qLineGrow;
-    queryLine.style.left = `${lineX}px`;
-    queryLine.style.top = `${lineY}px`;
-    queryLine.style.width = `${lineW}px`;
-    queryLine.style.opacity = String(qBaseVis);
+    telLeft.textContent = `${phaseLabel} · 6480×432`;
+    telCenter.textContent = `120 BPM · BEAT ${String(beatIdx + 1).padStart(3, '0')} · T ${t.toFixed(2).padStart(6, '0')}S`;
+    telRight.textContent = t >= 105.6 ? `AXIS: ${QUERY_GEN2} · ε 0.14` : `AXIS: ${QUERY_GEN1} · 1024-DIM`;
 
-    // ---------------------------------------------------------------------
-    // B. SCENE 1 (0–28s) & SCENE 4 FINALE (107–118.2s): 3D CARDS, AXIS, ARROWS, HISTORY RAIL
-    // ---------------------------------------------------------------------
-    const s1Exit = 1 - span(t, 27.2, 28.4, easeInOut);
-    const s1Dim = span(t, 23.0, 23.8) * (1 - span(t, 27.0, 28.2));
-    const chosenFocus = span(t, 23.0, 23.9) * s1Exit;
+    // -----------------------------------------------------------------------
+    // 1. ACT I.1 (`00:00 – 00:08.2`): PRESS OF ALIGNMENT & VORONOI EBULLITION
+    // -----------------------------------------------------------------------
+    const inPress = t < 8.3;
+    if (!inPress) {
+      pressLayer.style.opacity = '0';
+      pressHeroQuery.style.opacity = '0';
+      voronoiImgA.style.opacity = '0';
+      voronoiImgB.style.opacity = '0';
+      pressFormula.style.opacity = '0';
+      pressMasterBlueBar.style.opacity = '0';
+      for (const pm of pressMemories) {
+        pm.lineEl.style.opacity = '0';
+        pm.slabEl.style.opacity = '0';
+      }
+    } else {
+      const pressOut = 1 - span(t, 7.3, 8.0, easeInCubic);
+      pressLayer.style.opacity = String(pressOut);
 
-    // Scene 1 card zoom transition into #chrome preview (26.0..28.2s)
-    const s1Zoom = span(t, 26.2, 28.2, easeInOut);
+      // Monumental architectural serif "김치찌개 끓이는 법" (136px, variable wght 200 -> 750)
+      const qEnter = span(t, 0.18, 0.9, easeOutExpo);
+      const qCompress = span(t, 5.8, 7.2, easeInOutCubic);
+      const wght = Math.round(lerp(210, 760, span(t, 0.6, 4.5, easeInOut) + pulse * 0.12));
+      const qScale = lerp(1.0, 0.24, qCompress);
+      const qX = lerp(160, 118, qCompress);
+      const qY = lerp(138, 30, qCompress);
+      pressHeroQuery.style.opacity = String(qEnter * (1 - span(t, 6.9, 7.4)));
+      pressHeroQuery.style.fontVariationSettings = `"wght" ${clamp(wght, 200, 900)}`;
+      pressHeroQuery.style.transform = `translate3d(${(qX - 160).toFixed(1)}px, ${(qY - 138).toFixed(1)}px, 0) scale(${qScale.toFixed(4)})`;
 
-    // Runner positions for Gen 1 (18.5..22.8s) and Gen 2 (113.8..117.5s)
-    const run1U = span(t, 18.5, 22.8, easeInOut);
-    const run1Vis = span(t, 18.2, 18.6) * (1 - span(t, 22.6, 23.1));
-    const run2U = span(t, 113.8, 117.6, easeInOut);
-    const run2Vis = span(t, 113.5, 113.9) * (1 - span(t, 117.4, 118.0));
+      // Voronoi boiling foam lithograph plates (`multiply`)
+      const vOp = span(t, 0.8, 2.0) * (1 - span(t, 6.8, 7.6)) * 0.88;
+      voronoiImgA.style.opacity = String(vOp);
+      voronoiImgA.style.transform = `scale(${(1.02 + t * 0.012).toFixed(4)})`;
+      voronoiImgB.style.opacity = String(vOp * 0.76);
+      voronoiImgB.style.transform = `scale(${(1.04 + t * 0.01).toFixed(4)})`;
 
-    // Render all Gen 1 & Gen 2 placed cards + dynamic blurred 3D floor shadows!
-    for (const c of placedCards) {
-      const activeGen = (c.gen === 1 && inScene1) || (c.gen === 2 && inScene4Cards);
-      if (!activeGen) {
+      // Living kitchen memory sentences slammed & overprinted on 120 BPM beats (`t = 1.5..6.5s`)
+      const crushToAxis = span(t, 4.6, 6.4, easeInOutCubic);
+      for (const pm of pressMemories) {
+        const tAppear = pm.spec.beat * 0.5; // exact 0.5s beat!
+        const tStamp = tAppear + 0.5;       // blue silkscreen bar stamps 1 beat later!
+        const memOn = t >= tAppear ? 1 : 0; // crisp 120 BPM hard-on entry
+        const stampOn = span(t, tStamp, tStamp + 0.18, easeOutExpo);
+        const curY = lerp(pm.spec.y, 216, crushToAxis);
+        const curX = lerp(pm.spec.x, 920, span(t, 6.2, 7.5, easeInCubic));
+        const fadeOut = 1 - span(t, 6.3, 7.2);
+
+        pm.lineEl.style.opacity = String(memOn * fadeOut * lerp(1, 0.32, crushToAxis));
+        pm.lineEl.style.left = `${curX.toFixed(1)}px`;
+        pm.lineEl.style.top = `${curY.toFixed(1)}px`;
+        pm.lineEl.style.transform = `translate(-50%, -50%) scaleY(${lerp(1, 0.55, crushToAxis).toFixed(3)})`;
+
+        const slabW = pm.spec.text.length * 29 + 34;
+        pm.slabEl.style.left = `${(curX - slabW * 0.5).toFixed(1)}px`;
+        pm.slabEl.style.top = `${(curY - 17).toFixed(1)}px`;
+        pm.slabEl.style.width = `${slabW.toFixed(0)}px`;
+        pm.slabEl.style.height = '34px';
+        pm.slabEl.style.opacity = String(stampOn * fadeOut * 0.72);
+        pm.slabEl.style.transform = `scaleX(${stampOn.toFixed(4)})`;
+      }
+
+      // Cold statistical average formula stamp (`450 ml · 1.75 tbsp · 12.5 min · 1.15 %`) peaking at t = 5.5s!
+      const formIn = t >= 4.0 ? span(t, 4.0, 4.12, easeOutExpo) : 0; // percussive 3-frame slam at beat 8!
+      const formCollapse = span(t, 6.4, 7.5, easeInOutCubic);
+      pressFormula.style.opacity = String(formIn * (1 - span(t, 7.1, 7.7)));
+      pressFormula.style.transform = `translate(${lerp(-50, -210, formCollapse).toFixed(1)}%, -50%) scale(${lerp(1.0, 0.52, formCollapse).toFixed(3)})`;
+
+      pressMasterBlueBar.style.opacity = String(span(t, 4.5, 4.65, easeOutExpo) * (1 - span(t, 6.8, 7.5)) * 0.42);
+      pressMasterBlueBar.style.transform = `scaleX(${span(t, 4.5, 5.2, easeOutExpo).toFixed(4)})`;
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. ARCHITECTURAL QUERY DATUM HEADER & TOTAL ORIGIN ERASURE
+    // -----------------------------------------------------------------------
+    const datumVisible =
+      (t >= 6.8 && t < 30.0 ? span(t, 6.8, 7.3) * (1 - span(t, 29.2, 29.95)) : 0) +
+      (t >= 103.5 ? span(t, 103.5, 104.2) : 0);
+
+    if (datumVisible <= 0.002) {
+      datumAnchor.style.opacity = '0';
+      datumAnchor.style.transform = 'none';
+    } else {
+      const originErased = t >= 105.5;
+      const shatter = win(t, 104.8, 105.6, 0.18);
+      datumKicker.textContent = originErased
+        ? 'RE-ASK.02 / ORIGIN ERASED · PALEO-WIND HORIZON'
+        : 'QUERY.01 / ALIGNED STATISTICAL AXIS';
+      datumKicker.style.color = originErased ? '#ff0000' : '#0000ff';
+      datumText.textContent = originErased ? QUERY_GEN2 : QUERY_GEN1;
+      datumAnchor.style.opacity = String(clamp(datumVisible * (1 - shatter * 0.85), 0, 1));
+      datumAnchor.style.transform = shatter > 0.01 ? `translateX(${(-shatter * 48).toFixed(1)}px) skewX(-14deg)` : 'none';
+      datumRule.style.transform = `scaleX(${originErased ? span(t, 105.5, 106.4).toFixed(3) : '1'})`;
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. ACT I.2 (`08.0 – 11.4s`): MUYBRIDGE 5-FRAME CHRONOPHOTOGRAPHY GALLOP
+    // -----------------------------------------------------------------------
+    if (t >= 8.0 && t < 11.6) {
+      const gallopFade = (t >= 8.0 ? 1 : 0) * (1 - span(t, 10.95, 11.55));
+      const leadU = progress(t, 8.0, 10.85);
+      const leadX = lerp(260, 6220, leadU);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+
+      // Horizon baseline hairline
+      ctx.strokeStyle = `rgba(0, 0, 0, ${(0.45 * gallopFade).toFixed(3)})`;
+      ctx.lineWidth = 0.75;
+      ctx.beginPath();
+      ctx.moveTo(120, 306.5);
+      ctx.lineTo(leadX + 120, 306.5);
+      ctx.stroke();
+
+      // 11 stroboscopic chronophotography afterimages + #FF0000 vertical time-slice hairlines
+      const stationsCount = 11;
+      for (let k = 0; k < stationsCount; k++) {
+        const sx = 480 + k * 510;
+        if (leadX < sx) continue;
+        const age = clamp((leadX - sx) / 2600, 0, 1);
+        const ghostAlpha = gallopFade * lerp(0.58, 0.15, age);
+        const strideImg = getDecodedStride(k % 5);
+        if (strideImg && ghostAlpha > 0.01) {
+          ctx.globalAlpha = ghostAlpha;
+          const w = 246;
+          const h = 164;
+          ctx.drawImage(strideImg, sx - w * 0.5, 224 - h * 0.5, w, h);
+        }
+
+        // Red stroboscopic shutter line
+        ctx.globalAlpha = gallopFade * lerp(0.75, 0.22, age);
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 0.85;
+        ctx.beginPath();
+        ctx.moveTo(sx + 0.5, 92);
+        ctx.lineTo(sx + 0.5, 336);
+        ctx.stroke();
+      }
+
+      // Crisp 15fps animated lead Muybridge horse tearing open the skewed space
+      const activeFrame = Math.floor((t - 8.0) * 15) % 5;
+      const leadSprite = getDecodedStride(activeFrame);
+      if (leadSprite && t < 11.05) {
+        ctx.globalAlpha = gallopFade;
+        const lw = 288;
+        const lh = 192;
+        ctx.drawImage(leadSprite, leadX - lw * 0.5, 218 - lh * 0.5, lw, lh);
+      }
+      ctx.restore();
+    }
+
+    // -----------------------------------------------------------------------
+    // 4. ACT I.3 (`06.2–30.0s`) & ACT IV.3 (`106.4–119.5s`): 3D MONOLITHS & RIBBON
+    // -----------------------------------------------------------------------
+    const inAct1Cards = t >= 6.1 && t < 30.0;
+    const inAct4Cards = t >= 106.3;
+
+    // Dive DOF intensity during 25.8..30.0s as camera plunges into 04 Skewed plate-07
+    const diveProgress = span(t, 25.8, 29.9, easeInOutCubic);
+
+    for (const c of monoliths) {
+      const live = (c.gen === 1 && inAct1Cards) || (c.gen === 2 && inAct4Cards);
+      if (!live) {
         c.el.style.opacity = '0';
+        c.el.style.filter = 'none';
+        c.el.style.outline = 'none';
         c.shadow.setAttribute('visibility', 'hidden');
         continue;
       }
 
-      const enter = span(t, c.at, c.at + 0.52, easeOutExpo);
+      const enter = span(t, c.at, c.at + 0.42, easeOutExpo);
       if (enter <= 0.002) {
         c.el.style.opacity = '0';
+        c.el.style.filter = 'none';
+        c.el.style.outline = 'none';
         c.shadow.setAttribute('visibility', 'hidden');
         continue;
       }
 
-      const isChosen = c === chosenCard && c.gen === 1;
-      let bump = 0;
+      const isDiveHero = c === diveTargetCard && c.gen === 1;
+
+      // Subtle architectural wave pulse across stations during overview (`20.2..24.5s` & `112.0..116.8s`)
+      let waveLift = 0;
       if (c.spec.group === 'skewed' && c.stationIdx !== undefined) {
-        const stList = c.gen === 1 ? GEN1_SKEWED_STATIONS : GEN2_SKEWED_STATIONS;
-        const stX = stList[c.stationIdx]!.x;
-        const frac = (stX - AXIS_X0) / (AXIS_X1 - AXIS_X0);
-        const rStart = c.gen === 1 ? 18.5 : 113.8;
-        const rEnd = c.gen === 1 ? 22.8 : 117.6;
-        const when = lerp(rStart, rEnd, frac);
-        const pBump = progress(t, when - 0.16, when + 0.44);
-        bump = Math.sin(pBump * Math.PI) * 26;
+        const wStart = c.gen === 1 ? 20.2 : 112.0;
+        const wEnd = c.gen === 1 ? 24.4 : 116.5;
+        const when = lerp(wStart, wEnd, c.stationIdx / 3);
+        const pWave = progress(t, when - 0.25, when + 0.55);
+        waveLift = Math.sin(pWave * Math.PI) * 18;
       }
 
-      const lift = isChosen ? chosenFocus * 22 : 0;
-      const beatMicro = c.spec.group === 'skewed' ? pulse * 1.4 : 0;
-      const dy = (1 - enter) * 38 - bump - lift - beatMicro;
-      // Subtle 3D perspective tilt matching CSS3DRenderer card plane feel
-      const tiltY = c.spec.group === 'aligned' ? 5 : -3.5;
+      const dy = (1 - enter) * 34 - waveLift;
+      const rotY = c.spec.group === 'aligned' ? 9.5 : -7.5;
+      const rotX = c.spec.group === 'aligned' ? 2.5 : 2.0;
 
-      const masterFade = c.gen === 1 ? s1Exit : 1;
-      const op = enter * masterFade * (isChosen ? 1 : 1 - (c.gen === 1 ? s1Dim * 0.76 : 0));
+      // Focal-plane DOF: during dive, non-target monoliths blur & fade gently while target stays tack-sharp
+      const dofBlur = c.gen === 1 && !isDiveHero && diveProgress > 0.02 ? diveProgress * 3.8 : 0;
+      const dofAtten = c.gen === 1 && !isDiveHero ? 1 - diveProgress * 0.68 : 1;
+      const op = clamp(enter * dofAtten, 0, 1);
 
-      c.el.style.opacity = String(op);
-      c.el.style.transform =
-        `perspective(1600px) translate3d(0px, ${dy.toFixed(1)}px, 0px) rotateY(${tiltY}deg)` +
-        (isChosen && s1Zoom > 0.01 ? ` scale(${(1 + s1Zoom * 0.25).toFixed(3)})` : '');
-      c.el.style.outline = isChosen && chosenFocus > 0.05 ? '2.5px solid #000000' : 'none';
-      c.el.style.outlineOffset = '-1px';
+      c.el.style.opacity = op.toFixed(3);
+      c.el.style.filter = dofBlur > 0.08 ? `blur(${dofBlur.toFixed(2)}px)` : 'none';
+      c.el.style.transform = `perspective(1500px) translate3d(0px, ${dy.toFixed(1)}px, 0px) rotateY(${rotY}deg) rotateX(${rotX}deg)`;
+      c.el.style.outline = isDiveHero && diveProgress > 0.05 ? '1.5px solid #ff0000' : 'none';
 
-      // Soft projected floor shadow polygon (directly echoing card-space.ts shadowLayer!)
-      if (op > 0.04) {
+      // Compact crisp projected floor footprint (`<= 12px` deep so white ground stays >= 86%)
+      if (op > 0.08 && dofBlur < 1.8) {
         c.shadow.removeAttribute('visibility');
-        const liftTotal = bump + lift;
-        const sx0 = c.x + 10 + liftTotal * 0.35;
-        const sx1 = c.x + c.w + 18 + liftTotal * 0.45;
-        const syTop = c.y + c.h + 2 + liftTotal * 0.22;
-        const syBot = syTop + 18 + liftTotal * 0.18;
-        c.shadow.setAttribute(
-          'points',
-          `${sx0},${syTop} ${sx1},${syTop} ${sx1 + 14},${syBot} ${sx0 + 10},${syBot}`,
-        );
-        c.shadow.setAttribute('opacity', String(clamp(op * (1 - liftTotal / 180), 0, 1)));
+        const sx0 = c.x + 8 + waveLift * 0.25;
+        const sx1 = c.x + c.w + 10 + waveLift * 0.3;
+        const syTop = c.y + c.h + 2;
+        const syBot = syTop + 10;
+        c.shadow.setAttribute('points', `${sx0.toFixed(1)},${syTop.toFixed(1)} ${sx1.toFixed(1)},${syTop.toFixed(1)} ${(sx1 + 9).toFixed(1)},${syBot.toFixed(1)} ${(sx0 + 6).toFixed(1)},${syBot.toFixed(1)}`);
+        c.shadow.setAttribute('opacity', (0.14 * op).toFixed(3));
       } else {
         c.shadow.setAttribute('visibility', 'hidden');
       }
     }
 
-    // Axis, station labels, orange dots & runner dot (shared cleanly between Gen 1 & Gen 2!)
-    const axisGen1 = span(t, 10.0, 12.2, easeInOut) * s1Exit;
-    const axisGen2 = span(t, 108.2, 110.2, easeInOut);
-    const axisScaleX = inScene1 ? axisGen1 : inScene4Cards ? axisGen2 : 0;
-    const axisOp = inScene1 ? s1Exit * (1 - s1Dim * 0.76) : inScene4Cards ? 1 : 0;
-
-    axisBar.style.transform = `scaleX(${axisScaleX})`;
-    axisBar.style.opacity = String(axisScaleX > 0.005 ? axisOp : 0);
-    nearEnd.style.opacity = String(
-      inScene1
-        ? span(t, 10.0, 10.6) * axisOp
-        : inScene4Cards
-          ? span(t, 108.2, 108.8)
-          : 0,
-    );
-    farEnd.style.opacity = String(
-      inScene1
-        ? span(t, 11.8, 12.4) * axisOp
-        : inScene4Cards
-          ? span(t, 109.8, 110.4)
-          : 0,
-    );
-
-    for (const st of axisStations) {
-      const live = (st.gen === 1 && inScene1) || (st.gen === 2 && inScene4Cards);
+    // Floor Bezier trajectories (`#FF0000` curved vectors)
+    for (const tr of trajectories) {
+      const live = (tr.gen === 1 && inAct1Cards) || (tr.gen === 2 && inAct4Cards);
       if (!live) {
-        st.labelEl.style.opacity = '0';
-        st.dotEl.style.opacity = '0';
+        tr.curve.style.opacity = '0';
+        tr.head.style.opacity = '0';
         continue;
       }
-      const e = span(t, st.at, st.at + 0.55);
-      const dimMul = st.gen === 1 ? (st.spec.rank === 4 ? 1 - s1Dim * 0.25 : 1 - s1Dim * 0.76) : 1;
-      const mFade = st.gen === 1 ? s1Exit : 1;
-      st.labelEl.style.opacity = String(e * dimMul * mFade);
-      st.labelEl.style.transform = `translateY(${((1 - e) * 10).toFixed(1)}px)`;
-      st.dotEl.style.opacity = String(span(t, st.at, st.at + 0.25) * dimMul * mFade);
-      st.dotEl.style.transform = `scale(${e.toFixed(3)})`;
+      const p = span(t, tr.at, tr.at + tr.dur, easeInOutCubic);
+      const fade = tr.gen === 1 ? 1 - diveProgress * 0.8 : 1;
+      tr.curve.setAttribute('stroke-dasharray', `${p.toFixed(4)} 1`);
+      tr.curve.style.opacity = p > 0.005 ? fade.toFixed(3) : '0';
+      tr.head.style.opacity = (progress(t, tr.at + tr.dur * 0.84, tr.at + tr.dur) * fade).toFixed(3);
     }
 
-    if (run1Vis > 0.01 && inScene1) {
-      runnerEl.style.opacity = String(run1Vis * s1Exit);
-      runnerEl.style.left = `${lerp(AXIS_X0, AXIS_X1, run1U) - 5.5}px`;
-    } else if (run2Vis > 0.01 && inScene4Cards) {
-      runnerEl.style.opacity = String(run2Vis);
-      runnerEl.style.left = `${lerp(AXIS_X0, AXIS_X1, run2U) - 5.5}px`;
-    } else {
-      runnerEl.style.opacity = '0';
-    }
+    // Skewed Distance Datum Axis (`01 -> 04`)
+    const axisGen1 = inAct1Cards ? span(t, 10.8, 12.6, easeInOut) * (1 - diveProgress * 0.85) : 0;
+    const axisGen2 = inAct4Cards ? span(t, 107.4, 109.2, easeInOut) : 0;
+    const axisScale = Math.max(axisGen1, axisGen2);
+    axisBar.style.transform = `scaleX(${axisScale.toFixed(4)})`;
+    axisBar.style.opacity = axisScale > 0.005 ? '1' : '0';
 
-    // Red orthogonal rule arrows (stroke-dasharray drawing)
-    for (const arr of ruleArrows) {
-      const live = (arr.gen === 1 && inScene1) || (arr.gen === 2 && inScene4Cards);
+    for (const node of axisNodes) {
+      const live = (node.gen === 1 && inAct1Cards) || (node.gen === 2 && inAct4Cards);
       if (!live) {
-        arr.line.style.opacity = '0';
-        arr.head.style.opacity = '0';
+        node.stationEl.style.opacity = '0';
+        node.dotEl.style.opacity = '0';
         continue;
       }
-      const p = span(t, arr.at, arr.at + arr.dur, easeInOut);
-      const mFade = arr.gen === 1 ? s1Exit * (1 - s1Dim * 0.76) : 1;
-      arr.line.setAttribute('stroke-dasharray', `${p} 1`);
-      arr.line.style.opacity = p > 0.005 ? String(mFade) : '0';
-      arr.head.style.opacity = String(progress(t, arr.at + arr.dur * 0.84, arr.at + arr.dur) * mFade);
+      const e = span(t, node.at, node.at + 0.45);
+      const fade = node.gen === 1 ? 1 - diveProgress * (node.spec.rank === 4 ? 0.35 : 0.85) : 1;
+      node.stationEl.style.opacity = (e * fade).toFixed(3);
+      node.stationEl.style.transform = `translateY(${((1 - e) * 8).toFixed(1)}px)`;
+      node.dotEl.style.opacity = (e * fade).toFixed(3);
+      node.dotEl.style.transform = `scale(${e.toFixed(3)})`;
     }
 
-    // Chosen card action bar (23.3..27.4s -> [분해] clicks at 25.5s!)
-    const barOp = win(t, 23.3, 27.4, 0.35);
-    detailBar.style.opacity = String(barOp);
-    const deconstructClicked = t >= 25.5 && t < 28.0;
-    detailDeconstructBtn.style.color = deconstructClicked ? '#0000ff' : '#000000';
-    detailDeconstructBtn.style.textDecoration = deconstructClicked ? 'underline' : 'none';
-    detailDeconstructBtn.style.fontWeight = deconstructClicked ? '700' : '400';
-
-    // Right-Edge 3D Oblique History Conveyor Rail (visible in Scene 1 & Scene 4!)
-    const histVis = inScene1
-      ? span(t, 4.4, 5.2) * s1Exit * (1 - s1Dim * 0.65)
-      : inScene4Cards
-        ? span(t, 107.0, 107.8)
+    // Right-Edge Oblique 3D History Ribbon (pierces top & bottom frame cleanly!)
+    const histVis = inAct1Cards
+      ? span(t, 6.8, 7.6) * (1 - diveProgress * 0.85)
+      : inAct4Cards
+        ? span(t, 106.8, 107.6)
         : 0;
-    historyWrap.style.opacity = String(histVis);
-    if (histVis > 0.01) {
-      let visibleCards = 0;
+    historyWrap.style.opacity = histVis.toFixed(3);
+    if (histVis > 0.005) {
+      let countVis = 0;
       for (const hi of historyItems) {
-        const show = span(t, hi.at, hi.at + 0.35);
-        hi.el.style.opacity = String(show);
-        if (show > 0.1) visibleCards++;
+        const show = span(t, hi.at, hi.at + 0.32);
+        hi.el.style.opacity = show.toFixed(3);
+        if (show > 0.1) countVis++;
       }
-      // Smooth conveyor scroll so newest visited cards stay framed in the 3D oblique window!
-      const scrollPx = Math.max(0, (visibleCards - 3) * 112);
+      const scrollPx = Math.max(0, (countVis - 4) * 94);
       historyList.style.setProperty('--history-offset', `${scrollPx.toFixed(1)}px`);
     }
 
-    // ---------------------------------------------------------------------
-    // C. SCENE 2 (28–46s), SCENE 3 (46–88s) & SCENE 4 DECONSTRUCT (88–103s)
-    // ---------------------------------------------------------------------
+    // Act IV Gen 2 Polar Sastrugi Snowfield Horizon Plate (`plate-16` behind monoliths at z-index 3)
+    const sOp = inAct4Cards ? span(t, 108.2, 111.0) * 0.48 : 0;
+    sastrugiBackdrop.style.opacity = sOp.toFixed(3);
+
+    // -----------------------------------------------------------------------
+    // 5. ACT II (`30.0–46.0s`), ACT III (`46.0–88.0s`) & ACT IV.1–2 (`88.0–103.2s`)
+    // -----------------------------------------------------------------------
+    const inDeconstruct = t >= 30.0 && t < 103.4;
+
     if (!inDeconstruct) {
-      chrome.style.opacity = '0';
-      deconHead.style.opacity = '0';
-      formulaEl.style.opacity = '0';
-      pairCalloutEl.style.opacity = '0';
-      orbitQueryEl.style.opacity = '0';
-      orbitLawEl.style.opacity = '0';
-      floorCalloutEl.style.opacity = '0';
-      focusPanel.style.opacity = '0';
-      for (const el of fragEls) el.style.opacity = '0';
-      for (const el of pieceEls) el.style.opacity = '0';
+      spreadLayer.style.opacity = '0';
+      for (const hSlot of heroSpreadEls) {
+        hSlot.wrap.style.opacity = '0';
+        hSlot.wrap.style.transform = 'none';
+      }
+      laserTelemetryEl.style.opacity = '0';
+      orbitSanctuaryEl.style.opacity = '0';
+      peripheryBeaconEl.style.opacity = '0';
+      for (const sEl of shardEls) {
+        sEl.style.opacity = '0';
+        sEl.style.filter = 'none';
+      }
+      centerShardOverprint.style.opacity = '0';
+      for (const el of fragEls) {
+        el.style.opacity = '0';
+        el.style.filter = 'none';
+        el.style.transform = 'translate3d(-9999px, -9999px, 0)';
+      }
     } else {
-      // 1. Panoramic #chrome preview border (opens 28.0..29.2s, dissolves cleanly 37.0..38.0s!)
-      const chromeOp = span(t, 28.0, 29.1, easeOutCubic) * (1 - span(t, 37.0, 38.0, easeInOut));
-      chrome.style.opacity = String(chromeOp);
-      chrome.style.transform = `scale(${lerp(0.94, 1, span(t, 28.0, 29.2, easeOutCubic)).toFixed(4)})`;
+      // A. Full-Bleed Fine-Press Archive Spread (`30.0 – 39.0s`)
+      const spreadOp = (t >= 30.0 ? 1 : 0) * (1 - span(t, 37.8, 39.0, easeInOutCubic));
+      spreadLayer.style.opacity = spreadOp.toFixed(3);
+      for (let sIdx = 0; sIdx < heroSpreadEls.length; sIdx++) {
+        const hSlot = heroSpreadEls[sIdx]!;
+        const peel = span(t, 37.4 + sIdx * 0.16, 38.9 + sIdx * 0.16, easeInCubic);
+        hSlot.wrap.style.opacity = (spreadOp * (1 - peel)).toFixed(3);
+        hSlot.wrap.style.transform = peel > 0.002 ? `translateY(${(-peel * 28).toFixed(1)}px) scale(${(1 - peel * 0.05).toFixed(3)})` : 'none';
+      }
 
-      // 2. Top-Center Deconstruct Header & Active Mode Indicators (45.8s .. 101.8s)
-      const headOp = win(t, 45.8, 102.0, 0.55);
-      deconHead.style.opacity = String(headOp);
-      const isModeReading = t < 64.0;
-      const isModeMeaning = t >= 64.0 && t < 76.0;
-      const isModeQuery = t >= 76.0;
-      const isDepthOn = (t >= 54.0 && t < 64.0) || (t >= 68.5 && t < 76.0);
+      // B. Configure Three.js PerspectiveCamera for 3D Helix, 3D Cloud (Catmull-Rom fly-through), and 3D Sphere
+      const helixSpin = Math.max(0, t - 52.0) * 0.56;
+      const sphereSpin = Math.max(0, t - 82.5) * 0.42;
 
-      modeReadEl.classList.toggle('is-active', isModeReading);
-      modeMeaningEl.classList.toggle('is-active', isModeMeaning);
-      modeQueryEl.classList.toggle('is-active', isModeQuery);
-      depthBadgeEl.classList.toggle('is-on', isDepthOn);
-      deconSummary.textContent = isModeMeaning
-        ? `조각 200개 · 글 188 · 이미지 12 · 연결 ${topEdges.length}개 · 기준 "${QUERY_GEN1}"`
-        : isModeQuery
-          ? `조각 200개 · 기준 검색어 "${QUERY_GEN1}" · 비소거 하한 0.14`
-          : `조각 200개 · 글 188 · 이미지 12 · 1024차원 의미 분해`;
-
-      // 3. Configure Three.js PerspectiveCamera for Scene 3-① Horizontal 3D Helix & Scene 3-② 3D Cloud
-      const helixSpin = Math.max(0, t - 54.0) * 0.58;
-      const cloudOrbit = Math.max(0, t - 68.5) * 0.24;
-
-      if (t >= 53.5 && t < 65.5) {
-        // Horizontal panoramic camera calibrated 1:1 to 6480x432 so 30m 3D Helix spans full width & height!
-        camera3D.position.set(Math.sin(helixSpin * 0.22) * 84, 22 * Math.sin(helixSpin * 0.35), Z_CAM);
+      if (t >= 51.8 && t < 62.2) {
+        camera3D.position.set(Math.sin(helixSpin * 0.25) * 90, Math.sin(helixSpin * 0.4) * 20, Z_CAM);
         camera3D.lookAt(0, 0, 0);
         camera3D.updateMatrixWorld();
         camera3D.updateProjectionMatrix();
-      } else if (t >= 68.0 && t < 77.5) {
-        // Volumetric 3D Cloud gentle orbital glide filling full 6480x432 span!
-        camera3D.position.set(Math.sin(cloudOrbit) * 140, Math.sin(cloudOrbit * 1.25) * 34, Z_CAM + Math.cos(cloudOrbit) * 58);
+      } else if (t >= 68.2 && t < 76.8) {
+        // Catmull-Rom 3D fly-through spline penetrating the volumetric semantic cloud!
+        const uFly = progress(t, 68.5, 76.0);
+        const camX = catmullRom(-620, -280, 340, 680, uFly);
+        const camY = catmullRom(-24, 28, -22, 16, uFly);
+        const camZ = catmullRom(Z_CAM, Z_CAM - 290, Z_CAM - 240, Z_CAM, uFly);
+        camera3D.position.set(camX, camY, camZ);
+        camera3D.lookAt(camX * 0.35, 0, 0);
+        camera3D.updateMatrixWorld();
+        camera3D.updateProjectionMatrix();
+      } else if (t >= 82.2 && t < 88.6) {
+        camera3D.position.set(Math.sin(sphereSpin * 0.5) * 110, Math.cos(sphereSpin * 0.4) * 24, Z_CAM);
         camera3D.lookAt(0, 0, 0);
         camera3D.updateMatrixWorld();
         camera3D.updateProjectionMatrix();
       }
 
-      // 4. Compute deterministic position, scale, and opacity for ALL 200 fragments!
-      const fragMasterIn = span(t, 28.4, 29.6, easeOutCubic);
-      const assembleU = span(t, 101.0, 102.6, easeInOutCubic);
-
+      // C. Compute deterministic position, scale, opacity & optical DOF blur for ALL 200 fragments
       const pairNow = pairLasers.find((p) => t >= p.t0 && t < p.t1);
-      const pairDim = win(t, 40.9, 44.3, 0.22);
+      const pairDim = win(t, 40.45, 43.95, 0.2);
 
-      // Scene 4 peripheral focus & phrase split windows
-      const focusDim = span(t, 88.0, 89.0, easeInOut) * (1 - span(t, 101.0, 102.0));
-      const piecesLive = t >= 95.35 && t < 101.6;
-      const neighborSet = new Set(neighborIndices);
+      // Act IV peripheral awakening (`88.0..101.5s`): 88% of universe dims to `×0.10` whisper!
+      const focusDim = span(t, 88.0, 89.1, easeInOutCubic) * (1 - span(t, 101.4, 102.3));
+      const faultLive = t >= 95.0 && t < 101.55;
+      const galeSweepU = progress(t, 101.5, 106.2);
+      const galeFrontX = lerp(6360, 80, easeInOutCubic(galeSweepU));
+      const resonantSet = new Set(neighborIndices);
 
       for (let i = 0; i < fragments.length; i++) {
         const f = fragments[i]!;
-        const stagger = i === targetIndex ? 0 : hash(i * 11 + 5) * 0.55;
-        const curve = (hash(i * 23 + 9) - 0.5) * 90;
+        // Keep stagger compact (<= 0.38s) so settled windows (t=50.0s, 66.5s, 80.5s) are 100.00% settled!
+        const stagger = i === targetIndex ? 0 : hash(i * 11 + 5) * 0.38;
+        const curve = (hash(i * 23 + 9) - 0.5) * 84;
 
-        // Start in Scene 2 #chrome page coordinates
+        // 1) Act II Full-bleed spread position (`30.0..46.0s`)
         const pPage = layouts.page[i]!;
         let x = pPage.x;
         let y = pPage.y;
+        let z = 0;
         let s = pPage.scale;
-        let o = pPage.opacity * fragMasterIn;
+        let o = pPage.opacity;
+        let blur = 0;
         let zIdx = 10;
 
-        // Slight float once #chrome dissolves (37.5..46.0s)
-        const floatU = span(t, 37.3, 38.4, easeOutCubic) * (1 - span(t, 45.8, 46.8));
-        if (floatU > 0.001) {
-          y += Math.sin(t * 2.1 + i * 0.7) * 3.5 * floatU;
+        // Subtle weightless levitation once guillotine cuts liberate fragments (`38.2..46.0s`)
+        const liberateU = span(t, 38.0, 39.2, easeOutCubic) * (1 - span(t, 45.6, 46.2));
+        if (liberateU > 0.001) {
+          x += Math.sin(i * 1.7 + t * 0.9) * 14 * liberateU;
+          y += Math.cos(i * 1.3 + t * 1.4) * 5 * liberateU;
         }
 
-        // Morph -> Scene 3-① Reading 2D (46.0..48.2s)
-        const uRead = easeInOutCubic(progress(t, 46.0 + stagger * 0.8, 47.9 + stagger * 0.8));
+        // 2) Morph -> Act III.1 `reading2D` (`46.0..48.2s`, 100% settled at t = 50.0s!)
+        const uRead = easeInOutCubic(progress(t, 46.0 + stagger, 47.9 + stagger));
         if (uRead > 0) {
           const pR = layouts.reading2D[i]!;
           [x, y] = stepArc(x, y, pR.x, pR.y, uRead, curve);
           s = lerp(s, pR.scale, uRead);
           o = lerp(o, pR.opacity, uRead);
+          blur = 0;
         }
 
-        // Morph -> Scene 3-① [3D] Monumental 30m Horizontal Helix (54.0..64.0s)
-        const uHelix = easeInOutCubic(progress(t, 54.0 + stagger * 0.9, 56.2 + stagger * 0.9));
-        if (uHelix > 0 && t < 66.2) {
+        // 3) Morph -> Act III.2 `helix3D` (`52.0..61.5s`, focal-plane DOF!)
+        const uHelix = easeInOutCubic(progress(t, 52.0 + stagger, 54.1 + stagger));
+        if (uHelix > 0 && t < 64.2) {
           const hb = layouts.helixBase[i]!;
           const ang = hb.angle + helixSpin;
           const wx = hb.x - STAGE_W * 0.5;
           const wy = Math.sin(ang) * hb.radiusY;
           const wz = Math.cos(ang) * hb.radiusZ;
           const proj = project3D(wx, wy, wz);
-          const depthFactor = (Math.cos(ang) + 1) * 0.5; // 1 = front, 0 = back
-          const hx = clamp(proj.sx, 140, STAGE_W - 140);
-          const hy = clamp(proj.sy + 14, 74, 382);
-          const hs = (f.type === 'img' ? 0.62 : 0.72) * lerp(0.74, 1.16, depthFactor);
-          const ho = lerp(0.32, 1.0, depthFactor);
+          const depth01 = (Math.cos(ang) + 1) * 0.5; // 1 = closest foreground, 0 = far background
+          const hx = clamp(proj.sx, 110, STAGE_W - 110);
+          const hy = clamp(proj.sy, 34, STAGE_H - 34);
+          const hs =
+            (f.type === 'img' ? 0.68 : f.tier === 'anchor' ? 1.06 : 0.78) * lerp(0.68, 1.34, depth01);
+          const ho = lerp(0.24, 1.0, depth01);
+          const hBlur = depth01 < 0.42 ? (0.42 - depth01) * 6.8 : 0;
 
-          [x, y] = stepArc(x, y, hx, hy, uHelix, curve * 0.7);
+          [x, y] = stepArc(x, y, hx, hy, uHelix, curve * 0.65);
+          z = lerp(z, wz, uHelix);
           s = lerp(s, hs, uHelix);
           o = lerp(o, ho, uHelix);
-          zIdx = Math.round(10 + depthFactor * 50);
+          blur = lerp(blur, hBlur, uHelix);
+          zIdx = Math.round(10 + depth01 * 60);
         }
 
-        // Morph -> Scene 3-② Meaning 2D Cosine-Similarity Clusters (64.0..68.5s)
-        const uMean = easeInOutCubic(progress(t, 64.0 + stagger * 0.85, 66.0 + stagger * 0.85));
+        // 4) Morph -> Act III.3 `meaning2D` (`61.5..68.5s`, 100% settled & blur=0 at t = 66.5s!)
+        const uMean = easeInOutCubic(progress(t, 61.5 + stagger, 63.6 + stagger));
         if (uMean > 0) {
           const pM = layouts.meaning2D[i]!;
           [x, y] = stepArc(x, y, pM.x, pM.y, uMean, curve);
+          z = lerp(z, 0, uMean);
           s = lerp(s, pM.scale, uMean);
           o = lerp(o, pM.opacity, uMean);
+          blur = lerp(blur, 0, uMean);
           zIdx = 20;
         }
 
-        // Morph -> Scene 3-② [3D] Volumetric Semantic Cloud (68.5..76.0s)
-        const uCloud = easeInOutCubic(progress(t, 68.5 + stagger * 0.8, 70.4 + stagger * 0.8));
-        if (uCloud > 0 && t < 78.2) {
+        // 5) Morph -> Act III.4 `cloud3D` (`68.5..76.0s`, Catmull-Rom fly-through + DOF!)
+        const uCloud = easeInOutCubic(progress(t, 68.5 + stagger, 70.3 + stagger));
+        if (uCloud > 0 && t < 78.6) {
           const c3 = layouts.cloud3D[i]!;
-          // Gentle per-cluster 3D breathing + orbital rotation across full 30m span
-          const ca = Math.cos(cloudOrbit * 0.42);
-          const sa = Math.sin(cloudOrbit * 0.42);
+          const orbitAng = (t - 68.5) * 0.16;
+          const ca = Math.cos(orbitAng);
+          const sa = Math.sin(orbitAng);
           const rcx = c3.cx;
-          const rcy = c3.cy * ca - c3.cz * sa * 0.16;
-          const rcz = c3.cz * ca + c3.cy * sa * 0.28;
+          const rcy = c3.cy * ca - c3.cz * sa * 0.18;
+          const rcz = c3.cz * ca + c3.cy * sa * 0.25;
           const proj = project3D(rcx, rcy, rcz);
-          const depth01 = clamp((rcz + 280) / 560, 0, 1);
-          const cx3 = clamp(proj.sx, 140, STAGE_W - 140);
-          const cy3 = clamp(proj.sy + 10, 76, 382);
-          const cs3 = layouts.meaning2D[i]!.scale * lerp(0.76, 1.15, depth01);
-          const co3 = lerp(0.42, 1.0, depth01);
+          const depth01 = clamp((rcz + 270) / 540, 0, 1);
+          const cx3 = clamp(proj.sx, 90, STAGE_W - 90);
+          const cy3 = clamp(proj.sy, 32, STAGE_H - 32);
+          const cs3 = layouts.meaning2D[i]!.scale * proj.depthScale * lerp(0.78, 1.26, depth01);
+          const co3 = lerp(0.28, 1.0, depth01);
+          const cBlur = depth01 < 0.38 ? (0.38 - depth01) * 6.5 : 0;
 
-          [x, y] = stepArc(x, y, cx3, cy3, uCloud, curve * 0.5);
+          [x, y] = stepArc(x, y, cx3, cy3, uCloud, curve * 0.45);
+          z = lerp(z, rcz, uCloud);
           s = lerp(s, cs3, uCloud);
           o = lerp(o, co3, uCloud);
-          zIdx = Math.round(10 + depth01 * 50);
+          blur = lerp(blur, cBlur, uCloud);
+          zIdx = Math.round(10 + depth01 * 60);
         }
 
-        // Morph -> Scene 3-③ Query Similarity Elliptical Orbit (76.0..88.0s+)
-        const uOrb = easeInOutCubic(progress(t, 76.0 + stagger * 0.9, 78.4 + stagger * 0.9));
+        // 6) Morph -> Act III.5 `orbit2D` (`76.0..82.5s`, 100% settled & blur=0 at t = 80.5s!)
+        const uOrb = easeInOutCubic(progress(t, 76.0 + stagger, 78.2 + stagger));
         if (uOrb > 0) {
           const pO = layouts.orbit2D[i]!;
-          [x, y] = stepArc(x, y, pO.x, pO.y, uOrb, curve * 0.85);
+          [x, y] = stepArc(x, y, pO.x, pO.y, uOrb, curve * 0.75);
+          z = lerp(z, 0, uOrb);
           s = lerp(s, pO.scale, uOrb);
           o = lerp(o, pO.opacity, uOrb);
-          zIdx = Math.round(10 + f.level * 30);
+          blur = lerp(blur, 0, uOrb);
+          zIdx = Math.round(10 + f.level * 35);
         }
 
-        // Scene 4 Peripheral Focus Highlight (88.0..101.0s)
+        // 7) Morph -> Act III.6 `sphere3D` (`82.5..88.0s`, 3D Question Sphere Shell) & return for Act IV
+        const uSphere =
+          easeInOutCubic(progress(t, 82.5 + stagger * 0.7, 84.1 + stagger * 0.7)) *
+          (1 - easeInOutCubic(progress(t, 87.2, 88.4)));
+        if (uSphere > 0.001) {
+          const sp = layouts.sphere3D[i]!;
+          const ca = Math.cos(sphereSpin);
+          const sa = Math.sin(sphereSpin);
+          const rx = sp.sx * ca + sp.sz * sa * 2.2;
+          const ry = sp.sy;
+          const rz = sp.sz * ca - (sp.sx / 9.0) * sa;
+          const proj = project3D(rx, ry, rz);
+          const depth01 = clamp((rz + 320) / 640, 0, 1);
+          const sx3 = clamp(proj.sx, 110, STAGE_W - 110);
+          const sy3 = clamp(proj.sy, 32, STAGE_H - 32);
+          const ss3 = layouts.orbit2D[i]!.scale * lerp(0.76, 1.24, depth01);
+          const so3 = Math.max(0.14, layouts.orbit2D[i]!.opacity * lerp(0.55, 1.15, depth01));
+          const sBlur = depth01 < 0.34 ? (0.34 - depth01) * 5.2 : 0;
+
+          x = lerp(x, sx3, uSphere);
+          y = lerp(y, sy3, uSphere);
+          s = lerp(s, ss3, uSphere);
+          o = lerp(o, clamp(so3, 0.14, 1), uSphere);
+          blur = lerp(blur, sBlur, uSphere);
+          zIdx = Math.round(10 + depth01 * 55);
+        }
+
+        // Act IV.1 Peripheral `0.14` Awakening (`88.0..101.5s`, Zero Popup Box!)
         const isTarget = i === targetIndex;
-        const isNeighbor = neighborSet.has(i);
+        const isResonant = resonantSet.has(i);
         if (focusDim > 0.001) {
           if (isTarget) {
+            // 14.2px * 3.66 ≈ 52px monumental crimson serif!
             o = lerp(o, 1.0, focusDim);
-            s = lerp(s, 1.52, focusDim);
-            zIdx = 90;
-          } else if (isNeighbor) {
+            s = lerp(s, 3.66, focusDim);
+            blur = 0;
+            zIdx = 95;
+          } else if (isResonant) {
             o = lerp(o, 1.0, focusDim);
-            s = lerp(s, 1.08, focusDim);
-            zIdx = 80;
+            s = lerp(s, 1.28, focusDim);
+            blur = 0;
+            zIdx = 88;
           } else {
-            o *= lerp(1, 0.16, focusDim);
+            o *= lerp(1, 0.10, focusDim);
+            blur = lerp(blur, 0.8, focusDim);
           }
         }
 
-        // Scene 2 Pairwise Laser Dimming (41.0..44.2s)
+        // Act II Pairwise Cosine Laser Dimming (`40.5..43.9s`)
         if (pairDim > 0.001) {
           const inPair = pairNow && (i === pairNow.a || i === pairNow.b);
-          o *= inPair ? 1 : lerp(1, 0.2, pairDim);
+          o *= inPair ? 1 : lerp(1, 0.22, pairDim);
           if (inPair) zIdx = 85;
         }
 
-        // Hide original target fragment seamlessly when its 3 split phrase pieces are live!
-        if (isTarget && piecesLive) {
+        // Hide intact target sentence seamlessly while 3D fractured shards are active (`95.0..101.55s`) or swept
+        if (isTarget && t >= 95.0) {
           o = 0;
         }
 
-        // Assemble back toward center on [이 조각으로 다시 검색] click (101.0..102.6s)
-        if (assembleU > 0.001) {
-          x = lerp(x, 3240, assembleU);
-          y = lerp(y, 216, assembleU);
-          s = lerp(s, 0.3, assembleU);
-          o *= 1 - assembleU;
+        // Act IV.3 Horizontal Gale sweeps away remaining old-universe fragments from right to left (`101.5..103.3s`)
+        if (t >= 101.5) {
+          const swept = clamp((x - galeFrontX + 260) / 420, 0, 1);
+          x -= swept * 240;
+          o *= (1 - swept) * (1 - span(t, 102.6, 103.3));
         }
 
         screenPos[i]!.x = x;
         screenPos[i]!.y = y;
+        screenPos[i]!.z = z;
         screenPos[i]!.s = s;
         screenPos[i]!.o = o;
+        screenPos[i]!.blur = blur;
         screenPos[i]!.zIdx = zIdx;
 
         const el = fragEls[i]!;
-        el.style.opacity = o <= 0.003 ? '0' : o.toFixed(3);
-        el.style.zIndex = String(zIdx);
-        if (o > 0.003) {
-          el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%) scale(${s.toFixed(3)})`;
+        if (o <= 0.003) {
+          el.style.opacity = '0';
+          el.style.filter = 'none';
+          el.style.transform = 'translate3d(-9999px, -9999px, 0)';
+        } else {
+          el.style.opacity = o.toFixed(3);
+          el.style.zIndex = String(zIdx);
+          el.style.filter = blur > 0.12 ? `blur(${blur.toFixed(2)}px)` : 'none';
+          el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${s.toFixed(3)})`;
           if (isTarget && focusDim > 0.01) {
-            const redAmt = Math.round(255 * focusDim);
-            el.style.color = `rgb(${redAmt}, 0, 0)`;
+            const rCh = Math.round(255 * focusDim);
+            el.style.color = `rgb(${rCh}, 0, 0)`;
             el.style.fontWeight = '700';
           } else {
             el.style.color = '#000000';
-            el.style.fontWeight = f.isHeading ? '700' : '400';
+            el.style.fontWeight = f.tier === 'anchor' ? '700' : '400';
           }
         }
       }
 
-      // 5. Scene 2: Surgical #FF0000 Vertical Sentence CUTS (33.0..37.2s)
-      const cutMaster = span(t, 33.0, 33.4) * (1 - span(t, 36.8, 37.3));
+      // D. Act II.1: 120 BPM Surgical `#FF0000` Guillotine CUTS (`34.5 – 39.0s`)
+      const cutMaster = (t >= 34.5 ? 1 : 0) * (1 - span(t, 38.4, 39.1));
       if (cutMaster > 0.005) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
         ctx.strokeStyle = '#ff0000';
-        ctx.lineWidth = 1.4;
         for (const c of layouts.cuts) {
-          const xNorm = (c.x - 450) / 5600;
-          const u = easeOutCubic(progress(t, 33.0 + xNorm * 2.4, 33.45 + xNorm * 2.4));
+          const xNorm = clamp((c.x1 - 140) / 6200, 0, 1);
+          const startAt = 34.5 + xNorm * 2.8 + (c.orientation === 'h' ? 0.35 : 0);
+          const u = easeOutExpo(progress(t, startAt, startAt + 0.32));
           if (u <= 0.01) continue;
-          ctx.globalAlpha = cutMaster;
-          const px = Math.round(c.x) + 0.5;
+          ctx.lineWidth = c.orientation === 'v' ? 1.35 : 0.85;
+          ctx.globalAlpha = cutMaster * (c.orientation === 'v' ? 0.92 : 0.68);
           ctx.beginPath();
-          ctx.moveTo(px, c.y - 11 * u);
-          ctx.lineTo(px, c.y + 11 * u);
+          ctx.moveTo(c.x1, c.y1);
+          ctx.lineTo(lerp(c.x1, c.x2, u), lerp(c.y1, c.y2, u));
           ctx.stroke();
         }
-        ctx.globalAlpha = 1;
+        ctx.restore();
       }
 
-      // 6. Scene 2: Compact Crisp 1px Black 1024-dim Vector Barcodes under Fragments (37.6..41.2s)
-      const vecAlpha = span(t, 37.6, 38.2) * (1 - span(t, 40.6, 41.2));
+      // E. Act II.2: 1024-DIM 1px Carbon Barcode Spectrums (`39.0 – 44.2s`)
+      const vecAlpha = span(t, 39.0, 39.4) * (1 - span(t, 43.6, 44.3));
       if (vecAlpha > 0.005) {
+        ctx.save();
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 1;
         for (let i = 0; i < fragments.length; i++) {
           const p = screenPos[i]!;
-          if (p.o <= 0.05) continue;
-          const under = fragments[i]!.type === 'img' ? 36 : 9;
-          const tickCount = 26;
-          const halfSpan = tickCount * 1.5;
+          if (p.o <= 0.08) continue;
+          const under = fragments[i]!.type === 'img' ? 32 : 10;
+          const tickCount = 28;
+          const halfSpan = tickCount * 1.35;
           for (let k = 0; k < tickCount; k++) {
-            const reveal = progress(t, 37.6 + hash(i * 7 + k) * 0.85, 38.1 + hash(i * 7 + k) * 0.85);
+            const reveal = progress(t, 39.0 + hash(i * 7 + k) * 0.65, 39.35 + hash(i * 7 + k) * 0.65);
             if (reveal <= 0.01) continue;
-            const h = (1.2 + hash(i * 101 + k * 13) * 5.2) * reveal;
-            ctx.globalAlpha = vecAlpha * 0.88;
-            const px = Math.round(p.x - halfSpan + k * 3) + 0.5;
+            const h = (1.5 + hash(i * 101 + k * 13) * 6.5) * reveal;
+            ctx.globalAlpha = vecAlpha * 0.86;
+            const px = Math.round(p.x - halfSpan + k * 2.7) + 0.5;
             ctx.beginPath();
             ctx.moveTo(px, p.y + under);
             ctx.lineTo(px, p.y + under + h);
             ctx.stroke();
           }
         }
-        ctx.globalAlpha = 1;
+        ctx.restore();
       }
 
-      // 7. Scene 2: Pairwise #FF0000 Cosine Similarity Laser Beams (41.0..44.2s) & All-Pairs Burst (44.0..46.4s)
-      formulaEl.style.opacity = String(win(t, 40.8, 46.2, 0.35));
-
+      // F. Act II.2: Pairwise `#FF0000` Cosine Measurement Lasers (`40.5 – 43.9s`) & Radial Burst (`43.9 – 46.0s`)
       if (pairNow) {
         const pa = screenPos[pairNow.a]!;
         const pb = screenPos[pairNow.b]!;
-        const u = easeOutExpo(progress(t, pairNow.t0, pairNow.t0 + 0.38));
+        const u = easeOutExpo(progress(t, pairNow.t0, pairNow.t0 + 0.28));
+        const cxMid = lerp(pa.x, pb.x, 0.5);
+        const cyMid = lerp(pa.y, pb.y, 0.5) - 24;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
         ctx.strokeStyle = '#ff0000';
-        ctx.lineWidth = 2.0;
+        ctx.lineWidth = 1.9;
         ctx.beginPath();
         ctx.moveTo(pa.x, pa.y);
-        ctx.lineTo(lerp(pa.x, pb.x, u), lerp(pa.y, pb.y, u));
+        ctx.quadraticCurveTo(lerp(pa.x, cxMid, u), lerp(pa.y, cyMid, u), lerp(pa.x, pb.x, u), lerp(pa.y, pb.y, u));
         ctx.stroke();
 
-        // Crisp dot markers at endpoints
-        ctx.fillStyle = '#ff0000';
-        ctx.beginPath();
-        ctx.arc(pa.x, pa.y, 4, 0, Math.PI * 2);
-        ctx.arc(lerp(pa.x, pb.x, u), lerp(pa.y, pb.y, u), 4, 0, Math.PI * 2);
-        ctx.fill();
+        // Precision crosshair reticles at endpoints
+        for (const pt of [pa, { x: lerp(pa.x, pb.x, u), y: lerp(pa.y, pb.y, u) }]) {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
 
-        pairCalloutEl.textContent = `cos = ${pairNow.score}`;
-        pairCalloutEl.style.left = `${lerp(pa.x, pb.x, 0.5)}px`;
-        pairCalloutEl.style.top = `${lerp(pa.y, pb.y, 0.5)}px`;
-        pairCalloutEl.style.opacity = String(
-          progress(t, pairNow.t0 + 0.2, pairNow.t0 + 0.35) * (1 - progress(t, pairNow.t1 - 0.12, pairNow.t1)),
-        );
+        laserTelemetryEl.textContent = `${pairNow.score} · 1024-DIM`;
+        laserTelemetryEl.style.left = `${cxMid.toFixed(1)}px`;
+        laserTelemetryEl.style.top = `${cyMid.toFixed(1)}px`;
+        laserTelemetryEl.style.opacity = (
+          progress(t, pairNow.t0 + 0.14, pairNow.t0 + 0.24) *
+          (1 - progress(t, pairNow.t1 - 0.1, pairNow.t1))
+        ).toFixed(3);
       } else {
-        pairCalloutEl.style.opacity = '0';
+        laserTelemetryEl.style.opacity = '0';
       }
 
-      const burstA = span(t, 44.0, 44.5) * (1 - span(t, 45.6, 46.5));
+      const burstA = span(t, 43.9, 44.3) * (1 - span(t, 45.4, 46.05));
       if (burstA > 0.005) {
-        ctx.lineWidth = 1;
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.lineWidth = 0.85;
         for (const [ia, ib, h] of burstPairs) {
-          const lineU = progress(t, 44.0 + h * 0.45, 44.3 + h * 0.45);
+          const lineU = progress(t, 43.9 + h * 0.4, 44.2 + h * 0.4);
           if (lineU <= 0.01) continue;
           const pa = screenPos[ia]!;
           const pb = screenPos[ib]!;
-          ctx.strokeStyle = `rgba(255, 0, 0, ${(0.22 * burstA * lineU).toFixed(3)})`;
+          ctx.strokeStyle = `rgba(255, 0, 0, ${(0.24 * burstA * lineU).toFixed(3)})`;
           ctx.beginPath();
           ctx.moveTo(pa.x, pa.y);
           ctx.lineTo(pb.x, pb.y);
-          ctx.stroke();
-        }
-      }
-
-      // 8. Scene 3-① Helix Spine Thread (54.5..64.0s)
-      const helixSpineA = win(t, 54.5, 64.2, 0.8);
-      if (helixSpineA > 0.005) {
-        ctx.strokeStyle = `rgba(255, 0, 0, ${(0.34 * helixSpineA).toFixed(3)})`;
-        ctx.lineWidth = 1.25;
-        ctx.beginPath();
-        for (let i = 0; i < fragments.length; i++) {
-          const p = screenPos[i]!;
-          if (i === 0) ctx.moveTo(p.x, p.y);
-          else ctx.lineTo(p.x, p.y);
-        }
-        ctx.stroke();
-      }
-
-      // 9. Scene 3-② & 3-③ Taut #FF0000 Cosine-Similarity Thread Network (64.6..88.2s)
-      const meaningThreadA =
-        span(t, 64.8, 66.2) * (1 - 0.82 * span(t, 76.2, 78.2)) * (1 - span(t, 88.0, 88.9));
-      if (meaningThreadA > 0.005) {
-        for (const edge of topEdges) {
-          const pa = screenPos[edge.a]!;
-          const pb = screenPos[edge.b]!;
-          const alpha = (0.18 + 0.52 * edge.strength) * meaningThreadA;
-          ctx.strokeStyle = `rgba(255, 0, 0, ${alpha.toFixed(3)})`;
-          ctx.lineWidth = 0.95 + 0.55 * edge.strength;
-          ctx.beginPath();
-          ctx.moveTo(pa.x, pa.y);
-          ctx.lineTo(pb.x, pb.y);
-          ctx.stroke();
-        }
-      }
-
-      // 10. Scene 3-③ Orbit Center Query Mark, Elliptical Guide Ring, Law Box & 0.14 Callout (76.2..101.2s)
-      const orbitMarkOp = span(t, 76.6, 77.8) * (1 - span(t, 101.0, 101.8)) * (1 - focusDim * 0.72);
-      orbitQueryEl.style.opacity = String(orbitMarkOp);
-      orbitLawEl.style.opacity = String(win(t, 79.0, 88.2, 0.5));
-
-      // Subtle hairline elliptical orbit guide rings in Orbit phase (77.0..88.5s)
-      const ringOp = win(t, 77.0, 89.2, 0.8) * (1 - focusDim * 0.7);
-      if (ringOp > 0.005) {
-        ctx.save();
-        ctx.strokeStyle = `rgba(0, 0, 0, ${(0.12 * ringOp).toFixed(3)})`;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 6]);
-        for (const frac of [0.33, 0.66, 1.0]) {
-          ctx.beginPath();
-          ctx.ellipse(STAGE_W * 0.5, 224, 290 + frac * 2670, 54 + frac * 94, 0, 0, Math.PI * 2);
           ctx.stroke();
         }
         ctx.restore();
       }
 
-      // 0.14 Non-Erasure Floor Callout pointing cleanly to peripheral fragment
-      const floorOp = win(t, 81.5, 88.2, 0.45);
-      floorCalloutEl.style.opacity = String(floorOp);
-      const tPos = screenPos[targetIndex]!;
-      floorCalloutEl.style.left = `${tPos.x + 178}px`;
-      floorCalloutEl.style.top = `${tPos.y - 16}px`;
+      // G. Act III.2: Double-Helix Crimson Spine (`52.5 – 61.5s`)
+      const helixSpineA = win(t, 52.6, 61.6, 0.7);
+      if (helixSpineA > 0.005) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        for (const strand of [0, 1] as const) {
+          ctx.strokeStyle = strand === 0 ? `rgba(255, 0, 0, ${(0.46 * helixSpineA).toFixed(3)})` : `rgba(0, 0, 255, ${(0.22 * helixSpineA).toFixed(3)})`;
+          ctx.lineWidth = strand === 0 ? 1.5 : 0.9;
+          ctx.beginPath();
+          let started = false;
+          for (let i = strand; i < fragments.length; i += 2) {
+            const p = screenPos[i]!;
+            if (!started) {
+              ctx.moveTo(p.x, p.y);
+              started = true;
+            } else {
+              ctx.lineTo(p.x, p.y);
+            }
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
 
-      // 11. Scene 4: 5 Bold #FF0000 Neighbor Threads from Peripheral Focus Fragment (88.2..101.2s)
+      // H. Act III.3–4: Variable-Pressure `#FF0000` Bezier Arterial Filaments (`0.4px .. 3.4px`, `multiply`)
+      //    Rises organically from 0% silence (`63.0s`) into dense crimson arterial webs (`66.5s..76.0s`), then clears for pure-white Orbit sanctuary!
+      const arteryGrow = span(t, 63.0, 66.2, easeInOutCubic);
+      const arteryFade = 1 - span(t, 76.0, 77.6, easeInOutCubic);
+      const arteryMaster = arteryGrow * arteryFade;
+      if (arteryMaster > 0.005) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.lineCap = 'round';
+        const visibleCount = Math.floor(topEdges.length * arteryGrow);
+        for (let eIdx = 0; eIdx < visibleCount; eIdx++) {
+          const edge = topEdges[eIdx]!;
+          const pa = screenPos[edge.a]!;
+          const pb = screenPos[edge.b]!;
+          if (pa.o <= 0.05 || pb.o <= 0.05) continue;
+
+          const dx = pb.x - pa.x;
+          const dy = pb.y - pa.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          // Organic catenary/arterial curvature modulated by deterministic edge hash + subtle 120 BPM pulse
+          const arch = ((hash(eIdx * 31 + 7) - 0.5) * 0.28 + pulse * 0.015) * Math.min(dist, 420);
+          const mx = (pa.x + pb.x) * 0.5 - (dy / dist) * arch;
+          const my = (pa.y + pb.y) * 0.5 + (dx / dist) * arch;
+
+          const pressure = 0.4 + Math.pow(edge.strength, 1.65) * 3.0; // exact 0.4px .. 3.4px range!
+          const alpha = (0.14 + 0.62 * edge.strength) * arteryMaster;
+          ctx.strokeStyle = `rgba(255, 0, 0, ${alpha.toFixed(3)})`;
+          ctx.lineWidth = pressure;
+          ctx.beginPath();
+          ctx.moveTo(pa.x, pa.y);
+          ctx.quadraticCurveTo(mx, my, pb.x, pb.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // I. Act III.5–6: Central Pure-White Orbit Sanctuary & Hairline Ellipses (`76.5 – 88.0s`)
+      const orbitMarkOp = span(t, 76.8, 78.0) * (1 - span(t, 88.0, 89.2));
+      orbitSanctuaryEl.style.opacity = orbitMarkOp.toFixed(3);
+
+      const ringOp = win(t, 77.2, 88.0, 0.7);
+      if (ringOp > 0.005) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(0, 0, 0, ${(0.16 * ringOp).toFixed(3)})`;
+        ctx.lineWidth = 0.65;
+        ctx.setLineDash([3, 6]);
+        for (const frac of [0.22, 0.55, 0.92]) {
+          ctx.beginPath();
+          ctx.ellipse(STAGE_W * 0.5, 216, 410 + frac * 2600, 62 + frac * 112, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // J. Act IV.1: `0.14` Peripheral Beacon & 5 Full-Bridge Crimson Catenary Arcs (`88.0 – 101.5s`)
+      const beaconOp = win(t, 80.0, 101.4, 0.5);
+      if (beaconOp > 0.005) {
+        peripheryBeaconEl.style.opacity = beaconOp.toFixed(3);
+        peripheryBeaconEl.textContent =
+          t >= 88.0 ? 'ε 0.14 / PERIPHERAL AWAKENING · X:4880' : 'ε 0.14 / NON-ERASURE PERIPHERY';
+        peripheryBeaconEl.style.left = '4880px';
+        peripheryBeaconEl.style.top = t >= 95.0 ? '118px' : '168px';
+        peripheryBeaconEl.style.transform = 'translateX(-50%)';
+      } else {
+        peripheryBeaconEl.style.opacity = '0';
+      }
+
       if (focusDim > 0.01) {
-        const srcX = 4960;
-        const srcY = 226;
+        const srcX = 4880;
+        const srcY = 216;
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.lineCap = 'round';
+
+        // Surgical red crosshair at (4880, 216)
+        ctx.strokeStyle = `rgba(255, 0, 0, ${(0.65 * focusDim).toFixed(3)})`;
+        ctx.lineWidth = 0.75;
+        ctx.beginPath();
+        ctx.moveTo(srcX - 28, srcY);
+        ctx.lineTo(srcX + 28, srcY);
+        ctx.moveTo(srcX, srcY - 28);
+        ctx.lineTo(srcX, srcY + 28);
+        ctx.stroke();
+
+        // 5 sweeping crimson catenary curves spanning x = 960 .. 5840!
         for (let k = 0; k < neighborIndices.length; k++) {
           const nbIdx = neighborIndices[k]!;
           const nbPos = screenPos[nbIdx]!;
-          const drawU = easeOutExpo(progress(t, 88.2 + k * 0.16, 89.0 + k * 0.16));
+          const drawU = easeOutExpo(progress(t, 88.3 + k * 0.24, 89.8 + k * 0.24));
           if (drawU <= 0.01) continue;
-          ctx.strokeStyle = `rgba(255, 0, 0, ${(0.92 * focusDim).toFixed(3)})`;
-          ctx.lineWidth = 1.85;
+
+          const sag = (k % 2 === 0 ? -1 : 1) * (58 + k * 14);
+          const ctrlX = lerp(srcX, nbPos.x, 0.5);
+          const ctrlY = clamp(lerp(srcY, nbPos.y, 0.5) + sag, 26, STAGE_H - 26);
+          const curEndX = lerp(srcX, nbPos.x, drawU);
+          const curEndY = lerp(srcY, nbPos.y, drawU);
+          const curCtrlX = lerp(srcX, ctrlX, drawU);
+          const curCtrlY = lerp(srcY, ctrlY, drawU);
+
+          ctx.strokeStyle = `rgba(255, 0, 0, ${(0.86 * focusDim).toFixed(3)})`;
+          ctx.lineWidth = 1.9 - k * 0.14;
           ctx.beginPath();
           ctx.moveTo(srcX, srcY);
-          ctx.lineTo(lerp(srcX, nbPos.x, drawU), lerp(srcY, nbPos.y, drawU));
+          ctx.quadraticCurveTo(curCtrlX, curCtrlY, curEndX, curEndY);
           ctx.stroke();
+
+          if (drawU > 0.92) {
+            ctx.fillStyle = `rgba(255, 0, 0, ${(0.9 * focusDim).toFixed(3)})`;
+            ctx.beginPath();
+            ctx.arc(nbPos.x, nbPos.y, 3.6, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
+        ctx.restore();
       }
 
-      // 12. Scene 4: 1px solid #000 Focus Panel + Button Press Feedback (88.8..101.2s)
-      const panelOp = win(t, 88.8, 101.3, 0.35);
-      focusPanel.style.opacity = String(panelOp);
-      focusPanel.style.transform = `translateY(${((1 - span(t, 88.8, 89.3)) * 14).toFixed(1)}px)`;
-      const breakPressed = t >= 95.0 && t < 96.4;
-      const researchPressed = t >= 99.8 && t < 101.4;
-      btnBreakEl.classList.toggle('is-pressed', breakPressed);
-      btnBreakEl.style.background = breakPressed ? '#000000' : '#ffffff';
-      btnBreakEl.style.color = breakPressed ? '#ffffff' : '#000000';
-      btnResearchEl.classList.toggle('is-pressed', researchPressed);
-      focusContentEl.textContent = t >= 95.8 ? QUERY_GEN2 : TARGET_FRAGMENT_TEXT;
-
-      // 13. Scene 4: [더 잘게 분해] 3-Piece Parabolic Arc Split (95.35..101.4s)
-      const pieceTargetsX = [4675, 4955, 5235];
-      const pieceStartsX = [4780, 4960, 5130];
-      TARGET_PHRASE_PIECES.forEach((_p, idx) => {
-        const el = pieceEls[idx]!;
-        if (!piecesLive) {
-          el.style.opacity = '0';
-          return;
+      // K. Act IV.2: 3D Typographic Fault-Line Fracture (`95.0 – 101.5s`)
+      //    z = -70 ("결정이 녹을 때"), z = +90 ("수억 년 전의 바람" 82px #FF0000 × #0000FF overprint!), z = -50 ("이 분다")
+      if (!faultLive) {
+        for (const sEl of shardEls) {
+          sEl.style.opacity = '0';
+          sEl.style.filter = 'none';
         }
-        const uSplit = easeOutCubic(progress(t, 95.35 + idx * 0.08, 96.15 + idx * 0.08));
-        const px = lerp(pieceStartsX[idx]!, pieceTargetsX[idx]!, uSplit);
-        const py = 226 - Math.sin(Math.PI * uSplit) * 26;
-        const isCenterWind = idx === 1;
-        const pScale = isCenterWind ? lerp(1.22, 1.66, uSplit) : lerp(1.15, 0.96, uSplit);
-        const exitFade = isCenterWind
-          ? 1 - progress(t, 101.0, 101.25) // hands off cleanly to flying queryNext!
-          : 1 - progress(t, 100.8, 101.4);
+        centerShardOverprint.style.opacity = '0';
+      } else {
+        const uSplit = easeOutExpo(progress(t, 95.0, 96.1));
+        const exitShard = 1 - progress(t, 101.25, 101.55);
 
-        el.style.opacity = String(clamp(exitFade * (isCenterWind ? 1 : 0.72), 0, 1));
-        el.style.transform = `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px) translate(-50%, -50%) scale(${pScale.toFixed(3)})`;
-        el.style.color = isCenterWind ? '#ff0000' : '#000000';
-      });
+        // Draw inclined red fault-plane shear slashes on canvas
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 0, 0, ${(0.72 * exitShard).toFixed(3)})`;
+        ctx.lineWidth = 1.1;
+        for (const fx of [4560, 5210]) {
+          ctx.beginPath();
+          ctx.moveTo(fx + 22 * uSplit, 134);
+          ctx.lineTo(fx - 22 * uSplit, 302);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        const shardTargets: readonly { x: number; y: number; z: number }[] = [
+          { x: 4330, y: 174, z: -70 },
+          { x: 4880, y: 218, z: 90 },
+          { x: 5410, y: 266, z: -50 },
+        ];
+        const shardStarts = [4610, 4880, 5170];
+
+        TARGET_PHRASE_PIECES.forEach((piece, idx) => {
+          const el = shardEls[idx]!;
+          const tgt = shardTargets[idx]!;
+          const px = lerp(shardStarts[idx]!, tgt.x, uSplit);
+          const py = lerp(216, tgt.y, uSplit);
+          const pz = lerp(0, piece.z, uSplit);
+          const perspScale = Z_CAM / (Z_CAM - pz);
+          const isCenter = idx === 1;
+
+          el.style.opacity = (exitShard * (isCenter ? 1.0 : 0.68)).toFixed(3);
+          el.style.color = isCenter ? '#ff0000' : '#000000';
+          el.style.filter = !isCenter && uSplit > 0.3 ? 'blur(0.75px)' : 'none';
+          el.style.transform = `translate3d(${px.toFixed(1)}px, ${py.toFixed(1)}px, 0) translate(-50%, -50%) scale(${perspScale.toFixed(4)})`;
+
+          if (isCenter) {
+            // Silkscreen #0000FF × #FF0000 registration overprint offset tightening as it charges!
+            const regOffset = lerp(5.5, 1.6, progress(t, 95.0, 100.8)) + pulse * 1.2;
+            centerShardOverprint.style.opacity = (exitShard * 0.88).toFixed(3);
+            centerShardOverprint.style.transform = `translate3d(${(px + regOffset).toFixed(1)}px, ${(py - regOffset * 0.45).toFixed(1)}px, 0) translate(-50%, -50%) scale(${perspScale.toFixed(4)})`;
+          }
+        });
+      }
     }
 
-    // ---------------------------------------------------------------------
-    // D. BOTTOM EDITORIAL RHYTHM RULE, CAPTION & 8-SEGMENT INDICATOR
-    // ---------------------------------------------------------------------
-    bottomRule.style.transform = `scaleX(${span(t, 0.3, 1.8, easeInOut)})`;
-    const activeCap = STAGE_CAPTIONS.find((c) => t >= c.a && t < c.b);
-    if (activeCap) {
-      bottomCaption.textContent = activeCap.text;
-      bottomCaption.style.opacity = String(win(t, activeCap.a, activeCap.b, 0.25));
-      segEls.forEach((sEl, idx) => sEl.classList.toggle('is-on', idx === activeCap.seg));
+    // -----------------------------------------------------------------------
+    // 6. ACT IV.3 (`101.5 – 106.8s`): 6,480px HORIZONTAL PALEO-WIND GALE
+    // -----------------------------------------------------------------------
+    if (t < 101.5 || t >= 106.9) {
+      galeBannerEl.style.opacity = '0';
+      galeOverprintEl.style.opacity = '0';
     } else {
-      bottomCaption.style.opacity = '0';
-      segEls.forEach((sEl) => sEl.classList.remove('is-on'));
+      const uGale = easeInOutCubic(progress(t, 101.5, 106.1));
+      const gFade = (t >= 101.5 ? 1 : 0) * (1 - span(t, 105.9, 106.8));
+      const gx = lerp(4880, 290, uGale);
+      const gy = lerp(218, 56, easeInCubic(progress(t, 104.6, 106.2)));
+      const gScale = lerp(1.04, 0.34, easeInCubic(progress(t, 104.5, 106.2)));
+
+      galeBannerEl.style.opacity = gFade.toFixed(3);
+      galeBannerEl.style.transform = `translate3d(${gx.toFixed(1)}px, ${gy.toFixed(1)}px, 0) translate(-50%, -50%) scale(${gScale.toFixed(4)})`;
+
+      galeOverprintEl.style.opacity = (gFade * 0.85).toFixed(3);
+      galeOverprintEl.style.transform = `translate3d(${(gx + 6).toFixed(1)}px, ${(gy - 2).toFixed(1)}px, 0) translate(-50%, -50%) scale(${gScale.toFixed(4)})`;
+
+      // Draw sweeping `plate-14` acoustic waveform + `plate-13` dissolution plume + wind streamlines!
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      const wavePlate = getDecodedPlate('plate-14');
+      const plumePlate = getDecodedPlate('plate-13');
+      if (wavePlate) {
+        ctx.globalAlpha = 0.62 * gFade;
+        ctx.drawImage(wavePlate, gx - 220, 74, 1280, 284);
+      }
+      if (plumePlate) {
+        ctx.globalAlpha = 0.54 * gFade;
+        ctx.drawImage(plumePlate, gx + 420, 24, 720, 384);
+      }
+
+      // Calligraphic horizontal wind streamlines sweeping right -> left across all 6,480px
+      for (let wIdx = 0; wIdx < 26; wIdx++) {
+        const wy = 42 + wIdx * 13.8;
+        const speedLag = hash(wIdx * 19 + 3) * 0.24;
+        const uLine = clamp((uGale - speedLag) / (1 - speedLag), 0, 1);
+        if (uLine <= 0.01) continue;
+        const headX = lerp(6380, 80, uLine);
+        const tailX = Math.min(6420, headX + 680 + hash(wIdx * 7) * 920);
+        ctx.strokeStyle = wIdx % 4 === 0 ? '#ff0000' : wIdx % 7 === 0 ? '#0000ff' : '#000000';
+        ctx.globalAlpha = (wIdx % 4 === 0 ? 0.55 : 0.22) * gFade;
+        ctx.lineWidth = wIdx % 4 === 0 ? 1.4 : 0.65;
+        ctx.beginPath();
+        ctx.moveTo(tailX, wy);
+        ctx.quadraticCurveTo((tailX + headX) * 0.5, wy + Math.sin(wIdx + uLine * 6) * 12, headX, wy);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
-    // ---------------------------------------------------------------------
-    // E. SEAMLESS PURE #FFFFFF LOOP WASH (t=118.2..120.0s === t=0.0s)
-    // ---------------------------------------------------------------------
-    const washEnd = span(t, 118.2, 119.92, easeInOut);
-    const washStart = 1 - span(t, 0.0, 0.22, easeInOut);
-    fadeWash.style.opacity = String(Math.max(washEnd, washStart));
+    // -----------------------------------------------------------------------
+    // 7. 120 BPM PERCUSSIVE HARD-CUT ACCENT LINES (t = 8.0, 30.0, 46.0, 88.0, 95.0, 101.5s)
+    // -----------------------------------------------------------------------
+    const cutFlash =
+      Math.max(
+        hardCutFlash(t, 8.0, 2),
+        hardCutFlash(t, 30.0, 2),
+        hardCutFlash(t, 46.0, 2),
+        hardCutFlash(t, 88.0, 2),
+        hardCutFlash(t, 95.0, 2),
+        hardCutFlash(t, 101.5, 2),
+      );
+    if (cutFlash > 0.01) {
+      ctx.save();
+      ctx.strokeStyle = `rgba(255, 0, 0, ${(0.75 * cutFlash).toFixed(3)})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 216);
+      ctx.lineTo(STAGE_W, 216);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // -----------------------------------------------------------------------
+    // 8. SEAMLESS PURE #FFFFFF LOOP DISSOLUTION (`t=0.0s` === `t=119.967s`, `0 LSB`)
+    // -----------------------------------------------------------------------
+    const washEnd = t >= 119.86 ? 1.0 : span(t, 118.0, 119.86, easeInOut);
+    const washStart = t <= 0.14 ? 1.0 : 1 - span(t, 0.14, 0.36, easeOutCubic);
+    fadeWash.style.opacity = Math.max(washEnd, washStart).toFixed(4);
   }
 
-  // Initial draw at t = 0
   renderAt(0);
 
   return {

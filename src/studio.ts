@@ -1,12 +1,10 @@
 /**
- * Interactive Live Studio Preview UI (http://127.0.0.1:4320/ & GitHub Pages)
- * - Top: Auto-scaled full 6480x432 (15:1) panoramic overview with live red zoom-window guide box
- * - Middle: 1:1 / 0.65x native-pixel zoomed viewport with Auto-Follow Action & mouse drag panning
- * - Bottom: Play/Pause (Space), 00:00.0 / 02:00.0 scrubber, Scene 1..4 instant jump, 0.5x/1x/2x speed, 120 BPM pulse
- * - Deep-link sharing: ?t=<0..120>&x=<0..6480>&zoom=<1|0.65>&pause=1&rgain=<0.50..1.00>
+ * Interactive Live Studio Preview UI (`http://127.0.0.1:4320/` & GitHub Pages)
+ * External to `?raw=1` stage: keeps stage 100% Zero-UI while giving curators & directors
+ * 15:1 full-span overview + 1:1 native-pixel viewport + Act I..IV jump + `?rgain=` + deep-link sharing.
  */
 
-import { DURATION, SCENES, STAGE_H, STAGE_W } from './data/timeline.ts';
+import { DURATION, SCENES, STAGE_CAPTIONS, STAGE_H, STAGE_W } from './data/timeline.ts';
 import { createMotionStage } from './engine/stage.ts';
 import { beatPulse, clamp, parseRedGain } from './math.ts';
 
@@ -23,7 +21,7 @@ async function copyTextToClipboard(text: string): Promise<void> {
       await navigator.clipboard.writeText(text);
       return;
     } catch {
-      // Fallback below for restricted or non-HTTPS contexts
+      // Fallback below
     }
   }
   const ta = document.createElement('textarea');
@@ -51,18 +49,18 @@ export function mountStudio(app: HTMLElement): void {
     <header class="studio-topbar">
       <div class="studio-brand">
         <h1>정렬과 사선 (Aligned / Skewed)</h1>
-        <span>6480 × 432 px (15:1) Single Unbroken Live Web-Art Motion · 120 BPM · 120.0s</span>
+        <span>6480 × 432 px (15:1) Moving Image · 120 BPM · 120.0s · Zero-UI Exhibition Master</span>
       </div>
       <div class="studio-meta-links">
         ${hasRedGain ? `<span class="rgain-badge" title="현장 리허설 적색기 보정 활성">R-Gain ${redGain.toFixed(2)}</span>` : ''}
         <button type="button" class="ctrl-btn" id="btn-copy-link">현재 장면 링크 복사</button>
-        <a id="link-raw-mode" href="?raw=1&t=0.0" target="_blank" rel="noreferrer">Raw 6480×432 Render Mode (?raw=1)</a>
+        <a id="link-raw-mode" href="?raw=1&t=0.0" target="_blank" rel="noreferrer">Raw 6480×432 Stage (?raw=1)</a>
       </div>
     </header>
 
     <section class="studio-overview-section">
       <div class="studio-section-head">
-        <span><strong>FULL 6480 × 432 PANORAMA OVERVIEW (15:1)</strong> — 클릭하거나 드래그하여 돋보기 위치 즉시 이동</span>
+        <span><strong>FULL 6480 × 432 PANORAMA OVERVIEW (15:1)</strong> — 클릭·드래그하여 디테일 뷰포트 즉시 이동</span>
         <span id="ov-coords">x = 0 .. 1920 px</span>
       </div>
       <div class="overview-frame" id="overview-frame">
@@ -73,9 +71,9 @@ export function mountStudio(app: HTMLElement): void {
 
     <section class="studio-detail-section">
       <div class="studio-section-head">
-        <span><strong>NATIVE PIXEL DETAIL VIEWPORT</strong> — 마우스 좌클릭 드래그로 0..6480px 자유 패닝</span>
+        <span><strong>NATIVE PIXEL DETAIL VIEWPORT</strong> — 좌클릭 드래그로 0..6480px 패닝 <span class="studio-caption-readout" id="studio-caption-readout"></span></span>
         <div class="detail-controls-inline">
-          <button type="button" class="ctrl-btn is-active" id="btn-autofollow">Auto-Follow Action: ON</button>
+          <button type="button" class="ctrl-btn is-active" id="btn-autofollow">Auto-Follow: ON</button>
           <button type="button" class="ctrl-btn is-active" id="btn-zoom-1x">1:1 (100%)</button>
           <button type="button" class="ctrl-btn" id="btn-zoom-065x">0.65x</button>
         </div>
@@ -109,6 +107,7 @@ export function mountStudio(app: HTMLElement): void {
   const overviewScaler = shell.querySelector<HTMLElement>('#overview-scaler')!;
   const overviewLens = shell.querySelector<HTMLElement>('#overview-lens')!;
   const ovCoords = shell.querySelector<HTMLElement>('#ov-coords')!;
+  const captionReadout = shell.querySelector<HTMLElement>('#studio-caption-readout')!;
 
   const detailViewport = shell.querySelector<HTMLElement>('#detail-viewport')!;
   const detailPanLayer = shell.querySelector<HTMLElement>('#detail-pan-layer')!;
@@ -123,7 +122,6 @@ export function mountStudio(app: HTMLElement): void {
   const bpmText = shell.querySelector<HTMLElement>('#bpm-text')!;
   const sceneSpeedRow = shell.querySelector<HTMLElement>('#scene-speed-row')!;
 
-  // Scene jump buttons
   const sceneBtns: HTMLButtonElement[] = SCENES.map((sc) => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -137,7 +135,6 @@ export function mountStudio(app: HTMLElement): void {
     return btn;
   });
 
-  // Speed selector buttons
   const speeds = [0.5, 1, 2] as const;
   let playSpeed = 1;
   const speedBtns: HTMLButtonElement[] = speeds.map((sp) => {
@@ -154,11 +151,9 @@ export function mountStudio(app: HTMLElement): void {
     return btn;
   });
 
-  // Mount two synchronized stages: top overview (0.35x canvas scale for crisp 60fps) + middle full 1:1 native detail
   const overviewStage = createMotionStage(overviewScaler, { canvasScale: 0.35, redGain });
   const detailStage = createMotionStage(detailPanLayer, { canvasScale: 1.0, redGain });
 
-  // Parse initial URL deep-link state: ?t=, ?x=, ?zoom=, ?pause=1, ?rgain=
   const rawT = urlParams.get('t');
   const parsedT = rawT !== null && rawT.trim() !== '' ? Number(rawT) : NaN;
   let curTime = Number.isFinite(parsedT) ? ((parsedT % DURATION) + DURATION) % DURATION : 0;
@@ -178,7 +173,7 @@ export function mountStudio(app: HTMLElement): void {
   const syncControlButtonStates = () => {
     btnPlay.textContent = playing ? 'Pause (Space)' : 'Play (Space)';
     btnPlay.classList.toggle('is-primary', playing);
-    btnAutofollow.textContent = `Auto-Follow Action: ${autoFollow ? 'ON' : 'OFF'}`;
+    btnAutofollow.textContent = `Auto-Follow: ${autoFollow ? 'ON' : 'OFF'}`;
     btnAutofollow.classList.toggle('is-active', autoFollow);
     btnZoom1x.classList.toggle('is-active', detailZoom === 1.0);
     btnZoom065x.classList.toggle('is-active', detailZoom === 0.65);
@@ -205,7 +200,6 @@ export function mountStudio(app: HTMLElement): void {
   linkRawMode.addEventListener('pointerdown', () => syncRawLink(curTime));
   linkRawMode.addEventListener('click', () => syncRawLink(curTime));
 
-  // Deep-link share button ([현재 장면 링크 복사])
   let copyFeedbackTimer: number | null = null;
   btnCopyLink.addEventListener('click', async () => {
     const shareUrl = new URL(window.location.href);
@@ -275,6 +269,9 @@ export function mountStudio(app: HTMLElement): void {
     timeReadout.textContent = `${fmtTime(t)} / 02:00.0`;
     scrubber.value = t.toFixed(2);
 
+    const activeCap = STAGE_CAPTIONS.find((c) => t >= c.a && t < c.b);
+    captionReadout.textContent = activeCap ? `· ${activeCap.text}` : '';
+
     const p = beatPulse(t, 1);
     bpmDot.style.transform = `scale(${(0.85 + p * 0.55).toFixed(3)})`;
     const beatNum = Math.floor(t * 2) + 1;
@@ -286,7 +283,6 @@ export function mountStudio(app: HTMLElement): void {
     });
   }
 
-  // Controls interactions
   const togglePlay = () => {
     playing = !playing;
     syncControlButtonStates();
@@ -328,7 +324,6 @@ export function mountStudio(app: HTMLElement): void {
     syncLayoutSizes();
   });
 
-  // Click / drag on Overview strip to jump lens immediately
   let ovDragging = false;
   const panFromOverview = (clientX: number) => {
     const rect = overviewFrame.getBoundingClientRect();
@@ -350,7 +345,6 @@ export function mountStudio(app: HTMLElement): void {
     ovDragging = false;
   });
 
-  // Mouse drag panning inside 1:1 Detail Viewport
   let detailDragX: number | null = null;
   detailViewport.addEventListener('pointerdown', (e) => {
     detailDragX = e.clientX;
@@ -373,7 +367,6 @@ export function mountStudio(app: HTMLElement): void {
   detailViewport.addEventListener('pointerup', stopDetailDrag);
   detailViewport.addEventListener('pointercancel', stopDetailDrag);
 
-  // Expose deterministic hook on window too
   window.MOTION_DURATION = DURATION;
   window.renderAt = (t: number) => {
     playing = false;
@@ -383,7 +376,6 @@ export function mountStudio(app: HTMLElement): void {
   };
   window.getFocusX = (t: number) => detailStage.getFocusX(t);
 
-  // Real-time 60fps animation loop
   let lastTs = performance.now();
   const tick = (now: number) => {
     const dt = Math.min(0.08, (now - lastTs) / 1000);

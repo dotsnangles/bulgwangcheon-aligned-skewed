@@ -1,9 +1,12 @@
 /* ==========================================================================
-   Aligned / Skewed (v3 Web-Art Motion) — Pure Editorial Style Sheet
-   Directly inherits art-hackathon/apps/web/src/style.css & motion_*.html DNA
-   Palette: #FFFFFF ground, #000000 1px ink, #0000FF aligned,
-            #FF9E4D/#FFAF66/#FFC080/#FFD09A 01~04 skewed, #FF0000 surgical red
+   Aligned / Skewed — Professional Art-Grade Fine-Press & Silkscreen Style Sheet
+   Self-hosted Noto Serif KR (Variable 200..900) × JetBrains Mono (Variable)
+   Palette: #FFFFFF paper ground, #000000 carbon ink, #0000FF aligned overprint,
+            #FF9E4D/#FFAF66/#FFC080/#FFD09A 01~04 skewed overprint, #FF0000 surgical red
+   Zero CSS transitions/keyframes inside `.motion-stage` (100% deterministic `renderAt(t)`).
    ========================================================================== */
+
+/* Fonts are preloaded & declared via relative ./fonts/*.woff2 in index.html for GitHub Pages compatibility */
 
 * {
   box-sizing: border-box;
@@ -13,6 +16,7 @@
 
 :root {
   --font-serif: "Noto Serif KR", "AppleMyungjo", Georgia, serif;
+  --font-mono: "JetBrains Mono", "Noto Serif KR", monospace;
   --ink: #000000;
   --paper: #ffffff;
   --blue: #0000ff;
@@ -42,7 +46,7 @@ body.raw-mode {
 }
 
 /* ==========================================================================
-   SINGLE UNBROKEN 6480x432 MOTION STAGE
+   SINGLE UNBROKEN 6480 × 432 MUSEUM MOVING-IMAGE STAGE (ZERO APP UI CHROME)
    ========================================================================== */
 
 .motion-stage {
@@ -57,12 +61,6 @@ body.raw-mode {
   -webkit-user-select: none;
 }
 
-.stage-world {
-  position: absolute;
-  inset: 0;
-  transform-origin: 0 0;
-}
-
 .stage-filter-defs {
   position: absolute;
   width: 0;
@@ -71,6 +69,48 @@ body.raw-mode {
   pointer-events: none;
 }
 
+.stage-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6480px;
+  height: 432px;
+  transform-origin: 0 0;
+}
+
+/* --- Swiss Precision Vernier Hairline Grid (Static Registration Layer) --- */
+.swiss-grid-svg {
+  position: absolute;
+  inset: 0;
+  width: 6480px;
+  height: 432px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.swiss-telemetry-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6480px;
+  height: 20px;
+  pointer-events: none;
+  z-index: 24;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  color: #000000;
+}
+
+.telemetry-tag {
+  position: absolute;
+  top: 4px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* --- Floor SVG (Compact Architectural Cast Polygons + Bezier Trajectories) --- */
 .stage-floor-svg {
   position: absolute;
   inset: 0;
@@ -78,167 +118,242 @@ body.raw-mode {
   height: 432px;
   pointer-events: none;
   overflow: visible;
-  z-index: 1;
+  z-index: 2;
 }
 
-.stage-canvas {
+/* --- Act I.1: Opening Press of Alignment & Voronoi Lithograph --- */
+.press-layer {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 6480px;
-  height: 432px;
+  inset: 0;
   pointer-events: none;
-  z-index: 4;
+  z-index: 8;
 }
 
-/* --- Query Dock (Top-Left, motion_concept.html exact language) --- */
-.query-line {
+.press-voronoi-plate {
   position: absolute;
-  left: 80px;
-  top: 50px;
+  width: 820px;
+  height: 432px;
+  object-fit: cover;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.press-hero-query {
+  position: absolute;
+  left: 160px;
+  top: 138px;
+  font-family: var(--font-serif);
+  font-size: 136px;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+  color: #000000;
+  transform-origin: 0 50%;
+}
+
+.press-memory-line {
+  position: absolute;
+  font-family: var(--font-serif);
+  font-size: 31px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: #000000;
+  transform-origin: 50% 50%;
+}
+
+.press-blue-slab {
+  position: absolute;
+  background: #0000ff;
+  mix-blend-mode: multiply;
+  transform-origin: 0 50%;
+}
+
+.press-formula-stamp {
+  position: absolute;
+  left: 3420px;
+  top: 216px;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  color: #000000;
+  padding: 10px 28px;
+  border-top: 1.5px solid #000000;
+  border-bottom: 1.5px solid #000000;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+/* --- Architectural Query Datum Header (Zero Input/Toolbar Chrome) --- */
+.datum-query-anchor {
+  position: absolute;
+  left: 118px;
+  top: 22px;
+  z-index: 20;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.datum-query-kicker {
+  display: block;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: #0000ff;
+  margin-bottom: 2px;
+}
+
+.datum-query-text {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: #000000;
+}
+
+.datum-query-rule {
   height: 1px;
   background: #000000;
+  margin-top: 5px;
   transform-origin: 0 50%;
-  z-index: 18;
 }
 
-.query-box {
-  position: absolute;
-  left: 80px;
-  top: 14px;
-  font-size: 26px;
-  line-height: 34px;
-  white-space: nowrap;
-  transform-origin: 0 0;
-  z-index: 19;
-  color: #000000;
-}
-
-.query-box .q-label {
-  margin-right: 0.32em;
-}
-
-.query-caret {
-  display: inline-block;
-  width: 1.5px;
-  height: 0.92em;
-  background: #000000;
-  vertical-align: -0.1em;
-  margin-left: 3px;
-}
-
-.query-sep {
-  position: absolute;
-  top: 14px;
-  font-size: 26px;
-  line-height: 34px;
-  color: #000000;
-  z-index: 19;
-  white-space: nowrap;
-}
-
-.query-next {
-  position: absolute;
-  left: 0;
-  top: 0;
-  font-size: 26px;
-  line-height: 34px;
-  white-space: nowrap;
-  transform-origin: 0 0;
-  z-index: 22;
-  color: #000000;
-}
-
-/* --- Scene 1 & Scene 4: 3D Perspective Cards & Tabs --- */
+/* --- Act I & Act IV: 3D Architectural Silkscreen & Lithograph Monoliths --- */
 .card-layer {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 5;
   pointer-events: none;
 }
 
-.art-card {
+.monolith-card {
   position: absolute;
   background: #ffffff;
   border: 1px solid #000000;
-  padding: 9px 11px;
   color: #000000;
   transform-origin: 50% 50%;
-  will-change: transform, opacity;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.art-card-tab {
-  position: absolute;
-  left: -1px;
-  bottom: 100%;
-  width: 62%;
-  height: 24px;
-  border: 1px solid #000000;
+.monolith-band {
+  height: 22px;
+  border-bottom: 1px solid #000000;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 0 8px;
-  font-size: 13px;
-  line-height: 1;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   white-space: nowrap;
-  letter-spacing: 0.01em;
+  overflow: hidden;
+  mix-blend-mode: multiply;
 }
 
-.art-card-tab.aligned {
+.monolith-band.aligned {
   background: #0000ff;
   color: #ffffff;
+  mix-blend-mode: normal;
 }
 
-.art-card-tab.skewed-1 { background: #ff9e4d; color: #000000; }
-.art-card-tab.skewed-2 { background: #ffaf66; color: #000000; }
-.art-card-tab.skewed-3 { background: #ffc080; color: #000000; }
-.art-card-tab.skewed-4 { background: #ffd09a; color: #000000; }
+.monolith-band.skewed-1 { background: #ff9e4d; color: #000000; }
+.monolith-band.skewed-2 { background: #ffaf66; color: #000000; }
+.monolith-band.skewed-3 { background: #ffc080; color: #000000; }
+.monolith-band.skewed-4 { background: #ffd09a; color: #000000; }
 
-.art-card-title {
+.monolith-plate-wrap {
+  position: relative;
+  width: 100%;
+  height: 108px;
+  overflow: hidden;
+  border-bottom: 0.75px solid #000000;
+  background: #ffffff;
+}
+
+.monolith-plate-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: multiply;
+  display: block;
+}
+
+.monolith-rank-num {
+  position: absolute;
+  right: 7px;
+  bottom: -5px;
+  font-family: var(--font-serif);
+  font-size: 46px;
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #000000;
+  mix-blend-mode: multiply;
+}
+
+.monolith-tint-slab {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 34%;
+  height: 100%;
+  mix-blend-mode: multiply;
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.monolith-body {
+  padding: 7px 9px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  background: #ffffff;
+}
+
+.monolith-title {
+  font-family: var(--font-serif);
   font-size: 14.5px;
-  font-weight: 600;
-  line-height: 1.34;
+  font-weight: 700;
+  line-height: 1.28;
+  letter-spacing: -0.01em;
+  word-break: keep-all;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  word-break: keep-all;
 }
 
-.art-card-url {
-  margin-top: 4px;
-  font-size: 10.5px;
-  line-height: 1.25;
-  text-decoration: underline;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #222222;
-}
-
-.art-card-snippet {
-  margin-top: 5px;
-  font-size: 11.5px;
-  line-height: 1.42;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: keep-all;
+.monolith-snippet {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.38;
   color: #111111;
+  word-break: keep-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.art-card-rule {
-  height: 1px;
-  background: #000000;
-  margin-top: 6px;
-  opacity: 0.25;
-}
-
-/* --- Near-to-Far Horizontal Axis & Runner (motion_concept.html) --- */
+/* --- Skewed Distance Datum Axis (`01 -> 04`) --- */
 .axis-layer {
   position: absolute;
   inset: 0;
-  z-index: 6;
+  z-index: 7;
   pointer-events: none;
 }
 
@@ -249,104 +364,75 @@ body.raw-mode {
   transform-origin: 0 50%;
 }
 
-.axis-end {
+.axis-station {
   position: absolute;
-  font-size: 16px;
-  line-height: 20px;
   white-space: nowrap;
+}
+
+.axis-station-code {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
   color: #000000;
+}
+
+.axis-station-title {
+  font-family: var(--font-serif);
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 1px;
 }
 
 .axis-dot {
   position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+  width: 10px;
+  height: 10px;
   border: 1px solid #000000;
+  transform-origin: 50% 50%;
 }
 
-.axis-term {
-  position: absolute;
-  white-space: nowrap;
-  color: #000000;
-}
-
-.axis-term-main {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.axis-term-sub {
-  font-size: 12px;
-  line-height: 1.3;
-  color: #333333;
-}
-
-.axis-runner {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: #000000;
-}
-
-.detail-bar {
-  position: absolute;
-  background: #ffffff;
-  border: 1px solid #000000;
-  padding: 5px 18px;
-  font-size: 18px;
-  line-height: 24px;
-  white-space: nowrap;
-  display: flex;
-  gap: 24px;
-  z-index: 20;
-  transform: translateX(-50%);
-}
-
-/* --- Right-Edge 3D Oblique History Conveyor Rail (exact art-hackathon style.css) --- */
+/* --- Right-Edge 3D Oblique History Ribbon (Pierces Top & Bottom Frame Boldly) --- */
 .history-rail-wrap {
   position: absolute;
-  top: 0;
-  right: 22px;
-  width: 390px;
-  height: 432px;
-  overflow: hidden;
+  top: -64px;
+  right: 12px;
+  width: 440px;
+  height: 560px;
+  overflow: visible;
   pointer-events: none;
   z-index: 12;
-  background: transparent;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 7%, #000 91%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 7%, #000 91%, transparent 100%);
 }
 
 .history-scene {
-  perspective: 700px;
-  perspective-origin: 50% 48%;
+  perspective: 740px;
+  perspective-origin: 50% 50%;
   width: 100%;
-  height: 432px;
+  height: 100%;
 }
 
 .history-list {
   --history-offset: 0px;
   list-style: none;
-  margin: 18px 0 0 68px;
+  margin: 0 0 0 74px;
   padding: 0;
-  width: 260px;
+  width: 278px;
   transform: rotateX(38deg) rotateY(-30deg) rotateZ(-8deg) translate3d(0, calc(var(--history-offset) * -1), 0);
-  transform-origin: 50% 0;
+  transform-origin: 50% 25%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  will-change: transform;
+  gap: 8px;
 }
 
-.history-title {
-  font-size: 15px;
-  font-weight: 600;
+.history-head {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   padding-bottom: 4px;
   border-bottom: 1px solid #000000;
-  color: #000000;
   background: #ffffff;
 }
 
@@ -354,150 +440,110 @@ body.raw-mode {
   flex: none;
   border: 1px solid #000000;
   background: #ffffff;
-  padding: 11px 13px;
-  min-height: 102px;
+  padding: 8px 10px;
   backface-visibility: hidden;
 }
 
-.history-page-badge {
-  display: inline-block;
-  font-size: 10px;
-  padding: 1px 6px;
-  border: 1px solid #000000;
+.history-page-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
 }
 
-.history-page-link {
-  font-size: 13.5px;
-  line-height: 1.3;
-  text-decoration: underline;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.history-badge {
+  padding: 1px 5px;
+  border: 1px solid #000000;
+  font-weight: 600;
+}
+
+.history-page-title {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.26;
   word-break: keep-all;
 }
 
-.history-page p {
-  font-size: 11px;
-  line-height: 1.4;
-  margin-top: 5px;
+.history-page-snip {
+  font-family: var(--font-serif);
+  font-size: 10.5px;
+  line-height: 1.34;
+  margin-top: 3px;
+  color: #222222;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  color: #222222;
 }
 
-/* --- Scene 2: #chrome Panoramic Document Preview --- */
-.page-chrome {
+/* --- Act II: 6,200 × 432 Full-Bleed Fine-Press Archive Spread (Zero Browser Chrome) --- */
+.archive-spread {
   position: absolute;
-  left: 240px;
-  top: 20px;
-  width: 6000px;
-  height: 368px;
-  border: 1px solid #000000;
-  background: #ffffff;
-  z-index: 2;
+  inset: 0;
   pointer-events: none;
+  z-index: 4;
 }
 
-.page-chrome-bar {
-  height: 32px;
-  border-bottom: 1px solid #000000;
+.spread-hero-slot {
+  position: absolute;
+  background: #ffffff;
+  border-left: 0.75px solid #000000;
+  border-right: 0.75px solid #000000;
+  overflow: hidden;
+}
+
+.spread-hero-slot img {
+  width: 100%;
+  height: calc(100% - 26px);
+  object-fit: cover;
+  mix-blend-mode: multiply;
+  display: block;
+}
+
+.spread-hero-meta {
+  height: 26px;
+  border-top: 0.75px solid #000000;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 16px;
-  font-size: 14px;
-  line-height: 31px;
+  justify-content: space-between;
+  padding: 0 8px;
   background: #ffffff;
 }
 
-.page-chrome-nav {
-  letter-spacing: 6px;
-  font-size: 15px;
+.spread-hero-code {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 
-.page-chrome-url {
-  border-left: 1px solid #cccccc;
-  padding-left: 14px;
+.spread-hero-cap {
+  font-family: var(--font-serif);
+  font-size: 11px;
   color: #111111;
 }
 
-.page-chrome-meta {
-  margin-left: auto;
-  font-size: 12px;
-  color: #444444;
-}
-
-/* --- Scene 2, 3, 4: Deconstruction Header, Fragments & Annotations --- */
-.deconstruct-head {
+/* --- High-Precision 2D Silkscreen Canvas (Strides, CUTS, Barcodes, Bezier Arteries, Gale) --- */
+.stage-canvas {
   position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  z-index: 16;
-  background: rgba(255, 255, 255, 0.94);
-  padding: 2px 24px 5px;
-  white-space: nowrap;
+  left: 0;
+  top: 0;
+  width: 6480px;
+  height: 432px;
   pointer-events: none;
+  z-index: 6;
 }
 
-.deconstruct-title-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 16px;
-}
-
-.deconstruct-title {
-  font-size: 21px;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.deconstruct-summary {
-  font-size: 13px;
-  color: #222222;
-}
-
-.deconstruct-modes {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 18px;
-  margin-top: 4px;
-  font-size: 14.5px;
-}
-
-.deconstruct-mode-item {
-  border-bottom: 1.5px solid transparent;
-  padding-bottom: 1px;
-}
-
-.deconstruct-mode-item.is-active {
-  border-bottom-color: #000000;
-  font-weight: 600;
-}
-
-.deconstruct-depth-badge {
-  padding: 0 7px;
-  border: 1px solid #000000;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.deconstruct-depth-badge.is-on {
-  background: #000000;
-  color: #ffffff;
-}
-
+/* --- Act II–IV: 200 Multi-Layered Deconstructed Fragments --- */
 .frag-layer {
   position: absolute;
   inset: 0;
-  z-index: 6;
+  z-index: 9;
   pointer-events: none;
 }
 
@@ -506,279 +552,185 @@ body.raw-mode {
   left: 0;
   top: 0;
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.18;
   transform-origin: 50% 50%;
   color: #000000;
-  will-change: transform, opacity;
 }
 
-.frag.is-heading {
+.frag.is-anchor {
+  font-family: var(--font-serif);
   font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.frag.is-sentence {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.005em;
 }
 
 .frag.is-img {
   text-align: center;
+  mix-blend-mode: multiply;
 }
 
 .frag.is-img img {
   display: block;
-  width: 118px;
-  height: 78px;
+  width: 132px;
+  height: 84px;
   object-fit: cover;
   margin: 0 auto;
+  mix-blend-mode: multiply;
 }
 
 .frag.is-img .frag-lab {
   display: block;
   margin-top: 3px;
-  font-size: 11.5px;
-  line-height: 1.15;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
   color: #000000;
 }
 
-.piece-frag {
+/* --- Special Callouts, Central Orbit Sanctuary & Act IV 3D Fault-Line Fracture --- */
+.special-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  pointer-events: none;
+}
+
+.laser-telemetry {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #ff0000;
+  background: #ffffff;
+  border: 1px solid #ff0000;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.orbit-center-sanctuary {
+  position: absolute;
+  left: 3240px;
+  top: 216px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.orbit-center-kicker {
+  display: block;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: #ff0000;
+  margin-bottom: 3px;
+}
+
+.orbit-center-query {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #ff0000;
+}
+
+.periphery-beacon {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #ff0000;
+  white-space: nowrap;
+}
+
+/* 3D Fault-Line Fracture Shards (Act IV 95.0–101.5s) */
+.fault-shard {
   position: absolute;
   left: 0;
   top: 0;
   white-space: nowrap;
-  line-height: 1.2;
-  transform-origin: 50% 50%;
-  font-size: 24px;
-  font-weight: 600;
-  z-index: 15;
-}
-
-/* --- Editorial Notes: Formula, Pair Score, Orbit Query Mark, 0.14 Law & Floor --- */
-.note-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 14;
-  pointer-events: none;
-}
-
-.editorial-formula {
-  position: absolute;
-  left: 50%;
-  top: 350px;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid #000000;
-  padding: 5px 18px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 20px;
-  white-space: nowrap;
-}
-
-.editorial-formula .frac {
-  display: inline-block;
-  text-align: center;
-  vertical-align: middle;
-  font-size: 16px;
-}
-
-.editorial-formula .frac > span {
-  display: block;
-  line-height: 1.12;
-}
-
-.editorial-formula .frac > span:first-child {
-  border-bottom: 1px solid #000000;
-  padding: 0 6px 2px;
-}
-
-.editorial-formula .pair-count {
-  margin-left: 16px;
-  color: #ff0000;
-  font-weight: 600;
-}
-
-.pair-callout {
-  position: absolute;
-  color: #ff0000;
-  font-size: 24px;
-  font-weight: 700;
-  background: #ffffff;
-  border: 1px solid #ff0000;
-  padding: 2px 9px;
-  transform: translate(-50%, -50%);
-  white-space: nowrap;
-}
-
-.orbit-query-mark {
-  position: absolute;
-  left: 3240px;
-  top: 224px;
-  transform: translate(-50%, -50%);
-  color: #ff0000;
-  font-size: 38px;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 0 22px 16px #ffffff;
-  padding: 6px 22px;
-  white-space: nowrap;
-}
-
-.orbit-law-box {
-  position: absolute;
-  right: 120px;
-  top: 66px;
-  text-align: right;
-  font-size: 16px;
-  line-height: 1.55;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 6px 12px;
-  border-right: 2px solid #ff0000;
-  white-space: pre;
-}
-
-.floor-callout {
-  position: absolute;
-  color: #ff0000;
-  font-size: 26px;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 1px 7px;
-  white-space: nowrap;
-}
-
-/* --- Scene 4: 1px Solid #000 Focus Panel (exact art-hackathon deconstruct-focus) --- */
-.focus-panel {
-  position: absolute;
-  width: 440px;
-  padding: 12px 14px;
-  border: 1px solid #000000;
-  background: #ffffff;
-  z-index: 18;
-}
-
-.focus-panel-content {
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: #000000;
-}
-
-.focus-panel-sim {
-  margin-top: 6px;
-  font-size: 13px;
-  color: #ff0000;
-}
-
-.focus-panel-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.focus-btn {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid #000000;
   font-family: var(--font-serif);
-  font-size: 14px;
-  text-align: center;
+  line-height: 1.08;
+  transform-origin: 50% 50%;
+}
+
+.fault-shard-overprint {
+  position: absolute;
+  left: 0;
+  top: 0;
   white-space: nowrap;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.08;
+  transform-origin: 50% 50%;
+  color: #0000ff;
+  mix-blend-mode: multiply;
 }
 
-.focus-btn.research {
-  background: #0000ff;
-  color: #ffffff;
-}
-
-.focus-btn.break {
-  background: #ffffff;
+/* Act IV Horizontal Gale Hero Text ("수억 년 전의 바람" sweeping 6,480px) */
+.gale-wind-banner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 92px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  transform-origin: 50% 50%;
   color: #000000;
+  z-index: 22;
 }
 
-.focus-btn.is-pressed {
-  outline: 2px solid #000000;
-  outline-offset: 2px;
-}
-
-.focus-panel-label {
-  margin-top: 9px;
-  font-size: 11.5px;
-  color: #444444;
-}
-
-.focus-neighbors {
-  list-style: none;
-  margin-top: 3px;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.focus-neighbors li {
+.gale-wind-overprint {
+  position: absolute;
+  left: 0;
+  top: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-decoration: underline;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 92px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  transform-origin: 50% 50%;
+  color: #ff0000;
+  mix-blend-mode: multiply;
+  z-index: 21;
 }
 
-/* --- Bottom Editorial Rhythm Strip & 8-Segment Progress --- */
-.bottom-rule {
-  position: absolute;
-  left: 80px;
-  right: 80px;
-  top: 398px;
-  height: 1px;
-  background: #000000;
-  transform-origin: 0 50%;
-  z-index: 20;
-}
-
-.bottom-caption {
-  position: absolute;
-  left: 80px;
-  top: 404px;
-  font-size: 16px;
-  line-height: 22px;
-  white-space: nowrap;
-  color: #000000;
-  z-index: 20;
-}
-
-.bottom-segs {
-  position: absolute;
-  right: 80px;
-  top: 414px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  z-index: 20;
-}
-
-.bottom-seg {
-  width: 28px;
-  height: 1px;
-  background: #000000;
-}
-
-.bottom-seg.is-on {
-  height: 3px;
-  background: #0000ff;
-}
-
-/* --- Loop White Fade Wash (motion_concept.html exact white loop) --- */
+/* Seamless Pure-White Loop Wash */
 .stage-fade {
   position: absolute;
   inset: 0;
   background: #ffffff;
   pointer-events: none;
-  z-index: 30;
+  z-index: 40;
 }
 
 /* ==========================================================================
-   LIVE STUDIO PREVIEW UI (http://127.0.0.1:4320/) — Pure Editorial Gallery
+   EXTERNAL LIVE STUDIO PREVIEW UI (`http://127.0.0.1:4320/`, NOT in `?raw=1`)
    ========================================================================== */
 
 .studio-shell {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #f6f6f6;
+  background: #f5f5f4;
   color: #000000;
   font-family: var(--font-serif);
 }
@@ -798,6 +750,7 @@ body.raw-mode {
   display: flex;
   align-items: baseline;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .studio-brand h1 {
@@ -806,50 +759,53 @@ body.raw-mode {
 }
 
 .studio-brand span {
-  font-size: 12px;
-  color: #444444;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: #333333;
 }
 
 .studio-meta-links {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
-  flex-wrap: wrap;
+  font-size: 13px;
 }
 
 .studio-meta-links a {
   color: #0000ff;
   text-decoration: underline;
-  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
 }
 
 .rgain-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border: 1px solid #ff0000;
-  background: #ffffff;
-  color: #ff0000;
-  font-size: 12px;
+  background: #fff5f5;
+  color: #b00000;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-/* Top Full-Width 15:1 Overview Strip */
-.studio-overview-section {
-  background: #ffffff;
-  border-bottom: 1px solid #000000;
-  padding: 12px 20px 14px;
+.studio-overview-section,
+.studio-detail-section {
+  padding: 12px 20px 6px;
 }
 
 .studio-section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
   color: #222222;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .overview-frame {
@@ -862,10 +818,9 @@ body.raw-mode {
 }
 
 .overview-scaler {
-  position: absolute;
-  left: 0;
-  top: 0;
   transform-origin: 0 0;
+  width: 6480px;
+  height: 432px;
   pointer-events: none;
 }
 
@@ -874,34 +829,19 @@ body.raw-mode {
   top: 0;
   bottom: 0;
   border: 2px solid #ff0000;
-  background: rgba(255, 0, 0, 0.045);
+  background: rgba(255, 0, 0, 0.04);
   pointer-events: none;
-  z-index: 40;
-}
-
-/* Middle Zoomed 1:1 / 0.65x Native Detail Viewport */
-.studio-detail-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 14px 20px;
-  min-height: 0;
-}
-
-.detail-controls-inline {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  z-index: 10;
 }
 
 .detail-viewport {
   position: relative;
   width: 100%;
+  height: 432px;
   border: 1px solid #000000;
   background: #ffffff;
   overflow: hidden;
   cursor: grab;
-  flex: none;
 }
 
 .detail-viewport.is-dragging {
@@ -912,15 +852,23 @@ body.raw-mode {
   position: absolute;
   left: 0;
   top: 0;
+  width: 6480px;
+  height: 432px;
   transform-origin: 0 0;
-  will-change: transform;
+  pointer-events: none;
 }
 
-/* Bottom Playback & Scene Scrubber Bar */
+.detail-controls-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .studio-controls {
+  margin-top: auto;
   background: #ffffff;
   border-top: 1px solid #000000;
-  padding: 12px 20px 14px;
+  padding: 12px 20px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -929,17 +877,17 @@ body.raw-mode {
 .controls-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .ctrl-btn {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  padding: 5px 12px;
   border: 1px solid #000000;
   background: #ffffff;
   color: #000000;
-  padding: 5px 12px;
-  font-family: var(--font-serif);
-  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -948,28 +896,27 @@ body.raw-mode {
   background: #f0f0f0;
 }
 
+.ctrl-btn.is-active {
+  background: #000000;
+  color: #ffffff;
+}
+
 .ctrl-btn.is-primary {
   background: #0000ff;
   color: #ffffff;
   border-color: #000000;
 }
 
-.ctrl-btn.is-active {
-  background: #000000;
-  color: #ffffff;
-}
-
-.ctrl-btn.scene-btn.is-current {
-  border-color: #ff0000;
-  color: #ff0000;
+.scene-btn.is-current {
+  border-bottom: 3px solid #ff9e4d;
   font-weight: 700;
 }
 
 .time-readout {
+  font-family: var(--font-mono);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
-  font-size: 14px;
-  font-weight: 600;
-  min-width: 132px;
+  min-width: 122px;
 }
 
 .scrubber-wrap {
@@ -989,16 +936,22 @@ body.raw-mode {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--font-mono);
   font-size: 12px;
-  padding: 4px 10px;
+  padding: 3px 9px;
   border: 1px solid #000000;
-  white-space: nowrap;
 }
 
 .bpm-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #ff0000;
-  transition: transform 0.06s linear;
+  display: inline-block;
+}
+
+.studio-caption-readout {
+  font-size: 13px;
+  color: #222222;
+  margin-left: 8px;
 }

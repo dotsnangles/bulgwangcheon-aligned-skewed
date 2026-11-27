@@ -257,16 +257,17 @@ export function computePanoramicLayouts(
   const n = fragments.length;
 
   /* -----------------------------------------------------------------------
-   * 1. FULL-BLEED FINE-PRESS BROADSHEET (`page`, 30.0–37.6s)
-   *    5 Monumental Hero Lithograph Plates (`w = 336`, `>= 28px` gutters to adjacent bays!)
-   *    + Inter-column gutter cuts ONLY (zero duplicate first-column cut, zero `FIG` intrusion!)
+   * 1. FULL-BLEED FINE-PRESS BROADSHEET (`page`, 48.0–63.0s)
+   *    5 Monumental Hero Lithograph Plates (`plate-29..33`, `w = 336`, `>= 28px` gutters to adjacent bays,
+   *    100% disjoint from `FINAL_IMAGE_SPECS` `plate-01..24`!)
+   *    + Inter-column gutter cuts ONLY (`52.05..60.2s`, leaving `48..52s` intact contemplation!)
    * ----------------------------------------------------------------------- */
   const heroSpreadSlots: HeroSpreadSlot[] = [
-    { plateId: 'plate-02', code: 'FIG.01 · 4.2μm', caption: '옹기 미세 기공과 소금 꽃', x: 136, y: 30, w: 336, h: 372 },
-    { plateId: 'plate-03', code: 'FIG.02 · 90.0°', caption: '정육면체 호퍼 결정 계단', x: 1548, y: 30, w: 336, h: 372 },
-    { plateId: 'plate-05', code: 'FIG.03 · -812m', caption: '지하 812m 암염 돔 습곡', x: 3068, y: 30, w: 336, h: 372 },
-    { plateId: 'plate-07', code: 'FIG.04 · 280MA', caption: '페름기 암염 유체 포유물', x: 4588, y: 30, w: 336, h: 372 },
-    { plateId: 'plate-09', code: 'FIG.05 · -3000m', caption: '남극 심부 빙하 포획 대기', x: 6008, y: 30, w: 336, h: 372 },
+    { plateId: 'plate-29', code: 'FIG.01 · 4.2μm', caption: '옹기 태토 파단면과 기공', x: 136, y: 30, w: 336, h: 372 },
+    { plateId: 'plate-30', code: 'FIG.02 · 90.0°', caption: '호퍼 결정 역피라미드 동굴', x: 1548, y: 30, w: 336, h: 372 },
+    { plateId: 'plate-31', code: 'FIG.03 · -812m', caption: '지하 암염 다이아피어 습곡', x: 3068, y: 30, w: 336, h: 372 },
+    { plateId: 'plate-32', code: 'FIG.04 · NICOL', caption: '직교 편광 소광 십자 간섭륜', x: 4588, y: 30, w: 336, h: 372 },
+    { plateId: 'plate-33', code: 'FIG.05 · -3000m', caption: '남극 만년설 기포 밀봉 단면', x: 6008, y: 30, w: 336, h: 372 },
   ];
 
   // Exact `28px` (`>= 26px`) pure-white gutters between every `FIG` (`w=336`) and adjacent editorial bays!
@@ -290,7 +291,7 @@ export function computePanoramicLayouts(
   const pageRowOf: number[] = new Array(n).fill(0);
   const cuts: CutMark[] = [];
 
-  // Place vertical column cuts strictly in inter-column gutters (omit `isBayFirst` left cut!)
+  // Place vertical column cuts strictly in inter-column gutters (`52.05..58.4s`)
   colDefs.forEach((col, cIdx) => {
     if (col.isBayFirst) return;
     cuts.push({
@@ -299,11 +300,11 @@ export function computePanoramicLayouts(
       x2: col.left - 6,
       y2: 404,
       orientation: 'v',
-      strikeAt: 32.05 + cIdx * 0.21,
+      strikeAt: 52.05 + cIdx * 0.28,
     });
   });
   heroSpreadSlots.forEach((slot, sIdx) => {
-    const beatT = 32.05 + sIdx * 0.80;
+    const beatT = 52.20 + sIdx * 1.40;
     cuts.push({
       x1: slot.x,
       y1: 28,
@@ -320,7 +321,7 @@ export function computePanoramicLayouts(
       x2: slot.x + slot.w,
       y2: 404,
       orientation: 'v',
-      strikeAt: beatT + 0.25,
+      strikeAt: beatT + 0.35,
       heroSlotIdx: sIdx,
       heroEdge: 'right',
     });
@@ -343,8 +344,8 @@ export function computePanoramicLayouts(
       weightSum += w;
     }
 
-    let curY = 34;
-    const totalSpanY = 358;
+    let curY = 36;
+    const totalSpanY = 354;
 
     for (let i = sIdx; i < eIdx; i++) {
       const f = fragments[i]!;
@@ -360,19 +361,19 @@ export function computePanoramicLayouts(
               ? 0.54
               : 0.42;
       const cx = col.left + col.width * 0.5;
-      const cy = Math.min(390, curY + slotH * 0.5);
+      const cy = Math.min(388, curY + slotH * 0.5);
       page[i] = { x: cx, y: cy, z: 0, scale: sc, opacity: 1 };
       pageColOf[i] = colIdx;
       pageRowOf[i] = localRow;
 
-      const hBeat = 32.5 + colIdx * 0.22 + (localRow % 2) * 0.125;
+      const hBeat = 52.60 + colIdx * 0.28 + (localRow % 2) * 0.18;
       cuts.push({
         x1: col.left - 3,
         y1: Math.min(398, curY + slotH),
         x2: col.left + col.width + 3,
         y2: Math.min(398, curY + slotH),
         orientation: 'h',
-        strikeAt: Math.min(37.0, hBeat),
+        strikeAt: Math.min(60.2, hBeat),
       });
       curY += slotH;
     }
@@ -381,22 +382,22 @@ export function computePanoramicLayouts(
   const heroKeepOut: KeepOutZone[] = heroSpreadSlots.map((s) => ({
     cx: s.x + s.w * 0.5,
     cy: s.y + s.h * 0.5,
-    hw: s.w * 0.5 + 24,
+    hw: s.w * 0.5 + 28,
     hh: s.h * 0.5 + 8,
   }));
   separate(page, fragments, {
-    marginX: 36,
-    marginTop: 28,
-    marginBottom: 34,
+    marginX: 38,
+    marginTop: 34,
+    marginBottom: 36,
     padX: 8,
     padY: 6,
-    passes: 3200,
+    passes: 3400,
     keepOut: heroKeepOut,
   });
 
   /* -----------------------------------------------------------------------
-   * 2. SPECTRUM 2D (`spectrum2D`, 37.6–46.0s) — Variable-Density Barcode Sheet
-   *    30 airy columns + `+20px` bottom barcode slot + upper dimension-arc sanctuaries!
+   * 2. SPECTRUM 2D (`spectrum2D`, 63.0–78.0s) — Variable-Density Barcode Sheet
+   *    30 airy columns + `+20px` bottom barcode slot for 4-wave full-height cosine scan!
    * ----------------------------------------------------------------------- */
   const sCols = 30;
   const sLeft = 116;
@@ -408,7 +409,7 @@ export function computePanoramicLayouts(
     const col = Math.floor(i / sPerCol);
     const row = i % sPerCol;
     const x = sLeft + (col + 0.5) * sColW + ((row % 2) - 0.5) * 16;
-    const y = 48 + (row / Math.max(1, sPerCol - 1)) * 314;
+    const y = 46 + (row / Math.max(1, sPerCol - 1)) * 316;
     const sc =
       f.type === 'img'
         ? 0.76
@@ -420,13 +421,6 @@ export function computePanoramicLayouts(
     return { x, y, z: 0, scale: sc, opacity: 1 };
   });
 
-  // 3 Upper Dimension-Caliper Sanctuaries (`X ≈ 1050, 3240, 5380`) for simultaneous 3-zone cosine arcs!
-  const spectrumSanctuaries: KeepOutZone[] = [
-    { cx: 1050, cy: 42, hw: 185, hh: 18 },
-    { cx: 3240, cy: 42, hw: 185, hh: 18 },
-    { cx: 5380, cy: 42, hw: 185, hh: 18 },
-  ];
-
   separate(spectrum2D, fragments, {
     marginX: 38,
     marginTop: 28,
@@ -434,8 +428,7 @@ export function computePanoramicLayouts(
     padX: 9,
     padY: 8,
     extraBottomPx: 20,
-    passes: 3000,
-    keepOut: spectrumSanctuaries,
+    passes: 3200,
   });
 
   /* -----------------------------------------------------------------------
@@ -475,17 +468,17 @@ export function computePanoramicLayouts(
   });
 
   /* -----------------------------------------------------------------------
-   * 4. 30M HORIZONTAL 3D DOUBLE HELIX (`helixBase`, 49.6–59.8s)
+   * 4. 30M HORIZONTAL 3D DOUBLE HELIX (`helixBase`, 87.0–102.0s)
    * ----------------------------------------------------------------------- */
   const helixTurns = 6.2;
   const helixBase = fragments.map((_, i) => {
     const u = i / Math.max(1, n - 1);
     const strand: 0 | 1 = (i % 2) as 0 | 1;
-    const radJitter = ((i % 3) - 1) * 14;
+    const radJitter = ((i % 3) - 1) * 10;
     return {
       x: 190 + u * 6100,
       angle: u * helixTurns * Math.PI * 2 + (strand === 1 ? Math.PI : 0) + (i % 5) * 0.11,
-      radiusY: 132 + radJitter,
+      radiusY: 108 + radJitter,
       radiusZ: 255,
       strand,
     };
@@ -724,12 +717,19 @@ export function computePanoramicLayouts(
   });
 
   /* -----------------------------------------------------------------------
-   * 7. 30M PANORAMIC CELESTIAL ARMILLARY DOME (`sphere3D`, 79.5–88.0s)
+   * 7. 30M PANORAMIC CELESTIAL ARMILLARY DOME (`sphere3D`, 138.0–150.0s)
+   *    Hemisphere-parted golden-angle distribution (`|cosPhi| >= 0.24`) so every
+   *    node maintains invariant northern/southern hemisphere flow around `(3240, 216)`!
    * ----------------------------------------------------------------------- */
+  const halfN = Math.ceil(n * 0.5);
   const sphere3D = fragments.map((f, i) => {
     const distU = 1 - f.level;
-    const shellR = 0.62 + 0.38 * Math.pow(distU, 0.72);
-    const phi = Math.acos(1 - (2 * (i + 0.5)) / n);
+    const shellR = 0.64 + 0.36 * Math.pow(distU, 0.72);
+    const cosPhi =
+      i < halfN
+        ? 0.965 - ((i + 0.5) / halfN) * (0.965 - 0.24)
+        : -0.24 - ((i - halfN + 0.5) / Math.max(1, n - halfN)) * (0.965 - 0.24);
+    const phi = Math.acos(Math.max(-0.99, Math.min(0.99, cosPhi)));
     const theta = golden * i * 3.0;
     return { phi, theta, shellR };
   });

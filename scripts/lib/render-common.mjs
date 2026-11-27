@@ -14,7 +14,7 @@ export const DIST_DIR = path.join(ROOT_DIR, 'dist');
 
 export const STAGE_W = 6480;
 export const STAGE_H = 432;
-export const DURATION = 120.0;
+export const DURATION = 200.0;
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',

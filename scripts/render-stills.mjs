@@ -20,7 +20,7 @@ import {
   startDistServer,
 } from './lib/render-common.mjs';
 
-const DEFAULT_TIMES = [19.6, 34.8, 55.0, 64.5, 84.5, 107.6];
+const DEFAULT_TIMES = [28.0, 56.0, 94.5, 108.5, 144.0, 182.0];
 const DEFAULT_OUT_DIR = 'renders/stills';
 
 function readPngDimensions(filePath) {

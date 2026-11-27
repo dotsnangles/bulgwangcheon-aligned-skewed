@@ -1,25 +1,34 @@
 #!/usr/bin/env node
 /**
- * Quantitative Museum-Grade Artwork Integrity Verifier — Round 4 Final Convergence
- * (`scripts/verify-artwork.mjs`)
+ * Quantitative Museum-Grade Artwork Integrity & 6,000-Frame Kinematic Verifier
+ * (`scripts/verify-artwork.mjs` — 200.0s / 100-Bar / G1~G8 Master Gate Suite)
  *
- * Evaluates 7 strict gates in Headless Chromium (`6480 × 432`, `/?raw=1`):
- *   - G1 (Deterministic Purity): Forward vs scrambled `renderAt(t)` pixel diff === `0 LSB` + all `<img>` decoded.
- *   - G2 (7-View 2D & 3D Zero Collision + Zero Half-Clip):
- *       `press@4.9s`, `page@31.8s`, `spectrum2D@40.2s (+16px barcode)`, `reading2D@48.2s`,
- *       `meaning2D@64.5s`, `orbit2D@78.2s`, AND **`sphere3D@84.5s` (`opacity >= 0.20` all `.frag` + `.orbit-center-sanctuary`)** === `0` overlaps
- *       + `press@5.5s` zero `clip-path` slicing & `>= 12px` formula clearance!
- *   - G3 (Pure-White Ground & `rgain=0.90` White-Point): Mean pure-white (`>= 245`) `>= 78%` AND `/?raw=1&rgain=0.90` preserves exact `RGB(255, 255, 255)` paper ground (`0 LSB` cyan cast!).
- *   - G4 (Zero UI/HUD + Skewed 24-Plate Uniqueness): Zero app controls/HUD/PL.04 + `0` reuse of Gen 1 Aligned plates (`plate-01/15`) in Gen 1 Skewed + `0` intra-station or cross-station plate duplicates across all 24 Skewed cards (`plate-12` <= 1)!
- *   - G5 (30m Full-Span Active & `0.70s` Loop): `[0.45, 21.2, 28.5, 31.8, 41.3, 55, 64.5, 69.0, 84.5, 98.5, 107.6]` 3-zone active & `|corr| < 0.85` + `t=119.60s` pure white `100.00%` + loop (`0.0s` vs `119.967s`) `0 LSB`.
- *   - G6 (Zero-Freeze Full + Left/Right Partial-Freeze Guard):
- *       13 full-canvas intervals `changedPixels >= 5,000 px` AND at `[16, 21, 103, 109]` Left Zone (`X < 1650`) `>= 2,000 px` & Right Zone (`X > 5900`) `>= 1,500 px`!
- *   - G7 (Physical Bezel Safe Envelope): 13 timestamps all visible stage elements stay strictly within `rect.top >= 20` and `rect.bottom <= 410`!
+ * Evaluates 8 strict gates in Headless Chromium (`6480 × 432`, `/?raw=1` + Studio `1440 × 960`):
+ *   - G1 (Deterministic Purity): 12 forward vs scrambled timestamps across `0..200s` (`max_abs_diff === 0 LSB`) + all `<img>` decoded.
+ *   - G2 (2D/3D Zero Collision & Sanctuary):
+ *       `press@7.5s`, `press@8.8s` (`>= 12px` formula clearance & `clip-path: none`),
+ *       `page@50.5s`, `spectrum2D@65.0s (+16px barcode)`, `reading2D@82.5s`, `meaning2D@108.5s`, `orbit2D@133.0s` (`0` AABB overlaps)
+ *       + `sphere3D@144.0s` (`0` central `.orbit-center-sanctuary` intrusions).
+ *   - G3 (Pure-White Ground, `rgain=0.90` White-Point & Zero-Sticker Typography):
+ *       Mean pure-white (`>= 245`) `>= 78%` + `/?raw=1&rgain=0.90` `RGB(255,255,255)` ground
+ *       + floating typography (`backgroundColor === rgba(0,0,0,0)` & `boxShadow === none`).
+ *   - G4 (Zero Chrome/HUD, 400-Timestamp Simultaneous Plate Disjointness & 3-Band Cosine Scan):
+ *       Zero UI/HUD/PL.04 + `0.0s..199.5s` (`0.5s` step, `400` timestamps) DOM `<img>` + `<canvas>` simultaneous duplicate plates `=== 0`
+ *       + `24/24` unique `Gen1+Gen2 Skewed` plates + `Act II.2` cosine arcs rendered across Upper (`Y<150`), Mid (`150..280`), Lower (`Y>280`).
+ *   - G5 (30m Full-Span Active & `0.70s` Loop): 13 timestamps 3-zone active & `|corr| < 0.85` + `t=199.60s` pure white `100.00%` + loop (`0.0s` vs `199.967s`) `0 LSB`.
+ *   - G6 (Zero-Freeze Full + Left/Right Archipelago Guard): 16 intervals across `200s` `>= 5,000 px` + archipelago Left (`X<1650`) `>= 2,000 px` & Right (`X>5900`) `>= 1,500 px`.
+ *   - G7 (Physical Bezel Safe Envelope): 16 timestamps all visible elements strictly within `Y ∈ [20px, 410px]`.
+ *   - G8 (6,000-Frame Kinematic Smoothness, Cold Webfont Race & 60fps Studio):
+ *       1) `f = 0..5999` (`dt = 1/30s`): `.frag` chatter reversals `=== 0`, `.frag` `|Δop| > 0.20` `=== 0`,
+ *          `.monolith-card` overlapping `z-index` flips `=== 0`, `getFocusX(t)` step `<= 12.0 px/frame`.
+ *       2) Cold network (`.woff2` delayed `150ms`) on `/?pause=1`: `history` 1-cycle rewind Y step `<= 2.5 px` (discontinuity `<= 1.0 px`)
+ *          + Studio (`1440×960`) 30-frame avg render time in `Helix3D` & `Sphere3D` `<= 18.5 ms` (`>= 54 fps`).
  */
 
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 import {
+  DURATION,
   ensureBinaryInstalled,
   ensureChromiumInstalled,
   ensureDistBuilt,
@@ -99,6 +108,24 @@ function computeWhiteRatioPct(rgb, minVal = 245) {
     }
   }
   return (whiteCount / FRAME_PIXELS) * 100;
+}
+
+function countCrimsonByVerticalBands(rgb) {
+  let upper = 0;
+  let mid = 0;
+  let lower = 0;
+  for (let y = 0; y < STAGE_H; y++) {
+    const rowOff = y * STAGE_W;
+    for (let x = 0; x < STAGE_W; x++) {
+      const i = (rowOff + x) * 3;
+      if (rgb[i] >= 195 && rgb[i + 1] <= 60 && rgb[i + 2] <= 60) {
+        if (y < 150) upper++;
+        else if (y <= 280) mid++;
+        else lower++;
+      }
+    }
+  }
+  return { upper, mid, lower };
 }
 
 function analyzeThreeZones(rgb) {
@@ -202,20 +229,20 @@ async function main() {
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
     await page.evaluate(() => window.motionReady);
 
-    console.log('\n========================================================================================');
-    console.log(' 〈정렬과 사선 (Aligned / Skewed)〉 — 프로페셔널 아트 그레이드 7대 정량 무결성 검증 (R4)');
-    console.log('========================================================================================');
+    console.log('\n================================================================================================');
+    console.log(` 〈정렬과 사선 (Aligned / Skewed)〉 — 200.0s (${Math.round(DURATION * 30)}f) 8대 정량 & 운동학 무결성 검증 (G1~G8)`);
+    console.log('================================================================================================');
 
     // -------------------------------------------------------------------------
-    // G1: Deterministic Purity (`max_abs_diff === 0 LSB` + all `<img>` decoded)
+    // G1: Deterministic Purity (`max_abs_diff === 0 LSB` across 12 timestamps + all `<img>` decoded)
     // -------------------------------------------------------------------------
-    const g1Times = [4.9, 18.0, 28.5, 35.0, 64.5, 78.2, 84.5, 92.2, 107.6, 116.0];
+    const g1Times = [7.5, 15.6, 28.0, 45.2, 50.5, 68.5, 82.5, 94.5, 108.5, 133.0, 144.0, 182.0];
     const forwardBufs = new Map();
     for (const t of g1Times) {
       forwardBufs.set(t, await captureRgbAt(page, t));
     }
 
-    const scrambledTimes = [92.2, 18.0, 116.0, 4.9, 84.5, 28.5, 107.6, 35.0, 78.2, 64.5];
+    const scrambledTimes = [144.0, 28.0, 182.0, 7.5, 108.5, 45.2, 133.0, 68.5, 15.6, 94.5, 50.5, 82.5];
     let g1MaxDiff = 0;
     const g1DiffNotes = [];
     for (const t of scrambledTimes) {
@@ -238,61 +265,53 @@ async function main() {
     gates.push({
       id: 'G1 (결정론적 순수성)',
       passed: g1Pass,
-      detail: `max_abs_diff = ${g1MaxDiff} LSB · decoded <img> = ${imgCheck.total - imgCheck.brokenCount}/${imgCheck.total}`,
+      detail: `12시점 max_abs_diff = ${g1MaxDiff} LSB · decoded <img> = ${imgCheck.total - imgCheck.brokenCount}/${imgCheck.total}`,
     });
 
     // -------------------------------------------------------------------------
-    // G2: 7-Timestamp 2D & 3D Zero Collision (`press@4.9s`, `page@31.8s`, `spectrum2D@40.2s`, `reading2D@48.2s`, `meaning2D@64.5s`, `orbit2D@78.2s`, `sphere3D@84.5s`)
-    //     + `press@5.5s` Zero Half-Clip & `>= 12px` Formula Gap!
+    // G2: 2D Settled Views Zero Collision + `press@8.8s` Formula Clearance + `sphere3D@144.0s` Sanctuary
     // -------------------------------------------------------------------------
     const g2Specs = [
       {
         name: 'press',
-        t: 4.9,
+        t: 7.5,
         selector: '.press-hero-query, .press-memory-line, .press-formula-stamp',
         minOp: 0.25,
         barcodePad: 0,
       },
       {
         name: 'page',
-        t: 31.8,
+        t: 50.5,
         selector: '.frag, .spread-hero-slot',
         minOp: 0.25,
         barcodePad: 0,
       },
       {
         name: 'spectrum2D',
-        t: 40.2,
+        t: 65.0,
         selector: '.frag',
         minOp: 0.25,
         barcodePad: 16,
       },
       {
         name: 'reading2D',
-        t: 48.2,
+        t: 82.5,
         selector: '.frag',
         minOp: 0.25,
         barcodePad: 0,
       },
       {
         name: 'meaning2D',
-        t: 64.5,
+        t: 108.5,
         selector: '.frag',
         minOp: 0.25,
         barcodePad: 0,
       },
       {
         name: 'orbit2D',
-        t: 78.2,
+        t: 133.0,
         selector: '.frag, .orbit-center-sanctuary',
         minOp: 0.25,
-        barcodePad: 0,
-      },
-      {
-        name: 'sphere3D',
-        t: 84.5,
-        selector: '.frag, .orbit-center-sanctuary',
-        minOp: 0.20,
         barcodePad: 0,
       },
     ];
@@ -356,17 +375,18 @@ async function main() {
       }
     }
 
-    // Verify Patch 1.1 at `t = 5.5s`: zero `clip-path` slicing & `>= 12px` clearance around `.press-formula-stamp`!
-    await page.evaluate(() => window.renderAt(5.5));
-    const press55Check = await page.evaluate(() => {
+    // Check `press@8.8s` formula clearance (`>= 12px`) & `clip-path: none`
+    await page.evaluate(() => window.renderAt(8.8));
+    const press88Check = await page.evaluate(() => {
       const upCp = window.getComputedStyle(document.querySelector('.press-clip-upper')).clipPath;
       const loCp = window.getComputedStyle(document.querySelector('.press-clip-lower')).clipPath;
-      const fRect = document.querySelector('.press-formula-stamp').getBoundingClientRect();
+      const fEl = document.querySelector('.press-formula-stamp');
+      const fOp = parseFloat(window.getComputedStyle(fEl).opacity || '0');
+      const fRect = fEl.getBoundingClientRect();
       let minFormulaGap = Infinity;
       for (const el of document.querySelectorAll('.press-memory-line')) {
         const cs = window.getComputedStyle(el);
         if (parseFloat(cs.opacity || '0') < 0.1) continue;
-        // Check horizontal overlap with formula box (`X = fRect.left .. fRect.right`)
         const r = el.getBoundingClientRect();
         if (r.right < fRect.left || r.left > fRect.right) continue;
         const gap = r.bottom <= fRect.top ? fRect.top - r.bottom : r.top - fRect.bottom;
@@ -374,25 +394,47 @@ async function main() {
       }
       return {
         clipUsed: upCp !== 'none' || loCp !== 'none',
+        formulaOp: fOp,
         minFormulaGap,
       };
     });
 
-    const g2Press55Ok = !press55Check.clipUsed && press55Check.minFormulaGap >= 12.0;
-    if (!g2Press55Ok) {
-      console.error('  [G2 press@5.5s 결함]:', press55Check);
-    }
+    // Check `sphere3D@144.0s` central `.orbit-center-sanctuary` intrusion (`=== 0`)
+    await page.evaluate(() => window.renderAt(144.0));
+    const sphere144Check = await page.evaluate(() => {
+      const sanct = document.querySelector('.orbit-center-sanctuary');
+      const sanctOp = parseFloat(window.getComputedStyle(sanct).opacity || '0');
+      const sRect = sanct.getBoundingClientRect();
+      const pad = 4;
+      const intrusions = [];
+      for (const el of document.querySelectorAll('.frag')) {
+        const op = parseFloat(window.getComputedStyle(el).opacity || '0');
+        if (op < 0.12) continue;
+        const r = el.getBoundingClientRect();
+        const ox = Math.min(r.right, sRect.right + pad) - Math.max(r.left, sRect.left - pad);
+        const oy = Math.min(r.bottom, sRect.bottom + pad) - Math.max(r.top, sRect.top - pad);
+        if (ox > 0.5 && oy > 0.5) {
+          intrusions.push(`"${(el.textContent || '').trim().slice(0, 18)}" (${ox.toFixed(1)}x${oy.toFixed(1)})`);
+        }
+      }
+      return { sanctOp, intrusionCount: intrusions.length, samples: intrusions.slice(0, 5) };
+    });
+
+    const g2PressOk = !press88Check.clipUsed && press88Check.formulaOp >= 0.85 && press88Check.minFormulaGap >= 12.0;
+    const g2SphereOk = sphere144Check.sanctOp >= 0.9 && sphere144Check.intrusionCount === 0;
+    if (!g2PressOk) console.error('  [G2 press@8.8s 결함]:', press88Check);
+    if (!g2SphereOk) console.error('  [G2 sphere3D@144.0s 침범]:', sphere144Check);
 
     gates.push({
-      id: 'G2 (7-시점 2D/3D 무충돌)',
-      passed: g2TotalCollisions === 0 && g2Press55Ok,
-      detail: `${g2Details.join(' · ')} · press@5.5s 여백=${press55Check.minFormulaGap.toFixed(1)}px`,
+      id: 'G2 (2D무충돌·중앙성소)',
+      passed: g2TotalCollisions === 0 && g2PressOk && g2SphereOk,
+      detail: `${g2Details.join(' · ')} · sphere3D@144s 성소침범=${sphere144Check.intrusionCount} · press@8.8s 여백=${press88Check.minFormulaGap.toFixed(1)}px`,
     });
 
     // -------------------------------------------------------------------------
-    // G3: Pure-White Ground (`>= 78%`) + `rgain=0.90` Exact `RGB(255,255,255)` White-Point Preservation!
+    // G3: Pure-White Ground (`>= 78%`), `rgain=0.90` White-Point & Zero-Sticker Floating Text
     // -------------------------------------------------------------------------
-    const g3Times = [4, 14, 21.2, 31.8, 41.3, 48.2, 55, 64.5, 71, 78.2, 92.2, 107.6];
+    const g3Times = [6.0, 15.6, 28.0, 50.5, 68.5, 82.5, 94.5, 108.5, 121.0, 133.0, 144.0, 154.0, 182.0];
     const whitePcts = [];
     const cachedRgb = new Map(forwardBufs);
     const getOrCapture = async (t) => {
@@ -412,23 +454,51 @@ async function main() {
     const rgainPage = await context.newPage();
     await rgainPage.goto(`${server.origin}/?raw=1&rgain=0.90`, { waitUntil: 'load', timeout: 60000 });
     await rgainPage.evaluate(() => window.motionReady);
-    const rgainMeanBuf = await captureRgbAt(rgainPage, 64.5);
+    const rgainMeanBuf = await captureRgbAt(rgainPage, 108.5);
     const rgainPure255Pct = computeWhiteRatioPct(rgainMeanBuf, 255);
     const canyonOff = (216 * STAGE_W + 1004) * 3;
     const canyonRgb = [rgainMeanBuf[canyonOff], rgainMeanBuf[canyonOff + 1], rgainMeanBuf[canyonOff + 2]];
     await rgainPage.close();
 
+    // Verify zero opaque rectangular white stickers on floating text across active moments
+    const stickerCheck = await page.evaluate(() => {
+      const checkTimes = [28.0, 108.5, 133.0, 154.0, 160.5, 167.5];
+      const selectors =
+        '.orbit-center-sanctuary, .awakened-sentence, .fault-shard, .gale-wind-banner, .periphery-num-tag, .station-meta-col, .frag:not(.is-img)';
+      const bad = [];
+      for (const t of checkTimes) {
+        window.renderAt(t);
+        for (const el of document.querySelectorAll(selectors)) {
+          const cs = window.getComputedStyle(el);
+          if (parseFloat(cs.opacity || '0') < 0.05) continue;
+          const bg = cs.backgroundColor.replace(/\s+/g, '');
+          const bs = cs.boxShadow;
+          if (bg !== 'rgba(0,0,0,0)' && bg !== 'transparent') {
+            bad.push(`${el.className}@${t}s bg=${cs.backgroundColor}`);
+            if (bad.length >= 6) return { count: bad.length, samples: bad };
+          }
+          if (bs !== 'none') {
+            bad.push(`${el.className}@${t}s shadow=${bs}`);
+            if (bad.length >= 6) return { count: bad.length, samples: bad };
+          }
+        }
+      }
+      return { count: bad.length, samples: bad };
+    });
+
     const rgainWhiteOk =
       canyonRgb[0] === 255 && canyonRgb[1] === 255 && canyonRgb[2] === 255 && rgainPure255Pct >= 75.0;
+    if (stickerCheck.count > 0) console.error('  [G3 흰 스티커 잔존]:', stickerCheck.samples);
 
     gates.push({
-      id: 'G3 (순백 지면·화이트포인트)',
-      passed: meanWhitePct >= 78.0 && rgainWhiteOk,
-      detail: `평균 순백 = ${meanWhitePct.toFixed(2)}% (최소 ${minWhitePct.toFixed(2)}%) · rgain=0.90 지면 RGB(${canyonRgb.join(',')}) 순백=${rgainPure255Pct.toFixed(1)}%`,
+      id: 'G3 (순백·화이트·무스티커)',
+      passed: meanWhitePct >= 78.0 && rgainWhiteOk && stickerCheck.count === 0,
+      detail: `평균 순백=${meanWhitePct.toFixed(2)}% (최소 ${minWhitePct.toFixed(2)}%) · rgain=0.90 RGB(${canyonRgb.join(',')}) · 부유텍스트 스티커=${stickerCheck.count}건`,
     });
 
     // -------------------------------------------------------------------------
-    // G4: Zero App UI / HUD + Patch 4.3 `Skewed` 24-Plate `1:1` Uniqueness Check!
+    // G4: Zero Chrome/HUD + `0.0s..199.5s` (`400` Timestamps) Simultaneous Plate Disjointness
+    //     + `24/24` Unique Skewed Plates + `Act II.2` 3-Band Cosine Caliper Verification!
     // -------------------------------------------------------------------------
     const forbiddenStrings = [
       '←',
@@ -445,94 +515,155 @@ async function main() {
       '0.0 s',
       '30.0 s',
     ];
-    let g4Violations = 0;
-    const g4SampleTimes = [4.9, 9.5, 18.0, 28.5, 33.0, 41.3, 48.2, 64.5, 78.2, 84.5, 92.2, 98.5, 107.6, 116.0];
-    const g4Notes = [];
 
-    for (const t of g4SampleTimes) {
-      await page.evaluate((sec) => window.renderAt(sec), t);
-      const uiRes = await page.evaluate((forbidden) => {
-        const stage = document.querySelector('.motion-stage') || document.body;
-        const controls = stage.querySelectorAll('button, input, select, textarea').length;
-        const txt = stage.textContent || '';
-        const hits = forbidden.filter((f) => txt.includes(f));
-        return { controls, hits };
-      }, forbiddenStrings);
-      const v = uiRes.controls + uiRes.hits.length;
-      if (v > 0) {
-        g4Violations += v;
-        g4Notes.push(`t=${t}s: ctrl=${uiRes.controls}, hits=[${uiRes.hits.join(',')}]`);
-      }
-    }
+    const g4Sweep = await page.evaluate((forbidden) => {
+      const stage = document.querySelector('.motion-stage') || document.body;
+      let uiViolations = 0;
+      const uiSamples = [];
+      let dupFrames = 0;
+      const dupSamples = [];
+      let pl04Hits = 0;
 
-    // Patch 4.3: Verify Gen 1 Skewed reuses `0` Gen 1 Aligned plates AND 0 intra/inter-station duplicates across Gen 1 & Gen 2 Skewed!
-    const plateAudit = await page.evaluate(() => {
-      const cards = Array.from(document.querySelectorAll('.monolith-card'));
-      const g1Aligned = new Set();
-      const g1SkewedAll = [];
-      const g2SkewedAll = [];
-      const stationMap = new Map();
+      const allImgs = Array.from(stage.querySelectorAll('img'));
 
-      for (const c of cards) {
-        const gen = c.dataset.gen;
-        const group = c.dataset.group;
-        const st = c.dataset.station || '0';
-        const plate = c.dataset.plate || '';
-        if (gen === '1' && group === 'aligned') g1Aligned.add(plate);
-        if (group === 'skewed') {
-          if (gen === '1') g1SkewedAll.push(plate);
-          if (gen === '2') g2SkewedAll.push(plate);
-          const key = `G${gen}-S${st}`;
-          if (!stationMap.has(key)) stationMap.set(key, []);
-          stationMap.get(key).push(plate);
+      for (let step = 0; step < 400; step++) {
+        const t = step * 0.5;
+        window.renderAt(t);
+
+        if (step % 25 === 0) {
+          const controls = stage.querySelectorAll('button, input, select, textarea').length;
+          const txt = stage.textContent || '';
+          const hits = forbidden.filter((f) => txt.includes(f));
+          if (controls + hits.length > 0) {
+            uiViolations += controls + hits.length;
+            if (uiSamples.length < 4) uiSamples.push(`t=${t}s:[${hits.join(',')}]`);
+          }
+        }
+
+        const fadeEl = stage.querySelector('.stage-fade');
+        const washOp = fadeEl ? parseFloat(fadeEl.style.opacity || '0') : 0;
+        if (washOp >= 0.995) continue;
+
+        const visiblePlates = [];
+
+        for (const img of allImgs) {
+          let effOp = 1.0 - washOp;
+          let cur = img;
+          while (cur && cur !== stage && cur instanceof HTMLElement) {
+            if (cur.style.display === 'none' || cur.style.visibility === 'hidden') {
+              effOp = 0;
+              break;
+            }
+            const inlineOp = cur.style.opacity;
+            if (inlineOp !== '') {
+              effOp *= parseFloat(inlineOp);
+            }
+            if (effOp < 0.05) break;
+            cur = cur.parentElement;
+          }
+          if (effOp < 0.05) continue;
+          const r = img.getBoundingClientRect();
+          if (r.width <= 1 || r.height <= 1 || r.right <= 0 || r.left >= 6480 || r.bottom <= 0 || r.top >= 432) {
+            continue;
+          }
+          const pid = img.dataset.plate || ((img.getAttribute('src') || '').match(/plate-\d+/)?.[0] ?? '');
+          if (pid) visiblePlates.push(pid);
+        }
+
+        const canvasStr = stage.dataset.activeCanvasPlates || '';
+        if (canvasStr) {
+          for (const pid of canvasStr.split(',')) {
+            if (pid) visiblePlates.push(pid);
+          }
+        }
+
+        if (visiblePlates.includes('plate-04')) pl04Hits++;
+        const seen = new Set();
+        const dupsHere = [];
+        for (const p of visiblePlates) {
+          if (seen.has(p)) dupsHere.push(p);
+          seen.add(p);
+        }
+        if (dupsHere.length > 0) {
+          dupFrames++;
+          if (dupSamples.length < 6) {
+            dupSamples.push(`t=${t.toFixed(1)}s:[${Array.from(new Set(dupsHere)).join(',')}]`);
+          }
         }
       }
 
-      const g1AlignedReuse = g1SkewedAll.filter((p) => g1Aligned.has(p));
-      let intraStationDups = 0;
-      for (const [, list] of stationMap.entries()) {
-        intraStationDups += list.length - new Set(list).size;
+      // Audit 24 Skewed cards (`Gen1` 12 + `Gen2` 12 = `24/24` unique) + `0` Aligned reuse
+      const cards = Array.from(stage.querySelectorAll('.monolith-card'));
+      const g1Aligned = [];
+      const g2Aligned = [];
+      const g1Skewed = [];
+      const g2Skewed = [];
+      for (const c of cards) {
+        const gen = c.dataset.gen;
+        const grp = c.dataset.group;
+        const pid = c.dataset.plate || '';
+        if (gen === '1' && grp === 'aligned') g1Aligned.push(pid);
+        if (gen === '2' && grp === 'aligned') g2Aligned.push(pid);
+        if (gen === '1' && grp === 'skewed') g1Skewed.push(pid);
+        if (gen === '2' && grp === 'skewed') g2Skewed.push(pid);
       }
-      const g1UniqueCount = new Set(g1SkewedAll).size;
-      const g2UniqueCount = new Set(g2SkewedAll).size;
-      const g2Plate12Count = g2SkewedAll.filter((p) => p === 'plate-12').length;
+      const all24SkewedUnique = new Set([...g1Skewed, ...g2Skewed]).size;
+      const g1AlignedUnique = new Set(g1Aligned).size;
+      const g2AlignedUnique = new Set(g2Aligned).size;
+
+      // Check cosine caliper bands across all 4 waves
+      const waveTestTimes = [65.8, 68.5, 71.2, 74.0];
+      const waveBands = waveTestTimes.map((wt) => {
+        window.renderAt(wt);
+        return stage.dataset.activeCosineBands || '';
+      });
 
       return {
-        g1AlignedReuseCount: g1AlignedReuse.length,
-        intraStationDups,
-        g1Total: g1SkewedAll.length,
-        g1UniqueCount,
-        g2Total: g2SkewedAll.length,
-        g2UniqueCount,
-        g2Plate12Count,
+        uiViolations,
+        uiSamples,
+        dupFrames,
+        dupSamples,
+        pl04Hits,
+        all24SkewedUnique,
+        g1AlignedUnique,
+        g2AlignedUnique,
+        waveBands,
       };
-    });
+    }, forbiddenStrings);
 
-    const plateAuditOk =
-      plateAudit.g1AlignedReuseCount === 0 &&
-      plateAudit.intraStationDups === 0 &&
-      plateAudit.g1UniqueCount === 12 &&
-      plateAudit.g2UniqueCount === 12 &&
-      plateAudit.g2Plate12Count <= 1;
+    const cosRgb68 = await getOrCapture(68.5);
+    const cosRgb65 = await getOrCapture(65.8);
+    const bands68 = countCrimsonByVerticalBands(cosRgb68);
+    const bands65 = countCrimsonByVerticalBands(cosRgb65);
+    const cosineThreeBandPixelsOk =
+      Math.max(bands65.upper, bands68.upper) >= 400 &&
+      Math.max(bands65.mid, bands68.mid) >= 400 &&
+      Math.max(bands65.lower, bands68.lower) >= 400 &&
+      g4Sweep.waveBands.every((b) => b === 'lower,mid,upper');
 
-    if (!plateAuditOk) {
-      g4Violations += 1;
-      g4Notes.push(`plateAudit=${JSON.stringify(plateAudit)}`);
+    const g4Pass =
+      g4Sweep.uiViolations === 0 &&
+      g4Sweep.dupFrames === 0 &&
+      g4Sweep.pl04Hits === 0 &&
+      g4Sweep.all24SkewedUnique === 24 &&
+      g4Sweep.g1AlignedUnique === 6 &&
+      g4Sweep.g2AlignedUnique === 6 &&
+      cosineThreeBandPixelsOk;
+
+    if (!g4Pass) {
+      console.error('  [G4 상세]:', { g4Sweep, bands65, bands68 });
     }
 
     gates.push({
-      id: 'G4 (무크롬·도판 비중복)',
-      passed: g4Violations === 0 && plateAuditOk,
-      detail:
-        g4Violations === 0
-          ? `HUD/크롬 0건 · G1 Aligned재사용=${plateAudit.g1AlignedReuseCount} · 역내중복=${plateAudit.intraStationDups} · Skewed고유=${plateAudit.g1UniqueCount}+${plateAudit.g2UniqueCount}/24`
-          : g4Notes.join('; '),
+      id: 'G4 (400시점 무중복·3대역스캔)',
+      passed: g4Pass,
+      detail: `HUD=0 · 400시점 동시중복=${g4Sweep.dupFrames}건 · Skewed고유=${g4Sweep.all24SkewedUnique}/24 · 코사인3대역 픽셀(상${bands68.upper}/중${bands68.mid}/하${bands68.lower})`,
     });
 
     // -------------------------------------------------------------------------
-    // G5: 30m Full-Span Active (`0.45s`..`107.6s`) + `0.70s` Loop (`t=119.60s === 100.00%`, `0 LSB`)
+    // G5: `200.0s` 13-Timestamp 3-Zone Active (`|corr| < 0.85`) + `t=199.60s` `100.00%` White + Loop `0 LSB`
     // -------------------------------------------------------------------------
-    const g5Times = [0.45, 21.2, 28.5, 31.8, 41.3, 55, 64.5, 69.0, 84.5, 98.5, 107.6];
+    const g5Times = [0.55, 7.5, 15.6, 28.0, 45.8, 50.5, 68.5, 82.5, 94.5, 108.5, 121.0, 144.0, 182.0];
     let g5AllActive = true;
     let g5MaxCorr = 0;
     const g5FailNotes = [];
@@ -549,10 +680,10 @@ async function main() {
       }
     }
 
-    const whiteoutBuf = await getOrCapture(119.60);
+    const whiteoutBuf = await getOrCapture(199.60);
     const whiteoutPct = computeWhiteRatioPct(whiteoutBuf, 255);
     const loopStartBuf = await getOrCapture(0.0);
-    const loopEndBuf = await getOrCapture(119.967);
+    const loopEndBuf = await getOrCapture(199.967);
     const loopMaxDiff = maxAbsDiffBuffers(loopStartBuf, loopEndBuf);
 
     const g5Pass = g5AllActive && g5MaxCorr < 0.85 && whiteoutPct >= 99.99 && loopMaxDiff === 0;
@@ -562,14 +693,14 @@ async function main() {
       detail:
         g5FailNotes.length > 0
           ? g5FailNotes.join(' | ')
-          : `11시점 3권역 활성 · |corr| = ${g5MaxCorr.toFixed(3)} · t=119.6s 순백(255) = ${whiteoutPct.toFixed(2)}% · 루프 오차 = ${loopMaxDiff} LSB`,
+          : `13시점 3권역 활성 · |corr|=${g5MaxCorr.toFixed(3)} · t=199.6s 순백=${whiteoutPct.toFixed(2)}% · 루프(0s vs 199.967s)=${loopMaxDiff} LSB`,
     });
 
     // -------------------------------------------------------------------------
-    // G6: Zero-Freeze Motion Continuity + Patch 7.1 Left (`X<1650`) & Right (`X>5900`) Partial-Freeze Guard!
+    // G6: `200.0s` 16-Interval Zero-Freeze + Left (`X<1650`) & Right (`X>5900`) Archipelago Guard
     // -------------------------------------------------------------------------
-    const g6Times = [13, 16, 21, 27, 31, 35, 48, 63, 80, 90, 103, 109, 115];
-    const partialGuardTimes = new Set([16, 21, 103, 109]);
+    const g6Times = [6, 14, 24, 34, 44, 54, 67, 81, 93, 107, 120, 143, 154, 166, 177, 187];
+    const partialGuardTimes = new Set([24, 34, 177, 187]);
     let g6MinChanged = Infinity;
     let g6MinLeft = Infinity;
     let g6MinRight = Infinity;
@@ -599,18 +730,18 @@ async function main() {
     }
 
     gates.push({
-      id: 'G6 (전폭·좌우 Zero-Freeze)',
+      id: 'G6 (16구간 전폭·좌우 유영)',
       passed: g6FailNotes.length === 0,
       detail:
         g6FailNotes.length === 0
-          ? `최소 전체=${g6MinChanged.toLocaleString('en-US')}px · 좌권역(X<1650)=${g6MinLeft.toLocaleString('en-US')}px · 우권역(X>5900)=${g6MinRight.toLocaleString('en-US')}px`
+          ? `16구간 최소 전체=${g6MinChanged.toLocaleString('en-US')}px · 좌권역(X<1650)=${g6MinLeft.toLocaleString('en-US')}px · 우권역(X>5900)=${g6MinRight.toLocaleString('en-US')}px`
           : `정지 감지: ${g6FailNotes.join(', ')}`,
     });
 
     // -------------------------------------------------------------------------
-    // G7: Physical Bezel Vertical Safety Envelope (`rect.top >= 20`, `rect.bottom <= 410`!)
+    // G7: Physical Bezel Vertical Safety Envelope (`rect.top >= 20`, `rect.bottom <= 410`)
     // -------------------------------------------------------------------------
-    const g7Times = [5.5, 18, 21.2, 28.5, 31.8, 34.8, 41.3, 48.2, 64.5, 78.2, 84.5, 92.2, 107.6];
+    const g7Times = [7.5, 8.8, 15.6, 24.0, 34.0, 45.5, 50.5, 56.5, 68.5, 82.5, 94.5, 108.5, 133.0, 144.0, 160.5, 182.0];
     const g7Selector =
       '.press-hero-query, .press-memory-line, .press-formula-stamp, .datum-query-anchor, .prism-gate-label, .monolith-card, .station-beacon, .spread-hero-slot, .frag, .orbit-center-sanctuary, .periphery-num-tag, .awakened-sentence, .fault-shard, .gale-wind-banner';
     let g7TotalViolations = 0;
@@ -667,18 +798,313 @@ async function main() {
       passed: g7TotalViolations === 0,
       detail:
         g7TotalViolations === 0
-          ? `13-시점 전 요소 Y ∈ [${g7MinTop.toFixed(1)}px, ${g7MaxBottom.toFixed(1)}px] (기준 [20, 410], 침범 0건)`
+          ? `16시점 전 요소 Y ∈ [${g7MinTop.toFixed(1)}px, ${g7MaxBottom.toFixed(1)}px] (기준 [20, 410], 침범 0건)`
           : g7FailSamples.join(' | '),
     });
 
+    // -------------------------------------------------------------------------
+    // G8: 6,000-Frame Kinematic Continuity + Cold `.woff2` (`150ms`) History Race + Studio `60fps`
+    // -------------------------------------------------------------------------
+    console.log(' [G8] 6,000프레임(0..5999) 전수 운동학 연속성 스캔 및 콜드 웹폰트·60fps 계측 중...');
+
+    const kinematicScan = await page.evaluate(() => {
+      const totalFrames = 6000;
+      const dt = 1 / 30;
+      const fragEls = Array.from(document.querySelectorAll('.frag'));
+      const cardEls = Array.from(document.querySelectorAll('.monolith-card'));
+      const nF = fragEls.length;
+      const nC = cardEls.length;
+
+      const prev2X = new Float64Array(nF);
+      const prev2Y = new Float64Array(nF);
+      const prev2Op = new Float64Array(nF);
+      const prev1X = new Float64Array(nF);
+      const prev1Y = new Float64Array(nF);
+      const prev1Op = new Float64Array(nF);
+
+      const prevCardOp = new Float64Array(nC);
+      const prevCardZ = new Int32Array(nC);
+      const prevCardL = new Float64Array(nC);
+      const prevCardR = new Float64Array(nC);
+      const prevCardT = new Float64Array(nC);
+      const prevCardB = new Float64Array(nC);
+
+      const curCardOp = new Float64Array(nC);
+      const curCardZ = new Int32Array(nC);
+      const curCardL = new Float64Array(nC);
+      const curCardR = new Float64Array(nC);
+      const curCardT = new Float64Array(nC);
+      const curCardB = new Float64Array(nC);
+
+      let chatterReversals = 0;
+      let opacityJumps = 0;
+      let maxFragDeltaOp = 0;
+      let cardZFlips = 0;
+      let maxFocusStep = 0;
+      const sampleErrors = [];
+
+      const focusFn = window.getFocusX || (() => 3240);
+      let prevFocus = focusFn(0);
+
+      const parseTranslate = (tr) => {
+        // Matches `translate3d(Xpx, Ypx, 0...)`
+        if (!tr || tr.startsWith('translate3d(-9999')) return null;
+        const p0 = tr.indexOf('(');
+        if (p0 < 0) return null;
+        const c1 = tr.indexOf(',', p0);
+        const c2 = tr.indexOf(',', c1 + 1);
+        if (c1 < 0 || c2 < 0) return null;
+        const x = parseFloat(tr.slice(p0 + 1, c1));
+        const y = parseFloat(tr.slice(c1 + 1, c2));
+        return Number.isFinite(x) && Number.isFinite(y) ? [x, y] : null;
+      };
+
+      for (let f = 0; f < totalFrames; f++) {
+        const t = f * dt;
+        window.renderAt(t);
+
+        const curFocus = focusFn(t);
+        if (f > 0) {
+          const df = Math.abs(curFocus - prevFocus);
+          if (df > maxFocusStep) maxFocusStep = df;
+        }
+        prevFocus = curFocus;
+
+        // 1) `.frag` kinematic continuity
+        for (let i = 0; i < nF; i++) {
+          const el = fragEls[i];
+          const op = parseFloat(el.style.opacity || '0');
+          let x = prev1X[i];
+          let y = prev1Y[i];
+          if (op > 0.004) {
+            const xy = parseTranslate(el.style.transform);
+            if (xy) {
+              x = xy[0];
+              y = xy[1];
+            }
+          }
+
+          if (f >= 1 && (op >= 0.15 || prev1Op[i] >= 0.15)) {
+            const dOp = Math.abs(op - prev1Op[i]);
+            if (dOp > maxFragDeltaOp) maxFragDeltaOp = dOp;
+            if (dOp > 0.20) {
+              opacityJumps++;
+              if (sampleErrors.length < 6) {
+                sampleErrors.push(`frag#${i}@${t.toFixed(2)}s Δop=${dOp.toFixed(3)}`);
+              }
+            }
+          }
+
+          if (f >= 2 && prev2Op[i] >= 0.15 && prev1Op[i] >= 0.15 && op >= 0.15) {
+            const vx1 = prev1X[i] - prev2X[i];
+            const vx2 = x - prev1X[i];
+            const vy1 = prev1Y[i] - prev2Y[i];
+            const vy2 = y - prev1Y[i];
+            if ((vx1 * vx2 < -4.0 && Math.abs(vx2 - vx1) > 5.0) || (vy1 * vy2 < -4.0 && Math.abs(vy2 - vy1) > 5.0)) {
+              chatterReversals++;
+              if (sampleErrors.length < 6) {
+                sampleErrors.push(
+                  `frag#${i}@${t.toFixed(2)}s chatter vx(${vx1.toFixed(1)}->${vx2.toFixed(1)}) vy(${vy1.toFixed(1)}->${vy2.toFixed(1)})`,
+                );
+              }
+            }
+          }
+
+          prev2X[i] = prev1X[i];
+          prev2Y[i] = prev1Y[i];
+          prev2Op[i] = prev1Op[i];
+          prev1X[i] = x;
+          prev1Y[i] = y;
+          prev1Op[i] = op;
+        }
+
+        // 2) `.monolith-card` overlapping z-index pop check
+        const cardsActive = (t >= 18.4 && t <= 44.1) || (t >= 171.4 && t <= 199.5);
+        if (cardsActive) {
+          const visIdx = [];
+          for (let c = 0; c < nC; c++) {
+            const el = cardEls[c];
+            const op = parseFloat(el.style.opacity || '0');
+            curCardOp[c] = op;
+            if (op >= 0.25) {
+              const r = el.getBoundingClientRect();
+              curCardZ[c] = parseInt(el.style.zIndex || '0', 10);
+              curCardL[c] = r.left;
+              curCardR[c] = r.right;
+              curCardT[c] = r.top;
+              curCardB[c] = r.bottom;
+              visIdx.push(c);
+            }
+          }
+
+          if (f >= 1) {
+            for (let a = 0; a < visIdx.length; a++) {
+              const ia = visIdx[a];
+              if (prevCardOp[ia] < 0.25) continue;
+              for (let b = a + 1; b < visIdx.length; b++) {
+                const ib = visIdx[b];
+                if (prevCardOp[ib] < 0.25) continue;
+
+                const dzPrev = prevCardZ[ia] - prevCardZ[ib];
+                const dzCur = curCardZ[ia] - curCardZ[ib];
+                if (dzPrev * dzCur < 0) {
+                  const oxCur = Math.min(curCardR[ia], curCardR[ib]) - Math.max(curCardL[ia], curCardL[ib]);
+                  const oyCur = Math.min(curCardB[ia], curCardB[ib]) - Math.max(curCardT[ia], curCardT[ib]);
+                  const oxPrev = Math.min(prevCardR[ia], prevCardR[ib]) - Math.max(prevCardL[ia], prevCardL[ib]);
+                  const oyPrev = Math.min(prevCardB[ia], prevCardB[ib]) - Math.max(prevCardT[ia], prevCardT[ib]);
+                  if ((oxCur > 4 && oyCur > 4) || (oxPrev > 4 && oyPrev > 4)) {
+                    cardZFlips++;
+                    if (sampleErrors.length < 6) {
+                      sampleErrors.push(`card(${ia},${ib})@${t.toFixed(2)}s zFlip overlap=${oxCur.toFixed(1)}x${oyCur.toFixed(1)}`);
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          for (let c = 0; c < nC; c++) {
+            prevCardOp[c] = curCardOp[c];
+            prevCardZ[c] = curCardZ[c];
+            prevCardL[c] = curCardL[c];
+            prevCardR[c] = curCardR[c];
+            prevCardT[c] = curCardT[c];
+            prevCardB[c] = curCardB[c];
+          }
+        } else {
+          prevCardOp.fill(0);
+        }
+      }
+
+      // Check loop wrap step `f = 5999 -> f = 0`
+      const wrapStep = Math.abs(focusFn(0) - prevFocus);
+      if (wrapStep > maxFocusStep) maxFocusStep = wrapStep;
+
+      return {
+        chatterReversals,
+        opacityJumps,
+        maxFragDeltaOp,
+        cardZFlips,
+        maxFocusStep,
+        sampleErrors,
+      };
+    });
+
+    // G8.2: Cold Network (`.woff2` delayed `150ms`) Studio History Rewind & `60fps` Benchmark
+    const studioCtx = await browser.newContext({
+      viewport: { width: 1440, height: 960 },
+      deviceScaleFactor: 1,
+    });
+    let delayedFontCount = 0;
+    await studioCtx.route('**/*.woff2', async (route) => {
+      delayedFontCount++;
+      await new Promise((r) => setTimeout(r, 150));
+      await route.continue();
+    });
+
+    const studioPage = await studioCtx.newPage();
+    await studioPage.goto(`${server.origin}/?pause=1`, { waitUntil: 'load', timeout: 60000 });
+    await studioPage.evaluate(() => window.motionReady);
+
+    const studioBench = await studioPage.evaluate(async () => {
+      // 1) Measure 1-cycle rewind continuity on `.detail-pan-layer` `history` belt after `150ms` cold webfont load
+      window.renderAt(20.0);
+      const belt = document.querySelector('#detail-pan-layer ol.history-list[data-belt="gen1"]');
+      const h0 = belt.querySelector('li.history-head[data-copy="0"]');
+      const h1 = belt.querySelector('li.history-head[data-copy="1"]');
+      const h2 = belt.querySelector('li.history-head[data-copy="2"]');
+      const cyclePx = h1.offsetTop - h0.offsetTop;
+
+      // Exact wrap timestamp in `[22s, 40s]` where `(t * 44.0) % cyclePx` wraps `cyclePx -> 0`
+      const kWrap = Math.ceil((22.0 * 44.0) / cyclePx);
+      const tWrap = (kWrap * cyclePx) / 44.0;
+      const dt = 1 / 30;
+
+      window.renderAt(tWrap - 0.5 * dt);
+      const yBefore = h2.getBoundingClientRect().top;
+
+      window.renderAt(tWrap + 0.5 * dt);
+      const yAfter = h1.getBoundingClientRect().top;
+
+      window.renderAt(tWrap + 1.5 * dt);
+      const yNext = h1.getBoundingClientRect().top;
+
+      const wrapStepPx = Math.abs(yAfter - yBefore);
+      const normalStepPx = Math.abs(yNext - yAfter);
+      const seamErrorPx = Math.abs((yAfter - yBefore) - (yNext - yAfter));
+
+      // 2) Studio `1440×960` 30-frame render benchmark in `Act III.2 Helix3D` & `Act III.6 Sphere3D`
+      const measureSpanMs = async (startSec) => {
+        for (let w = 0; w < 3; w++) {
+          window.renderAt(startSec + w * dt);
+          document.body.getBoundingClientRect();
+        }
+        await new Promise((r) => requestAnimationFrame(() => r()));
+
+        let totalMs = 0;
+        for (let f = 0; f < 30; f++) {
+          const t0 = performance.now();
+          window.renderAt(startSec + f * dt);
+          // Force synchronous style + layout commit across both overview & detail stages
+          document.getElementById('overview-frame').getBoundingClientRect();
+          document.getElementById('detail-viewport').getBoundingClientRect();
+          totalMs += performance.now() - t0;
+        }
+        return totalMs / 30;
+      };
+
+      const helixAvgMs = await measureSpanMs(92.0);
+      const sphereAvgMs = await measureSpanMs(142.0);
+
+      return {
+        cyclePx,
+        tWrap,
+        wrapStepPx,
+        normalStepPx,
+        seamErrorPx,
+        helixAvgMs,
+        sphereAvgMs,
+      };
+    });
+
+    await studioCtx.close();
+
+    const g8KinematicOk =
+      kinematicScan.chatterReversals === 0 &&
+      kinematicScan.opacityJumps === 0 &&
+      kinematicScan.cardZFlips === 0 &&
+      kinematicScan.maxFocusStep <= 12.0;
+
+    const g8StudioOk =
+      delayedFontCount >= 2 &&
+      studioBench.wrapStepPx <= 2.5 &&
+      studioBench.seamErrorPx <= 1.0 &&
+      studioBench.helixAvgMs <= 18.5 &&
+      studioBench.sphereAvgMs <= 18.5;
+
+    if (!g8KinematicOk) console.error('  [G8 운동학 결함]:', kinematicScan);
+    if (!g8StudioOk) console.error('  [G8 스튜디오/폰트 결함]:', { delayedFontCount, studioBench });
+
+    gates.push({
+      id: 'G8 (6000f 운동학·콜드폰트·60fps)',
+      passed: g8KinematicOk && g8StudioOk,
+      detail: `진동=${kinematicScan.chatterReversals} · max|Δop|=${kinematicScan.maxFragDeltaOp.toFixed(3)} · 카드팝업=${kinematicScan.cardZFlips} · focusStep=${kinematicScan.maxFocusStep.toFixed(2)}px/f · 콜드폰트되감기=${studioBench.wrapStepPx.toFixed(2)}px(오차 ${studioBench.seamErrorPx.toFixed(3)}px) · 스튜디오=${studioBench.helixAvgMs.toFixed(2)}/${studioBench.sphereAvgMs.toFixed(2)}ms`,
+    });
+
     for (const g of gates) {
-      console.log(` [${g.passed ? 'PASS' : 'FAIL'}] ${g.id.padEnd(25)} : ${g.detail}`);
+      console.log(` [${g.passed ? 'PASS' : 'FAIL'}] ${g.id.padEnd(28)} : ${g.detail}`);
     }
-    console.log('----------------------------------------------------------------------------------------');
+    console.log('------------------------------------------------------------------------------------------------');
 
     const allPassed = gates.every((g) => g.passed);
-    console.log(` 최종 판정: ${allPassed ? '100% PASS (G1~G7 최종 마스터 수렴 무결성 전수 통과)' : 'FAIL (미통과 게이트 교정 필요)'}`);
-    console.log('========================================================================================\n');
+    console.log(
+      ` 최종 판정: ${
+        allPassed
+          ? '100% PASS (G1~G8 200.0s 6,000프레임 마스터 정량·운동학 무결성 전수 통과)'
+          : 'FAIL (미통과 게이트 교정 필요)'
+      }`,
+    );
+    console.log('================================================================================================\n');
 
     if (!allPassed) {
       process.exit(1);

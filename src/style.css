@@ -316,14 +316,17 @@ body.raw-mode {
   line-height: 0.88;
   letter-spacing: -0.04em;
   color: #000000;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3px #ffffff;
 }
 
 .station-meta-col {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: rgba(255, 255, 255, 0.96);
-  padding: 2px 6px;
+  background: transparent;
+  box-shadow: none;
+  padding: 2px 4px;
 }
 
 .station-code {
@@ -333,6 +336,8 @@ body.raw-mode {
   font-weight: 700;
   letter-spacing: 0.05em;
   color: #000000;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 2.5px #ffffff;
 }
 
 .station-title {
@@ -342,6 +347,8 @@ body.raw-mode {
   line-height: 1.16;
   letter-spacing: -0.015em;
   color: #000000;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3px #ffffff;
 }
 
 .monolith-card {
@@ -354,6 +361,7 @@ body.raw-mode {
   display: flex;
   flex-direction: column;
   backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .monolith-band {
@@ -462,7 +470,6 @@ body.raw-mode {
 }
 
 .history-list {
-  --history-offset: 0px;
   position: absolute;
   top: 26px;
   left: 78px;
@@ -470,8 +477,9 @@ body.raw-mode {
   margin: 0;
   padding: 0;
   width: 342px;
-  transform: rotateX(34deg) rotateY(-26deg) rotateZ(-8deg) scale(1.16) translate3d(0, calc(var(--history-offset) * -1), 0);
+  transform: rotateX(34deg) rotateY(-26deg) rotateZ(-8deg) scale(1.16) translate3d(0, 0px, 0);
   transform-origin: 50% 0%;
+  will-change: transform;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -595,7 +603,7 @@ body.raw-mode {
   z-index: 6;
 }
 
-/* --- Act II–IV: 200 Fragments with Solid Fine-Press Paper Knockout Halo (`z-index: 9`) --- */
+/* --- Act II–IV: 200 Fragments with Pure Glyph-Tight Silkscreen Stroke Halo (`z-index: 9`, Zero Rectangular Sticker!) --- */
 .frag-layer {
   position: absolute;
   inset: 0;
@@ -611,15 +619,15 @@ body.raw-mode {
   line-height: 1.18;
   transform-origin: 50% 50%;
   color: #000000;
+  will-change: transform, opacity;
 }
 
 .frag:not(.is-img) {
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.96);
-  border-radius: 2px;
-  padding: 1px 4px;
+  background: transparent;
+  box-shadow: none;
+  padding: 1px 3px;
   paint-order: stroke fill;
-  -webkit-text-stroke: 3.5px #ffffff;
+  -webkit-text-stroke: 3.2px #ffffff;
 }
 
 .frag.is-anchor {
@@ -632,11 +640,11 @@ body.raw-mode {
   font-family: var(--font-serif);
   font-weight: 800;
   letter-spacing: -0.015em;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 0 14px 8px rgba(255, 255, 255, 0.98);
-  padding: 2px 7px;
+  background: transparent;
+  box-shadow: none;
+  padding: 2px 5px;
   paint-order: stroke fill;
-  -webkit-text-stroke: 4px #ffffff;
+  -webkit-text-stroke: 3.8px #ffffff;
 }
 
 .frag.is-sentence {
@@ -675,7 +683,7 @@ body.raw-mode {
   padding: 1px 4px;
 }
 
-/* --- Special Callouts, Persistent Orbit Nucleus & Zero-Aberration 3D Fault/Gale --- */
+/* --- Special Callouts, Persistent Orbit Nucleus & Zero-Sticker Transparent Typography --- */
 .special-layer {
   position: absolute;
   inset: 0;
@@ -690,9 +698,9 @@ body.raw-mode {
   transform: translate(-50%, -50%);
   text-align: center;
   white-space: nowrap;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 0 32px 20px #ffffff;
-  padding: 6px 20px;
+  background: transparent;
+  box-shadow: none;
+  padding: 2px 6px;
 }
 
 .orbit-center-query {
@@ -703,22 +711,29 @@ body.raw-mode {
   letter-spacing: -0.02em;
   line-height: 1.1;
   color: #e60000;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3.5px #ffffff;
 }
 
 .periphery-num-tag {
   position: absolute;
+  left: 0;
+  top: 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: #d90000;
-  background: rgba(255, 255, 255, 0.96);
-  padding: 1px 6px;
+  background: transparent;
+  box-shadow: none;
+  padding: 1px 4px;
   white-space: nowrap;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 2.8px #ffffff;
 }
 
-/* Act IV.1 Awakened Peripheral Sentence (`54px` Bold Single-Ink Razor Edge) */
+/* Act IV.1 Awakened Peripheral Sentence (`54px` Bold Single-Ink Razor Edge, Transparent Ground) */
 .awakened-sentence {
   position: absolute;
   left: 4880px;
@@ -730,12 +745,14 @@ body.raw-mode {
   line-height: 1.12;
   letter-spacing: -0.02em;
   white-space: nowrap;
-  background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 0 28px 18px #ffffff;
-  padding: 6px 18px;
+  background: transparent;
+  box-shadow: none;
+  padding: 2px 6px;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3.5px #ffffff;
 }
 
-/* Act IV.2 Zero-Chromatic-Aberration 3D Perspective Fault Shards */
+/* Act IV.2 Zero-Sticker Transparent 3D Perspective Fault Shards */
 .fault-shard {
   position: absolute;
   left: 0;
@@ -744,6 +761,9 @@ body.raw-mode {
   font-family: var(--font-serif);
   line-height: 1.08;
   transform-origin: 50% 50%;
+  background: transparent;
+  box-shadow: none;
+  will-change: transform, opacity;
 }
 
 .fault-shard.is-center {
@@ -751,9 +771,11 @@ body.raw-mode {
   font-weight: 700;
   letter-spacing: -0.025em;
   color: #000000;
-  background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 0 12px 6px #ffffff;
-  padding: 6px 18px;
+  background: transparent;
+  box-shadow: none;
+  padding: 2px 6px;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3.5px #ffffff;
 }
 
 .fault-shard.is-side {
@@ -761,14 +783,14 @@ body.raw-mode {
   font-weight: 600;
   letter-spacing: -0.015em;
   color: #3a3a3a;
-  background: #ffffff;
-  box-shadow: 0 0 20px 12px #ffffff;
-  padding: 4px 14px;
+  background: transparent;
+  box-shadow: none;
+  padding: 2px 6px;
   paint-order: stroke fill;
-  -webkit-text-stroke: 4px #ffffff;
+  -webkit-text-stroke: 3.2px #ffffff;
 }
 
-/* Act IV.3a Elemental Paleo-Wind Gale Hero Text (`104px` Bold + Eye-of-the-Storm Halo) */
+/* Act IV.3a Elemental Paleo-Wind Gale Hero Text (`104px` Bold, Transparent Ground) */
 .gale-wind-banner {
   position: absolute;
   left: 0;
@@ -781,10 +803,12 @@ body.raw-mode {
   letter-spacing: -0.025em;
   transform-origin: 50% 50%;
   color: #000000;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 0 36px 24px #ffffff;
-  border-radius: 4px;
-  padding: 10px 26px;
+  background: transparent;
+  box-shadow: none;
+  padding: 4px 8px;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3.8px #ffffff;
+  will-change: transform, opacity;
   z-index: 22;
 }
 
@@ -930,6 +954,7 @@ body.raw-mode {
   width: 6480px;
   height: 432px;
   transform-origin: 0 0;
+  will-change: transform;
   pointer-events: none;
 }
 

@@ -49,7 +49,7 @@ export function mountStudio(app: HTMLElement): void {
     <header class="studio-topbar">
       <div class="studio-brand">
         <h1>정렬과 사선 (Aligned / Skewed)</h1>
-        <span>6480 × 432 px (15:1) Moving Image · 120 BPM · 120.0s · Zero-UI Exhibition Master</span>
+        <span>6480 × 432 px (15:1) Moving Image · 120 BPM · 200.0s (03:20.0) · Zero-UI Exhibition Master</span>
       </div>
       <div class="studio-meta-links">
         ${hasRedGain ? `<span class="rgain-badge" title="현장 리허설 적색기 보정 활성">R-Gain ${redGain.toFixed(2)}</span>` : ''}
@@ -86,7 +86,7 @@ export function mountStudio(app: HTMLElement): void {
     <footer class="studio-controls">
       <div class="controls-row">
         <button type="button" class="ctrl-btn is-primary" id="btn-play">Pause (Space)</button>
-        <span class="time-readout" id="time-readout">00:00.0 / 02:00.0</span>
+        <span class="time-readout" id="time-readout">00:00.0 / 03:20.0</span>
         <div class="scrubber-wrap">
           <input type="range" id="scrubber" min="0" max="${DURATION}" step="0.05" value="0" aria-label="타임라인 스크러버" />
         </div>
@@ -151,7 +151,7 @@ export function mountStudio(app: HTMLElement): void {
     return btn;
   });
 
-  const overviewStage = createMotionStage(overviewScaler, { canvasScale: 0.35, redGain });
+  const overviewStage = createMotionStage(overviewScaler, { canvasScale: 0.25, redGain });
   const detailStage = createMotionStage(detailPanLayer, { canvasScale: 1.0, redGain });
 
   const rawT = urlParams.get('t');
@@ -255,18 +255,19 @@ export function mountStudio(app: HTMLElement): void {
   ro.observe(detailViewport);
   syncLayoutSizes();
 
-  function renderBoth(t: number, snapCamera = false) {
+  function renderBoth(t: number, snapCamera = false, dtSec = 1 / 60) {
     overviewStage.renderAt(t);
     detailStage.renderAt(t);
 
     if (autoFollow) {
       const targetX = detailStage.getFocusX(t);
-      panCenterX = snapCamera ? targetX : panCenterX + (targetX - panCenterX) * 0.14;
+      const smoothAlpha = 1 - Math.exp(-Math.max(0.001, dtSec) * 4.2);
+      panCenterX = snapCamera ? targetX : panCenterX + (targetX - panCenterX) * smoothAlpha;
     }
     updatePanVisual();
     syncRawLink(t);
 
-    timeReadout.textContent = `${fmtTime(t)} / 02:00.0`;
+    timeReadout.textContent = `${fmtTime(t)} / 03:20.0`;
     scrubber.value = t.toFixed(2);
 
     const activeCap = STAGE_CAPTIONS.find((c) => t >= c.a && t < c.b);
@@ -382,7 +383,7 @@ export function mountStudio(app: HTMLElement): void {
     lastTs = now;
     if (playing) {
       curTime = (curTime + dt * playSpeed) % DURATION;
-      renderBoth(curTime, false);
+      renderBoth(curTime, false, dt);
     }
     requestAnimationFrame(tick);
   };

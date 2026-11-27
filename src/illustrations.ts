@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 /**
  * Fine-Press Lithograph Archival Plates & Muybridge Stride Sprites (`public/plates/*.webp`).
- * Zero Canvas2D procedural toy shapes: all 16 archival plates + 5 stride frames are
- * preloaded and decoded (`img.decode()`) before `window.motionReady` resolves.
+ * Zero Canvas2D procedural toy shapes: all 37 active archival plates (`plate-01..38`, excluding `plate-04`)
+ * are preloaded and decoded (`img.decode()`) before `window.motionReady` resolves.
  */
 
 export interface ArchivalPlateSpec {
@@ -207,6 +207,118 @@ export const ARCHIVAL_PLATES: readonly ArchivalPlateSpec[] = [
     code: 'KATABATIC / RIDGE',
     label: '극지 사스트루기 칼날 설면 능선',
     src: `${BASE}plates/plate-24.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-25',
+    plateNo: 'PL.25',
+    code: 'HYDROMETER / 1.15%',
+    label: '염도 비중계 메니스커스 눈금 계측',
+    src: `${BASE}plates/plate-25.webp`,
+    cluster: 0,
+  },
+  {
+    id: 'plate-26',
+    plateNo: 'PL.26',
+    code: 'SIEVE MESH / CUBIC',
+    label: '표준 입도 체망과 정제 입방 격자',
+    src: `${BASE}plates/plate-26.webp`,
+    cluster: 0,
+  },
+  {
+    id: 'plate-27',
+    plateNo: 'PL.27',
+    code: 'BÉNARD CELL / 85°C',
+    label: '균질 가열 대류 베나르 세포망',
+    src: `${BASE}plates/plate-27.webp`,
+    cluster: 0,
+  },
+  {
+    id: 'plate-28',
+    plateNo: 'PL.28',
+    code: 'LAMINA / pH 4.3',
+    label: '염장 조직 세포막 삼투 박편 단면',
+    src: `${BASE}plates/plate-28.webp`,
+    cluster: 0,
+  },
+  {
+    id: 'plate-29',
+    plateNo: 'PL.29',
+    code: 'ONGGI CLAY / 4.2μm',
+    label: '숨 쉬는 옹기 태토 파단면과 기공',
+    src: `${BASE}plates/plate-29.webp`,
+    cluster: 1,
+  },
+  {
+    id: 'plate-30',
+    plateNo: 'PL.30',
+    code: 'HOPPER CAVERN / 90°',
+    label: '역피라미드 호퍼 결정 계단 동굴',
+    src: `${BASE}plates/plate-30.webp`,
+    cluster: 2,
+  },
+  {
+    id: 'plate-31',
+    plateNo: 'PL.31',
+    code: 'HALITE FOLD / -812M',
+    label: '지하 암염 다이아피어 유동 습곡',
+    src: `${BASE}plates/plate-31.webp`,
+    cluster: 3,
+  },
+  {
+    id: 'plate-32',
+    plateNo: 'PL.32',
+    code: 'EXTINCTION / CROSS',
+    label: '직교 편광 소광 십자와 포유물 간섭륜',
+    src: `${BASE}plates/plate-32.webp`,
+    cluster: 4,
+  },
+  {
+    id: 'plate-33',
+    plateNo: 'PL.33',
+    code: 'FIRN ARCHIVE / -3000M',
+    label: '남극 만년설 심부 기포 밀봉 단면',
+    src: `${BASE}plates/plate-33.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-34',
+    plateNo: 'PL.34',
+    code: 'BARCHAN / 95 Hz',
+    label: '바르한 사구 바람결 파문과 석영 공명',
+    src: `${BASE}plates/plate-34.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-35',
+    plateNo: 'PL.35',
+    code: 'LOESS CANYON / 180M',
+    label: '황토 고원 계절풍 실트 퇴적 단애',
+    src: `${BASE}plates/plate-35.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-36',
+    plateNo: 'PL.36',
+    code: 'AMBER AIR / 100 MA',
+    label: '백악기 호박 수지에 봉인된 원시 기포',
+    src: `${BASE}plates/plate-36.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-37',
+    plateNo: 'PL.37',
+    code: 'KRUMMHOLZ / RING',
+    label: '고산 편향풍이 빚은 비대칭 나이테',
+    src: `${BASE}plates/plate-37.webp`,
+    cluster: 5,
+  },
+  {
+    id: 'plate-38',
+    plateNo: 'PL.38',
+    code: 'SPINDRIFT / HORIZON',
+    label: '극지 지평선 스핀드리프트 설원',
+    src: `${BASE}plates/plate-38.webp`,
     cluster: 5,
   },
 ];

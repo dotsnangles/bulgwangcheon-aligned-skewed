@@ -6,7 +6,7 @@
  * - 오디오 스트림: 0개 (무음 규격)
  * - 파일 크기: <= 900.0 MB
  * - 프레임 수 및 길이 정합성
- * - 120초 마스터(duration >= 119.5s) 시 첫 프레임/마지막 프레임 순백 루프 이음매 오차 (max_abs_diff <= 4 LSB) 자동 검증
+ * - 200초 마스터(duration >= 199.5s) 시 첫 프레임/마지막 프레임 순백 루프 이음매 오차 (max_abs_diff <= 4 LSB) 자동 검증
  *
  * Usage:
  *   node scripts/verify-mp4.mjs [path/to/video.mp4]
@@ -254,7 +254,7 @@ export async function verifyMp4(targetPath = DEFAULT_MP4, options = {}) {
   ];
 
   let loopInfo = null;
-  const shouldCheckLoop = options.checkLoop === true || duration >= 119.5;
+  const shouldCheckLoop = options.checkLoop === true || duration >= 199.5;
   if (shouldCheckLoop && width === STAGE_W && height === STAGE_H) {
     loopInfo = await checkLoopSeam(absPath, width, height);
     checks.push({

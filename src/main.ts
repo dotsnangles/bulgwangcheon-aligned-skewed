@@ -3,7 +3,7 @@
  * 1) Pure 6480x432 headless/broadcast Zero-UI moving-image mode: `?raw=1&t=<seconds>&rgain=<0.50..1.00>`
  * 2) Live interactive Studio Preview UI: default (`http://127.0.0.1:4320/`)
  *
- * Guarantees both self-hosted variable web fonts AND all 21 fine-press lithograph `.webp` plates
+ * Guarantees both self-hosted variable web fonts AND all 37 active fine-press lithograph `.webp` plates
  * are 100% loaded & decoded before `window.motionReady` resolves.
  */
 

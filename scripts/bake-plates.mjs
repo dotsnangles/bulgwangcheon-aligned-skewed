@@ -2,10 +2,11 @@
 /**
  * Deterministic Fine-Press Lithograph Plate Baker (`scripts/bake-plates.mjs`)
  *
- * Processes `.cache/raw-plates/plate-01.jpg` .. `plate-16.jpg` into:
+ * Processes `.cache/raw-plates/plate-01.jpg` .. `plate-16.jpg` and `plate-25.jpg` .. `plate-38.jpg` into:
  *   1) `public/plates/plate-01.webp` .. `plate-16.webp` (960px wide, zero bounding-box seam on #FFFFFF)
  *   2) `public/plates/plate-17.webp` .. `plate-24.webp` (8 distinct fine-press detail & macro lithographs, 960x620, border=255)
- *   3) `public/plates/stride-01.webp` .. `stride-05.webp` (360x240 center-of-mass aligned Muybridge 5-frame sprites)
+ *   3) `public/plates/plate-25.webp` .. `plate-38.webp` (14 expanded fine-press lithograph plates, 960px wide, feather_px=22, border=255)
+ *   4) `public/plates/stride-01.webp` .. `stride-05.webp` (360x240 center-of-mass aligned Muybridge 5-frame sprites)
  */
 
 import { spawnSync } from 'node:child_process';
@@ -330,12 +331,48 @@ for p_idx, src_num, box_f, ang, fx, fy, mask_mode, f_px in detail_specs:
     black_pct = float((baked_d <= 12).mean() * 100.0)
     print(f"  - {out_name} (src={src_num:02d}, {mask_mode}): {w_out}x{h_out} · {sz / 1024.0:6.1f} KB · pure-white={white_pct:5.1f}% · deep-ink={black_pct:4.1f}% · border=255 PASS")
 
-print(f"\n[bake-plates] SUCCESS: 29 WebP plates baked ({total_bytes / 1024.0:.1f} KB total).")
+# Bake 14 Expanded Fine-Press Lithograph Plates (plate-25.webp .. plate-38.webp, 960px width, feather_px=22)
+print("\n[bake-plates] Baking 14 expanded fine-press lithograph plates (plate-25 .. plate-38, 960px width, feather_px=22)...")
+
+for idx in range(25, 39):
+    in_name = f"plate-{idx:02d}.jpg"
+    out_name = f"plate-{idx:02d}.webp"
+    in_path = os.path.join(raw_dir, in_name)
+    out_path = os.path.join(out_dir, out_name)
+
+    src = Image.open(in_path).convert("L")
+    w0, h0 = src.size
+    target_w = 960
+    target_h = int(round(h0 * (target_w / float(w0))))
+    resized = src.resize((target_w, target_h), Image.Resampling.LANCZOS)
+    gray = np.asarray(resized, dtype=np.uint8)
+
+    # For plate-32 (polarized birefringence cross), apply gentle vertical/radial stone vignette before feather_px=22
+    # so top/bottom extinction cross tips taper organically into #FFFFFF with zero clipped appearance
+    if idx == 32:
+        h_g, w_g = gray.shape
+        yy = np.abs((np.arange(h_g, dtype=np.float32) - h_g * 0.5) / (h_g * 0.5))
+        xx = np.abs((np.arange(w_g, dtype=np.float32) - w_g * 0.5) / (w_g * 0.5))
+        vy = np.clip((0.95 - yy) / 0.14, 0.0, 1.0)
+        vx = np.clip((0.95 - xx) / 0.12, 0.0, 1.0)
+        vmask = (0.5 - 0.5 * np.cos(np.pi * vy))[:, None] * (0.5 - 0.5 * np.cos(np.pi * vx))[None, :]
+        ink_32 = (255.0 - gray.astype(np.float32)) * vmask
+        gray = np.clip(np.round(255.0 - ink_32), 0, 255).astype(np.uint8)
+
+    baked_ext = litho_grade(gray, seed=20261400 + idx, feather_px=22)
+    w_out, h_out = save_verified_webp(baked_ext, out_path, quality=92)
+    sz = os.path.getsize(out_path)
+    total_bytes += sz
+    white_pct = float((baked_ext == 255).mean() * 100.0)
+    black_pct = float((baked_ext <= 12).mean() * 100.0)
+    print(f"  - {out_name}: {w_out}x{h_out} · {sz / 1024.0:6.1f} KB · pure-white={white_pct:5.1f}% · deep-ink={black_pct:4.1f}% · border=255 PASS")
+
+print(f"\n[bake-plates] SUCCESS: 43 WebP files baked (38 archival plates + 5 stride sprites · {total_bytes / 1024.0:.1f} KB total).")
 `;
 
 const res = spawnSync(
   'uv',
-  ['run', '--with', 'pillow,numpy,scipy', 'python3', '-', RAW_DIR, OUT_DIR],
+  ['run', '--with', 'pillow,numpy,scipy', 'python', '-', RAW_DIR, OUT_DIR],
   {
     cwd: ROOT_DIR,
     input: PYTHON_SCRIPT,

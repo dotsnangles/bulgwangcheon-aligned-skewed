@@ -101,23 +101,23 @@ export interface PanoramicLayouts {
  */
 export const COSINE_LABEL_SANCTUARIES: readonly KeepOutZone[] = [
   // 0..4: Upper band (`y = 104`)
-  { cx: 680, cy: 104, hw: 84, hh: 16 },
-  { cx: 1940, cy: 104, hw: 84, hh: 16 },
-  { cx: 3200, cy: 104, hw: 84, hh: 16 },
-  { cx: 4460, cy: 104, hw: 84, hh: 16 },
-  { cx: 5720, cy: 104, hw: 84, hh: 16 },
+  { cx: 680, cy: 104, hw: 120, hh: 22 },
+  { cx: 1940, cy: 104, hw: 120, hh: 22 },
+  { cx: 3200, cy: 104, hw: 120, hh: 22 },
+  { cx: 4460, cy: 104, hw: 120, hh: 22 },
+  { cx: 5720, cy: 104, hw: 120, hh: 22 },
   // 5..9: Middle band (`y = 216`, horizontally staggered +420px from Upper & Lower!)
-  { cx: 1100, cy: 216, hw: 84, hh: 16 },
-  { cx: 2360, cy: 216, hw: 84, hh: 16 },
-  { cx: 3620, cy: 216, hw: 84, hh: 16 },
-  { cx: 4880, cy: 216, hw: 84, hh: 16 },
-  { cx: 6060, cy: 216, hw: 84, hh: 16 },
+  { cx: 1100, cy: 216, hw: 120, hh: 22 },
+  { cx: 2360, cy: 216, hw: 120, hh: 22 },
+  { cx: 3620, cy: 216, hw: 120, hh: 22 },
+  { cx: 4880, cy: 216, hw: 120, hh: 22 },
+  { cx: 6060, cy: 216, hw: 120, hh: 22 },
   // 10..14: Lower band (`y = 328`, horizontally staggered +420px from Middle!)
-  { cx: 880, cy: 328, hw: 84, hh: 16 },
-  { cx: 1520, cy: 328, hw: 84, hh: 16 },
-  { cx: 2780, cy: 328, hw: 84, hh: 16 },
-  { cx: 4040, cy: 328, hw: 84, hh: 16 },
-  { cx: 5300, cy: 328, hw: 84, hh: 16 },
+  { cx: 880, cy: 328, hw: 120, hh: 22 },
+  { cx: 1520, cy: 328, hw: 120, hh: 22 },
+  { cx: 2780, cy: 328, hw: 120, hh: 22 },
+  { cx: 4040, cy: 328, hw: 120, hh: 22 },
+  { cx: 5300, cy: 328, hw: 120, hh: 22 },
 ];
 
 /**
@@ -438,16 +438,6 @@ export function computePanoramicLayouts(
       page[i] = { x: cx, y: cy, z: 0, scale: sc, opacity: 1 };
       pageColOf[i] = colIdx;
       pageRowOf[i] = localRow;
-
-      const hBeat = 52.60 + colIdx * 0.28 + (localRow % 2) * 0.18;
-      cuts.push({
-        x1: col.left - 3,
-        y1: Math.min(398, curY + slotH),
-        x2: col.left + col.width + 3,
-        y2: Math.min(398, curY + slotH),
-        orientation: 'h',
-        strikeAt: Math.min(60.2, hBeat),
-      });
       curY += slotH;
     }
   }
@@ -463,45 +453,79 @@ export function computePanoramicLayouts(
     marginTop: 34,
     marginBottom: 36,
     padX: 7,
-    padY: 5,
+    padY: 6,
     passes: 6000,
     keepOut: heroKeepOut,
   });
 
+  // Post-`separate(page)` exact mid-gap horizontal guillotine cuts (`gap >= 6px` -> `0` glyph touching!)
+  for (let colIdx = 0; colIdx < colDefs.length; colIdx++) {
+    const col = colDefs[colIdx]!;
+    const colItems: number[] = [];
+    for (let i = 0; i < n; i++) {
+      if (pageColOf[i] === colIdx && page[i]!.x >= col.left - 24 && page[i]!.x <= col.left + col.width + 24) {
+        colItems.push(i);
+      }
+    }
+    colItems.sort((a, b) => page[a]!.y - page[b]!.y);
+    colItems.forEach((idx, rOrder) => {
+      pageRowOf[idx] = rOrder;
+    });
+    for (let k = 0; k < colItems.length - 1; k++) {
+      const ia = colItems[k]!;
+      const ib = colItems[k + 1]!;
+      const botA = page[ia]!.y + fragmentBox(fragments[ia]!, page[ia]!.scale).h * 0.5;
+      const topB = page[ib]!.y - fragmentBox(fragments[ib]!, page[ib]!.scale).h * 0.5;
+      const gap = topB - botA;
+      if (gap >= 6.0) {
+        const midY = clamp((botA + topB) * 0.5, 32, 398);
+        const hBeat = 52.60 + colIdx * 0.28 + (k % 2) * 0.18;
+        cuts.push({
+          x1: col.left - 3,
+          y1: midY,
+          x2: col.left + col.width + 3,
+          y2: midY,
+          orientation: 'h',
+          strikeAt: Math.min(60.2, hBeat),
+        });
+      }
+    }
+  }
+
   /* -----------------------------------------------------------------------
    * 2. SPECTRUM 2D (`spectrum2D`, 63.0–78.0s)
-   *    Inset by `marginX=66, marginTop=35, marginBottom=37` so `±26×6px` sheet breathing stays bezel-safe!
+   *    Wide `COSINE_LABEL_SANCTUARIES` (`hw=120, hh=22`) + `extraBottomPx=23, padY=6` (`0` barcode/badge overlap!)
    * ----------------------------------------------------------------------- */
-  const sCols = 30;
-  const sLeft = 116;
-  const sRight = 6364;
+  const sCols = 32;
+  const sLeft = 96;
+  const sRight = 6384;
   const sColW = (sRight - sLeft) / sCols;
   const sPerCol = Math.ceil(n / sCols);
 
   const spectrum2D: Pos3D[] = fragments.map((f, i) => {
     const col = Math.floor(i / sPerCol);
     const row = i % sPerCol;
-    const x = sLeft + (col + 0.5) * sColW + ((row % 2) - 0.5) * 16;
-    const y = 46 + (row / Math.max(1, sPerCol - 1)) * 316;
+    const x = sLeft + (col + 0.5) * sColW + ((row % 2) - 0.5) * 18;
+    const y = 44 + (row / Math.max(1, sPerCol - 1)) * 326;
     const sc =
       f.type === 'img'
-        ? 0.72
+        ? 0.58
         : f.isMacroHub
-          ? 0.42
+          ? 0.36
           : f.tier === 'anchor'
-            ? 0.65
-            : 0.54;
+            ? 0.54
+            : 0.45;
     return { x, y, z: 0, scale: sc, opacity: 1 };
   });
 
   separate(spectrum2D, fragments, {
     marginX: 36,
     marginTop: 28,
-    marginBottom: 30,
-    padX: 10,
-    padY: 8,
-    extraBottomPx: 18,
-    passes: 6500,
+    marginBottom: 22,
+    padX: 8,
+    padY: 6,
+    extraBottomPx: 23,
+    passes: 16000,
     keepOut: COSINE_LABEL_SANCTUARIES,
   });
 
@@ -685,11 +709,11 @@ export function computePanoramicLayouts(
   }
 
   /* -----------------------------------------------------------------------
-   * 5. MEANING 2D (`meaning2D`, 102.0–115.0s) — 5 Asymmetric Star Clusters
-   *    Inset by `±24px` X and `45px` top/bottom so `±22×15px` rigid cluster buoyancy stays untouched!
+   * 5. MEANING 2D (`meaning2D`, 102.0–112.5s) — 6 Equidistant Independent Star Clusters (`812px` each)
+   *    + 5 Equidistant Pure-White Silence Canyons (`304px` each) across `44 .. 6436`!
    * ----------------------------------------------------------------------- */
-  const clusterCentersX = [450, 1572, 2696, 3820, 5060, 5920];
-  const clusterCentersY = [214, 206, 222, 208, 162, 266];
+  const clusterCentersX = [450, 1566, 2682, 3798, 4914, 6030];
+  const clusterCentersY = [214, 204, 224, 206, 222, 208];
   const golden = Math.PI * (3 - Math.sqrt(5));
 
   const clusterHubIndex: number[] = [-1, -1, -1, -1, -1, -1];
@@ -708,9 +732,9 @@ export function computePanoramicLayouts(
     }
     const localRank = i % 34;
     const ang = localRank * golden + f.cluster * 1.15;
-    const rad = Math.sqrt(localRank + 0.8) * 36;
+    const rad = Math.sqrt(localRank + 0.8) * 34;
     return {
-      x: clusterCentersX[f.cluster]! + Math.cos(ang) * rad * 1.38,
+      x: clusterCentersX[f.cluster]! + Math.cos(ang) * rad * 1.34,
       y: clusterCentersY[f.cluster]! + Math.sin(ang) * rad * 0.84,
     };
   });
@@ -742,9 +766,9 @@ export function computePanoramicLayouts(
       const dy = pb.y - pa.y;
       const dist = Math.hypot(dx, dy) || 1;
       const sameCluster = fragments[e.a]!.cluster === fragments[e.b]!.cluster;
-      const pull = (e.weight - 0.66) * (sameCluster ? 0.088 : 0.015);
+      const pull = (e.weight - 0.66) * (sameCluster ? 0.088 : 0.012);
       if (pull <= 0) continue;
-      const targetDist = sameCluster ? 115 : 260;
+      const targetDist = sameCluster ? 110 : 280;
       const fMag = ((dist - targetDist) * pull) / dist;
       fx[e.a]! += dx * fMag;
       fy[e.a]! += dy * fMag;
@@ -759,9 +783,9 @@ export function computePanoramicLayouts(
         pts2[i]!.y = clusterCentersY[f.cluster]!;
         continue;
       }
-      const gx = (clusterCentersX[f.cluster]! - pts2[i]!.x) * 0.085;
-      const gy = (clusterCentersY[f.cluster]! - pts2[i]!.y) * 0.065;
-      pts2[i]!.x = Math.max(100, Math.min(STAGE_W - 100, pts2[i]!.x + (fx[i]! + gx) * 0.36 * heat));
+      const gx = (clusterCentersX[f.cluster]! - pts2[i]!.x) * 0.095;
+      const gy = (clusterCentersY[f.cluster]! - pts2[i]!.y) * 0.070;
+      pts2[i]!.x = Math.max(80, Math.min(STAGE_W - 80, pts2[i]!.x + (fx[i]! + gx) * 0.36 * heat));
       pts2[i]!.y = Math.max(54, Math.min(STAGE_H - 54, pts2[i]!.y + (fy[i]! + gy) * 0.40 * heat));
     }
   }
@@ -772,21 +796,22 @@ export function computePanoramicLayouts(
     z: 0,
     scale:
       f.type === 'img'
-        ? 0.65
+        ? 0.58
         : f.isMacroHub
-          ? 0.88
+          ? 0.84
           : f.tier === 'anchor'
-            ? 0.70
-            : 0.54 + hash(i * 13) * 0.02,
+            ? 0.66
+            : 0.51 + hash(i * 13) * 0.02,
     opacity: 1,
   }));
 
   const starClusterBays: readonly { clusters: readonly number[]; minX: number; maxX: number }[] = [
-    { clusters: [0], minX: 62, maxX: 856 },
-    { clusters: [1], minX: 1176, maxX: 1976 },
-    { clusters: [2], minX: 2296, maxX: 3100 },
-    { clusters: [3], minX: 3420, maxX: 4224 },
-    { clusters: [4, 5], minX: 4544, maxX: 6418 },
+    { clusters: [0], minX: 44, maxX: 856 },
+    { clusters: [1], minX: 1160, maxX: 1972 },
+    { clusters: [2], minX: 2276, maxX: 3088 },
+    { clusters: [3], minX: 3392, maxX: 4204 },
+    { clusters: [4], minX: 4508, maxX: 5320 },
+    { clusters: [5], minX: 5624, maxX: 6436 },
   ];
 
   for (const bay of starClusterBays) {
@@ -803,11 +828,11 @@ export function computePanoramicLayouts(
     separate(subPos, subFrags, {
       minX: bay.minX,
       maxX: bay.maxX,
-      marginTop: 44,
-      marginBottom: 44,
-      padX: 12,
-      padY: 8,
-      passes: 6500,
+      marginTop: 46,
+      marginBottom: 46,
+      padX: 15,
+      padY: 11,
+      passes: 8500,
     });
     subIndices.forEach((origIdx, k) => {
       meaning2D[origIdx]!.x = subPos[k]!.x;
@@ -1083,40 +1108,41 @@ export function computePanoramicLayouts(
   buildHemisphereRings(northIndices, true);
   buildHemisphereRings(southIndices, false);
 
-  // Final intra-ring angular separation pass across 36 spin angles so adjacent items in the same ring NEVER touch even near limb!
-  for (let pass = 0; pass < 50; pass++) {
+  // Final intra-ring & adjacent-ring angular separation pass across 36 spin angles (`so3 >= 0.30` -> `0` overlaps even at `minOp=0.05` in Act IV!)
+  for (let pass = 0; pass < 75; pass++) {
     let moved = false;
-    for (let rIdx = 0; rIdx < 6; rIdx++) {
-      const ringMembers = fragments.map((_, i) => i).filter((i) => sphere3D[i]!.ringIdx === rIdx);
-      for (let sStep = 0; sStep < 36; sStep++) {
-        const spin = (sStep / 36) * Math.PI * 2;
-        const vis: { idx: number; sx: number; hw: number; cosLon: number }[] = [];
-        for (const idx of ringMembers) {
-          const sp = sphere3D[idx]!;
-          const lon = sp.theta + spin;
-          const sinL = Math.sin(lon);
-          const cosL = Math.cos(lon);
-          const frontVis = smoothstep(-0.10, 0.38, sinL);
-          const limbFade = 1 - smoothstep(0.70, 0.96, Math.abs(cosL));
-          if (lerp(0.09, 1.0, frontVis) * limbFade < 0.38) continue;
-          const wz = sinL * 280;
-          const pFactor = Z_CAM / (Z_CAM - wz);
-          const sx = STAGE_W * 0.5 + cosL * 2980 * pFactor;
-          const hw = fragmentBox(fragments[idx]!, sp.scale * clamp(pFactor, 0.85, 1.16)).w * 0.5 + 8;
-          vis.push({ idx, sx, hw, cosLon: cosL });
-        }
-        vis.sort((a, b) => a.sx - b.sx);
-        for (let k = 0; k < vis.length - 1; k++) {
-          const a = vis[k]!;
-          const b = vis[k + 1]!;
-          const ox = a.hw + b.hw - (b.sx - a.sx);
-          if (ox > 0) {
-            moved = true;
-            // On front hemisphere (`sin > 0`), `d(sx)/d(theta) < 0` (`theta` decreases left-to-right)!
-            const dTheta = Math.min(ox / 2400 + 0.004, 0.025);
-            sphere3D[a.idx]!.theta += dTheta;
-            sphere3D[b.idx]!.theta -= dTheta;
-          }
+    for (let sStep = 0; sStep < 36; sStep++) {
+      const spin = (sStep / 36) * Math.PI * 2;
+      const vis: { idx: number; rIdx: number; sx: number; sy: number; hw: number; hh: number }[] = [];
+      for (let idx = 0; idx < n; idx++) {
+        const sp = sphere3D[idx]!;
+        const lon = sp.theta + spin;
+        const sinL = Math.sin(lon);
+        const cosL = Math.cos(lon);
+        const frontVis = smoothstep(-0.10, 0.38, sinL);
+        const limbFade = 1 - smoothstep(0.70, 0.96, Math.abs(cosL));
+        if (lerp(0.10, 1.0, frontVis) * limbFade < 0.30) continue;
+        const wz = sinL * 280;
+        const pFactor = Z_CAM / (Z_CAM - wz);
+        const sx = STAGE_W * 0.5 + cosL * 2980 * pFactor;
+        const sy = sp.ringY + 3.0 * Math.sin(lon * 2.0);
+        const b = fragmentBox(fragments[idx]!, sp.scale * clamp(pFactor, 0.85, 1.16));
+        vis.push({ idx, rIdx: sp.ringIdx, sx, sy, hw: b.w * 0.5 + 8, hh: b.h * 0.5 + 5 });
+      }
+      for (let a = 0; a < vis.length; a++) {
+        const va = vis[a]!;
+        for (let b = a + 1; b < vis.length; b++) {
+          const vb = vis[b]!;
+          if (Math.abs(va.rIdx - vb.rIdx) > 1) continue;
+          const ox = va.hw + vb.hw - Math.abs(vb.sx - va.sx);
+          if (ox <= 0) continue;
+          const oy = va.hh + vb.hh - Math.abs(vb.sy - va.sy);
+          if (oy <= 0) continue;
+          moved = true;
+          const signX = vb.sx >= va.sx ? 1 : -1;
+          const dTheta = Math.min(ox / 2600 + 0.004, 0.022);
+          sphere3D[va.idx]!.theta += signX * dTheta;
+          sphere3D[vb.idx]!.theta -= signX * dTheta;
         }
       }
     }

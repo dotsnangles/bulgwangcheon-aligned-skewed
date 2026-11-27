@@ -349,7 +349,7 @@ for idx in range(25, 39):
 
     src = Image.open(in_path).convert("L")
     w0, h0 = src.size
-    target_w = 960
+    target_w = 1920 if idx == 38 else 960
     target_h = int(round(h0 * (target_w / float(w0))))
     resized = src.resize((target_w, target_h), Image.Resampling.LANCZOS)
     gray = np.asarray(resized, dtype=np.uint8)
@@ -366,7 +366,7 @@ for idx in range(25, 39):
         ink_32 = (255.0 - gray.astype(np.float32)) * vmask
         gray = np.clip(np.round(255.0 - ink_32), 0, 255).astype(np.uint8)
 
-    baked_ext = litho_grade(gray, seed=20261400 + idx, feather_px=22)
+    baked_ext = litho_grade(gray, seed=20261400 + idx, feather_px=(36 if idx == 38 else 22))
     w_out, h_out = save_verified_webp(baked_ext, out_path, quality=92)
     sz = os.path.getsize(out_path)
     total_bytes += sz

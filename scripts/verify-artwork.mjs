@@ -286,9 +286,9 @@ async function main() {
         minOp: 0.25,
         barcodePad: 0,
       },
-      { name: 'spectrum2D', t: 65.0, selector: '.frag', minOp: 0.20, barcodePad: 16 },
-      { name: 'spectrum2D', t: 70.0, selector: '.frag', minOp: 0.20, barcodePad: 16 },
-      { name: 'spectrum2D', t: 75.0, selector: '.frag', minOp: 0.20, barcodePad: 16 },
+      { name: 'spectrum2D', t: 65.0, selector: '.frag', minOp: 0.05, barcodePad: 20 },
+      { name: 'spectrum2D', t: 70.0, selector: '.frag', minOp: 0.05, barcodePad: 20 },
+      { name: 'spectrum2D', t: 75.0, selector: '.frag', minOp: 0.05, barcodePad: 20 },
       { name: 'reading2D', t: 80.5, selector: '.frag', minOp: 0.25, barcodePad: 0 },
       { name: 'reading2D', t: 82.5, selector: '.frag', minOp: 0.25, barcodePad: 0 },
       { name: 'reading2D', t: 84.5, selector: '.frag', minOp: 0.25, barcodePad: 0 },
@@ -299,6 +299,8 @@ async function main() {
       { name: 'orbit2D', t: 133.0, selector: '.frag, .orbit-center-sanctuary', minOp: 0.25, barcodePad: 0 },
       { name: 'orbit2D', t: 135.5, selector: '.frag, .orbit-center-sanctuary', minOp: 0.25, barcodePad: 0 },
       { name: 'orbit2D', t: 137.2, selector: '.frag, .orbit-center-sanctuary', minOp: 0.25, barcodePad: 0 },
+      { name: 'act4Bg', t: 155.0, selector: '.frag', minOp: 0.05, barcodePad: 0 },
+      { name: 'act4Bg', t: 160.5, selector: '.frag', minOp: 0.05, barcodePad: 0 },
     ];
 
     let g2TotalCollisions = 0;
@@ -415,30 +417,55 @@ async function main() {
       }
     }
 
-    // Check 3D Foreground Lattice Zero-Collision (`effOp >= 0.45`) across `helix3D` (3), `cloud3D` (3), and `sphere3D -> ActIV` (6)
+    // Check 5 Pure-White Silence Canyons (`meaning2D@108.5s`: 6 Star Clusters separated by 5 `304px` Canyons, `0` `.frag` intrusions!)
+    await page.evaluate(() => window.renderAt(108.5));
+    const canyonCheck = await page.evaluate(() => {
+      const canyonCores = [
+        [896, 1120],
+        [2012, 2236],
+        [3128, 3352],
+        [4244, 4468],
+        [5360, 5584],
+      ];
+      const hits = [];
+      for (const el of document.querySelectorAll('.frag')) {
+        const op = parseFloat(window.getComputedStyle(el).opacity || '0');
+        if (op < 0.05) continue;
+        const r = el.getBoundingClientRect();
+        for (let cIdx = 0; cIdx < canyonCores.length; cIdx++) {
+          const [cL, cR] = canyonCores[cIdx];
+          if (r.right > cL && r.left < cR) {
+            hits.push(`canyon#${cIdx + 1}:"${(el.textContent || '').trim().slice(0, 16)}"[${r.left.toFixed(0)}..${r.right.toFixed(0)}]`);
+          }
+        }
+      }
+      return { count: hits.length, samples: hits.slice(0, 5) };
+    });
+
+    // Check 3D Foreground Lattice Zero-Collision (`helix3D`/`sphere3D` `effOp >= 0.45`, `cloud3D` `effOp >= 0.25`!)
     const fg3DSpecs = [
-      { name: 'helix3D', t: 90.5 },
-      { name: 'helix3D', t: 94.5 },
-      { name: 'helix3D', t: 98.5 },
-      { name: 'cloud3D', t: 116.0 },
-      { name: 'cloud3D', t: 120.5 },
-      { name: 'cloud3D', t: 125.0 },
-      { name: 'sphere3D', t: 141.5 },
-      { name: 'sphere3D', t: 144.0 },
-      { name: 'sphere3D', t: 146.5 },
-      { name: 'sphere3D', t: 148.5 },
-      { name: 'sphereToAct4', t: 149.5 },
-      { name: 'act4Resonant', t: 151.8 },
+      { name: 'helix3D', t: 90.5, minOp: 0.45 },
+      { name: 'helix3D', t: 94.5, minOp: 0.45 },
+      { name: 'helix3D', t: 98.5, minOp: 0.45 },
+      { name: 'cloud3D', t: 116.0, minOp: 0.25 },
+      { name: 'cloud3D', t: 120.5, minOp: 0.25 },
+      { name: 'cloud3D', t: 125.0, minOp: 0.25 },
+      { name: 'sphere3D', t: 141.5, minOp: 0.45 },
+      { name: 'sphere3D', t: 144.0, minOp: 0.45 },
+      { name: 'sphere3D', t: 146.5, minOp: 0.45 },
+      { name: 'sphere3D', t: 148.5, minOp: 0.45 },
+      { name: 'sphereToAct4', t: 149.5, minOp: 0.45 },
+      { name: 'act4Resonant', t: 151.8, minOp: 0.45 },
     ];
     let total3DFgCollisions = 0;
     const fg3DNotes = [];
     for (const fsp of fg3DSpecs) {
       await page.evaluate((sec) => window.renderAt(sec), fsp.t);
-      const cRes = await page.evaluate(() => {
+      const cRes = await page.evaluate((minOp) => {
         const boxes = [];
         for (const el of document.querySelectorAll('.frag')) {
           const op = parseFloat(window.getComputedStyle(el).opacity || '0');
-          if (op < 0.45) continue;
+          if (op < minOp) continue;
           const r = el.getBoundingClientRect();
           if (r.width <= 0.5 || r.height <= 0.5 || r.right < 0 || r.left > 6480) continue;
           boxes.push({
@@ -462,14 +489,14 @@ async function main() {
           }
         }
         return { count: cols.length, samples: cols.slice(0, 5) };
-      });
+      }, fsp.minOp);
       total3DFgCollisions += cRes.count;
       if (cRes.count > 0) {
         fg3DNotes.push(`${fsp.name}@${fsp.t}s:${cRes.count}[${cRes.samples.join(',')}]`);
       }
     }
 
-    // Check Active `COS` Badge Sanctuary Zero-Collision (`65.8, 68.5, 71.2, 74.0s`)
+    // Check Active `COS` Badge Sanctuary Zero-Collision (`65.8, 68.5, 71.2, 74.0s`, vs ALL `.frag` with `minOp = 0.05`!)
     const cosWaveTimes = [65.8, 68.5, 71.2, 74.0];
     let totalCosBadgeCollisions = 0;
     const cosBadgeNotes = [];
@@ -488,7 +515,7 @@ async function main() {
         const hits = [];
         for (const el of document.querySelectorAll('.frag')) {
           const op = parseFloat(window.getComputedStyle(el).opacity || '0');
-          if (op < 0.20) continue;
+          if (op < 0.05) continue;
           const r = el.getBoundingClientRect();
           for (const cb of cosBoxes) {
             const ox = Math.min(r.right, cb.right) - Math.max(r.left, cb.left);
@@ -510,16 +537,21 @@ async function main() {
     }
 
     const g2PressOk = !press88Check.clipUsed && press88Check.formulaOp >= 0.85 && press88Check.minFormulaGap >= 12.0;
-    const g2SphereOk = totalSanctIntrusions === 0 && total3DFgCollisions === 0 && totalCosBadgeCollisions === 0;
+    const g2SphereOk =
+      totalSanctIntrusions === 0 &&
+      total3DFgCollisions === 0 &&
+      totalCosBadgeCollisions === 0 &&
+      canyonCheck.count === 0;
     if (!g2PressOk) console.error('  [G2 press@8.8s 결함]:', press88Check);
+    if (canyonCheck.count > 0) console.error('  [G2 5대 순백 협곡 침범]:', canyonCheck.samples);
     if (totalSanctIntrusions > 0) console.error('  [G2 중앙 성소 침범]:', sanctIntrusionSamples);
     if (total3DFgCollisions > 0) console.error('  [G2 3D 전면 충돌]:', fg3DNotes);
     if (totalCosBadgeCollisions > 0) console.error('  [G2 COS 배지 충돌]:', cosBadgeNotes);
 
     gates.push({
-      id: 'G2 (2D/3D무충돌·성소·COS)',
+      id: 'G2 (2D/3D무충돌·6성단5협곡·COS)',
       passed: g2TotalCollisions === 0 && g2PressOk && g2SphereOk,
-      detail: `${g2Details.join(' · ')} · 3D전면충돌=${total3DFgCollisions} · 9시점성소침범=${totalSanctIntrusions} · COS배지충돌=${totalCosBadgeCollisions} · press@8.8s=${press88Check.minFormulaGap.toFixed(1)}px`,
+      detail: `${g2Details.join(' · ')} · 5협곡침범=${canyonCheck.count} · 3D전면충돌=${total3DFgCollisions} · 9시점성소침범=${totalSanctIntrusions} · COS배지충돌=${totalCosBadgeCollisions} · press@8.8s=${press88Check.minFormulaGap.toFixed(1)}px`,
     });
 
     // -------------------------------------------------------------------------

@@ -202,9 +202,9 @@ function taperCanvasEllipse(
   ctx.scale(rx, ry);
   const grad = ctx.createRadialGradient(0, 0, 0.08, 0, 0, 1.0);
   const s = clamp(strength, 0, 1);
-  grad.addColorStop(0.0, `rgba(0, 0, 0, ${(0.96 * s).toFixed(3)})`);
-  grad.addColorStop(0.48, `rgba(0, 0, 0, ${(0.72 * s).toFixed(3)})`);
-  grad.addColorStop(0.78, `rgba(0, 0, 0, ${(0.28 * s).toFixed(3)})`);
+  grad.addColorStop(0.0, `rgba(0, 0, 0, ${(1.0 * s).toFixed(3)})`);
+  grad.addColorStop(0.58, `rgba(0, 0, 0, ${(0.92 * s).toFixed(3)})`);
+  grad.addColorStop(0.82, `rgba(0, 0, 0, ${(0.36 * s).toFixed(3)})`);
   grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
   ctx.fillStyle = grad;
   ctx.beginPath();
@@ -707,16 +707,16 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     21.44,
     22.16,
   ];
-  // Causal `crossAt` for Gen 2 (`8` slots): Gen 1 echo (`0.30`) glides initially, then crossfades in-place into Gen 2 (`1.0`) as generated!
-  const gen2CrossTimes = [
-    171.65,
-    171.83,
-    172.01,
-    172.19,
-    171.95,
-    172.37,
-    172.79,
-    173.21,
+  // Causal `appearAt` for Gen 2 (`8` slots): pure `gen2Pool` sequential ignition (`0%` Gen 1 recipe echo!)
+  const gen2AppearTimes = [
+    171.55,
+    171.70,
+    171.85,
+    172.00,
+    172.08,
+    172.50,
+    172.92,
+    173.34,
   ];
 
   let fontsLoadedFlag = false;
@@ -751,11 +751,10 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
     const slotDoms: {
       readonly li: HTMLElement;
-      readonly echoLayer: HTMLElement | null;
-      readonly liveLayer: HTMLElement;
       readonly slotIdx: number;
     }[] = [];
 
+    const pool = mode === 'gen1' ? gen1Pool : gen2Pool;
     for (let copyIdx = 0; copyIdx < 3; copyIdx++) {
       const headLi = makeEl('li', 'history-head', listEl, 'history');
       headLi.dataset.copy = String(copyIdx);
@@ -764,14 +763,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
       for (let slotIdx = 0; slotIdx < 8; slotIdx++) {
         const li = makeEl('li', 'history-page', listEl);
-        if (mode === 'gen1') {
-          const liveLayer = renderCardSlotLayer(li, gen1Pool[slotIdx]!);
-          slotDoms.push({ li, echoLayer: null, liveLayer, slotIdx });
-        } else {
-          const echoLayer = renderCardSlotLayer(li, gen1Pool[slotIdx]!);
-          const liveLayer = renderCardSlotLayer(li, gen2Pool[slotIdx]!);
-          slotDoms.push({ li, echoLayer, liveLayer, slotIdx });
-        }
+        renderCardSlotLayer(li, pool[slotIdx]!);
+        slotDoms.push({ li, slotIdx });
       }
     }
 
@@ -816,22 +809,11 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       const offsetY = -(cyclePx + scrollPx);
       listEl.style.transform = `rotateX(34deg) rotateY(-26deg) rotateZ(-8deg) scale(1.14) translate3d(0, ${offsetY.toFixed(3)}px, 0)`;
 
-      if (mode === 'gen1') {
-        for (const sd of slotDoms) {
-          const appearAt = gen1AppearTimes[sd.slotIdx]!;
-          const op = span(tSec, appearAt, appearAt + 0.55, easeOutCubic);
-          sd.li.style.opacity = op.toFixed(3);
-        }
-      } else {
-        for (const sd of slotDoms) {
-          const crossAt = gen2CrossTimes[sd.slotIdx]!;
-          const crossU = smootherstep(crossAt, crossAt + 0.65, tSec);
-          sd.li.style.opacity = '1';
-          if (sd.echoLayer) {
-            sd.echoLayer.style.opacity = (0.30 * (1 - crossU)).toFixed(3);
-          }
-          sd.liveLayer.style.opacity = crossU.toFixed(3);
-        }
+      const times = mode === 'gen1' ? gen1AppearTimes : gen2AppearTimes;
+      for (const sd of slotDoms) {
+        const appearAt = times[sd.slotIdx]!;
+        const op = smootherstep(appearAt, appearAt + 0.55, tSec);
+        sd.li.style.opacity = op.toFixed(3);
       }
     };
 
@@ -969,57 +951,66 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     return [a, b];
   };
 
-  // Rigid 3D Star-Cluster Centers (`Cloud 3D`, `112.5..128.0s`) & Static C∞ Sanctuary Arch Constants
-  const cloudBayCentersX = [459, 1576, 2698, 3822, 5481] as const;
+  // 6 Independent Equidistant Star-Cluster Centers (`Cloud 3D`, `112.5..128.0s`) & Static C∞ Sanctuary Arch Constants
+  const cloudBayCentersX = [450, 1566, 2682, 3798, 4914, 6030] as const;
 
   const evalCloudClusterNode = (i: number, tEval: number) => {
     const f = fragments[i]!;
-    const bayIdx = f.cluster < 4 ? f.cluster : 4;
-    const phi = bayIdx * 1.25 + (tEval - 112.5) * 0.44;
+    const bayIdx = f.cluster; // 6 independent star clusters (`0..5`), separated by 5 `304px` pure-white canyons!
+    const phi = (bayIdx % 2) * Math.PI + bayIdx * 0.35 + (tEval - 112.5) * 0.50;
     const sinP = Math.sin(phi);
     const cosP = Math.cos(phi);
-    const ampX = bayIdx === 0 || bayIdx === 4 ? 236 : 386;
-    const clusterDx = sinP * ampX;
-    const clusterDy = Math.sin(phi * 2.0 + bayIdx) * 10.0;
-    const clusterZ = cosP * 215;
+    const rawDx = sinP * 110;
+    const clusterDx = bayIdx === 0 ? softMax(rawDx, -36, 8) : bayIdx === 5 ? softMin(rawDx, 36, 8) : rawDx;
+    const clusterDy = Math.sin(phi * 1.4 + bayIdx * 0.7) * 20.0;
+    const clusterZ = cosP * 210;
     const depth01 = (cosP + 1) * 0.5;
-    const cScale = lerp(0.78, 1.12, depth01);
+    const cScalePosX = lerp(0.84, 1.06, depth01);
+    const cScalePosY = lerp(0.86, 1.02, depth01);
+    const cScaleVis = lerp(0.80, 1.20, depth01);
 
     const pM = layouts.meaning2D[i]!;
     const baseCx = cloudBayCentersX[bayIdx]!;
-    const sx = baseCx + (pM.x - baseCx) * cScale + clusterDx;
-    const cs = pM.scale * cScale;
+    const sx = baseCx + (pM.x - baseCx) * cScalePosX + clusterDx;
+    const cs = pM.scale * cScaleVis;
     const hhC = fastBoxH(i, cs) * 0.5;
-    const sy = softMin(softMax(216 + (pM.y - 216) * cScale + clusterDy, 27 + hhC, 5), 405 - hhC, 5);
+    const sy = softMin(softMax(216 + (pM.y - 216) * cScalePosY + clusterDy, 27 + hhC, 5), 405 - hhC, 5);
 
-    const frontVis = smoothstep(-0.08, 0.48, cosP);
-    const edgeFade = smoothstep(-100, 140, sx) * smoothstep(-100, 140, STAGE_W - sx);
-    const co = lerp(0.15, 1.0, frontVis) * edgeFade;
-    const cGray = lerp(175, 0, frontVis);
+    const frontVis = smoothstep(-0.90, 0.80, cosP);
+    const edgeFade = smoothstep(-80, 90, sx) * smoothstep(-80, 90, STAGE_W - sx);
+    const co = lerp(0.40, 1.0, frontVis) * edgeFade;
+    const cGray = lerp(84, 0, frontVis);
     return { sx, sy, wz: clusterZ, cs, co, cGray, frontVis };
   };
 
   const orbArchBow = new Float64Array(fragments.length);
   const sphEnterArchBow = new Float64Array(fragments.length);
   for (let i = 0; i < fragments.length; i++) {
-    const cEnd = evalCloudClusterNode(i, 128.0);
+    const cEnd = evalCloudClusterNode(i, 128.7);
     const xCloudEnd = cEnd.sx;
     const yCloudEnd = cEnd.sy;
 
     const pO = layouts.orbit2D[i]!;
-    const hwO = fastBoxW(i, pO.scale) * 0.5;
-    const hhO = fastBoxH(i, pO.scale) * 0.5;
+    const maxTransScale = Math.max(cEnd.cs, pO.scale);
+    const hwO = fastBoxW(i, maxTransScale) * 0.5;
+    const hhO = fastBoxH(i, maxTransScale) * 0.5;
     const curveI = (hash(i * 23 + 9) - 0.5) * 64;
 
-    if (Math.min(xCloudEnd, pO.x) < 3540 + hwO && Math.max(xCloudEnd, pO.x) > 2940 - hwO && Math.abs(pO.x - xCloudEnd) > 25) {
-      const uCross = clamp((3240 - xCloudEnd) / (pO.x - xCloudEnd), 0.18, 0.82);
-      const [, yAtCross] = stepArc(xCloudEnd, yCloudEnd, pO.x, pO.y, uCross, curveI * 0.42);
-      const sinCross = Math.max(0.50, Math.sin(Math.PI * uCross));
-      const goNorth = (yCloudEnd + pO.y) * 0.5 < 216;
-      orbArchBow[i] = goNorth
-        ? clamp(Math.min(0, (160 - hhO - yAtCross) / sinCross), -150, 0)
-        : clamp(Math.max(0, (272 + hhO - yAtCross) / sinCross), 0, 150);
+    const goNorth = pO.y < 216;
+    let reqBow = 0;
+    for (let sStep = 1; sStep <= 16; sStep++) {
+      const uSample = 0.12 + (sStep / 17) * 0.78;
+      const [sxU, syU] = stepArc(xCloudEnd, yCloudEnd, pO.x, pO.y, uSample, curveI * 0.42);
+      if (sxU > 2920 - hwO && sxU < 3560 + hwO) {
+        const sinU = Math.max(0.32, Math.sin(Math.PI * uSample));
+        if (goNorth) {
+          reqBow = Math.min(reqBow, (150 - hhO - syU) / sinU);
+        } else {
+          reqBow = Math.max(reqBow, (282 + hhO - syU) / sinU);
+        }
+      }
     }
+    orbArchBow[i] = clamp(reqBow, -195, 195);
 
     const sp = layouts.sphere3D[i]!;
     const hhS = fastBoxH(i, Math.max(pO.scale, sp.scale * 1.15)) * 0.5;
@@ -1454,21 +1445,21 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       datumRule.style.opacity = intactRatio.toFixed(3);
       datumRule.style.transform = `scaleX(${intactRatio.toFixed(3)})`;
 
-      // Crisp `15px` Bold Mono `COS 1.00` vernier tag (`y = 154`)
+      // Crisp `20px` Bold Mono `COS 1.00` vernier tag (`y = 148`, outdoor P4.6 high legibility!)
       const cosMarkAlpha = enterW * clamp(intactRatio * 1.25, 0, 1);
       if (cosMarkAlpha > 0.02) {
         ctx.save();
         ctx.globalAlpha = cosMarkAlpha;
-        ctx.font = '700 15px "JetBrains Mono", monospace';
+        ctx.font = '700 20px "JetBrains Mono", monospace';
         ctx.fillStyle = '#0000ff';
-        ctx.fillText('COS 1.00', 112, 154);
+        ctx.fillText('COS 1.00', 112, 148);
         ctx.strokeStyle = '#0000ff';
-        ctx.lineWidth = 1.3;
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
-        ctx.moveTo(202, 149);
-        ctx.lineTo(268, 149);
-        ctx.moveTo(268, 144);
-        ctx.lineTo(268, 154);
+        ctx.moveTo(222, 142);
+        ctx.lineTo(294, 142);
+        ctx.moveTo(294, 136);
+        ctx.lineTo(294, 148);
         ctx.stroke();
         ctx.restore();
       }
@@ -1782,13 +1773,12 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         let zOrder = Math.round(200 + c.z);
 
         if (isStationCard) {
-          // `2.32s` (`0.58 * 4.0s`) Stationary Reading FIRST, then `1.68s` (`0.42 * 4.0s`) Rightward `+390px` Arc Deal!
+          // Phase-locked `4.0s` physical paper card shuffle (`c.at === stAt` unified across all 3 cards + `2.30s` initial dwell!)
           const evalT = c.gen === 1 ? freezeSwapTimeGen1 : t;
-          const deckStart = c.at + 0.60;
+          const deckStart = c.at + 2.30;
           const cycleFloat = Math.max(0, (evalT - deckStart) / 4.0);
           const cycleIdx = Math.floor(cycleFloat);
-          const subPhase = cycleFloat - cycleIdx;
-          const dealRaw = clamp((subPhase - 0.58) / 0.42, 0, 1);
+          const dealRaw = clamp((cycleFloat - cycleIdx) / 0.42, 0, 1);
           const dealU = dealRaw * dealRaw * (3 - 2 * dealRaw);
 
           const rankOf = (b: number): number => (((2 - c.cardSlot! - b) % 3) + 3) % 3;
@@ -2015,7 +2005,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     const histVis = inAct1Arch
       ? span(t, 18.45, 19.05, easeOutCubic) * (1 - easeInOutCubic(progress(t, 42.50, 43.75)))
       : inAct4Arch
-        ? span(t, 171.1, 171.7, easeOutCubic) * (1 - smoothstep(blizzardFrontX - 420, blizzardFrontX + 100, 6220))
+        ? smootherstep(171.55, 172.25, t) * (1 - smoothstep(blizzardFrontX - 420, blizzardFrontX + 100, 6220))
         : 0;
     historyWrap.style.opacity = clamp(histVis, 0, 1).toFixed(3);
     if (histVis > 0.005) {
@@ -2169,7 +2159,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
       // B. Configure Three.js Parallel-Dolly PerspectiveCamera
       const helixSpin = Math.max(0, t - 87.0) * 0.46;
-      const sphereSpin = Math.max(0, t - 138.0) * 0.28;
+      // Smoothly settle sphere rotation around `t = 150.0s` so the 6-latitude dome glides uniformly into Act IV (`0` overtaking!)
+      const sphereSpin = softMin(Math.max(0, t - 138.0), 12.0, 1.2) * 0.28;
 
       if (t >= 86.5 && t < 105.0) {
         const hCamX = Math.sin(helixSpin * 0.32) * 56;
@@ -2200,7 +2191,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       const dxSpec = Math.sin((t - 65.0) * 0.75) * 26.0 * scanDim;
       const dySpec = Math.sin((t - 65.0) * 1.05) * 4.0 * scanDim;
 
-      const orbitMarkOp = span(t, 128.2, 129.4, easeInOutCubic) * (1 - span(t, 148.2, 149.1, easeInOutCubic));
+      const orbitMarkOp = span(t, 128.45, 129.45, easeInOutCubic) * (1 - span(t, 148.2, 149.1, easeInOutCubic));
 
       // Continuous `Sphere3D -> Act IV` Handoff (`0` 2D Orbit Snap-Back!):
       //   1) Background `sphere3D` nodes dim cleanly (`148.4..149.45s`) to `0.16` while staying on the wide 6-latitude dome
@@ -2259,8 +2250,14 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           const strikeT = 52.05 + colIdx * 0.28;
           if (t >= strikeT) {
             const shearU = smoothstep(strikeT, strikeT + 0.48, t) * (1 - smoothstep(61.6, 62.7, t));
-            x += (rowIdx % 2 === 0 ? -5.5 : 5.5) * shearU;
-            y += (colIdx % 2 === 0 ? -6.5 : 6.5) * shearU;
+            x += (rowIdx % 2 === 0 ? -4.2 : 4.2) * shearU;
+            y += (colIdx % 2 === 0 ? -2.8 : 2.8) * shearU;
+          }
+          // Subtle cell buoyancy in `58.2 ~ 62.8s` anticipating vector dissolution into `spectrum2D`
+          const preDissolve = smootherstep(58.2, 59.6, t) * (1 - smootherstep(62.1, 62.85, t));
+          if (preDissolve > 0.001) {
+            x += Math.sin(t * 2.2 + colIdx * 0.85 + rowIdx * 0.4) * 2.4 * preDissolve;
+            y += Math.cos(t * 1.9 + rowIdx * 1.05) * 1.8 * preDissolve;
           }
         }
 
@@ -2321,15 +2318,15 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           zIdx = Math.round(10 + frontVis * 65);
         }
 
-        // 5) Morph -> `meaning2D` (`102.0..112.5s`): Rigid Per-Cluster Buoyancy (`0` at `t=108.5s`!)
+        // 5) Morph -> `meaning2D` (`102.0..112.5s`): 6 Independent Star Clusters + 5 `304px` Pure-White Canyons (`0` at `t=108.5s`!)
         const uCloud = smootherstep(112.5 + stagger * 0.65, 114.85 + stagger * 0.65, t);
         if (uMean > 0 && uCloud < 1) {
           const pM = layouts.meaning2D[i]!;
           const breatheEnv = smootherstep(103.3, 104.6, t) * (1 - uCloud);
-          const bayIdx = f.cluster < 4 ? f.cluster : 4;
+          const bayIdx = f.cluster; // 6 independent star clusters (`0..5`)
           const dtMean = t - 108.5;
-          const dxCluster = (bayIdx % 2 === 0 ? 1 : -1) * Math.sin(dtMean * (0.95 + bayIdx * 0.12)) * 20.0 * breatheEnv;
-          const dyCluster = (bayIdx === 0 || bayIdx === 1 || bayIdx === 3 ? 1 : -1) * Math.sin(dtMean * (1.20 + bayIdx * 0.14)) * 13.0 * breatheEnv;
+          const dxCluster = (bayIdx % 2 === 0 ? 1 : -1) * Math.sin(dtMean * (0.92 + bayIdx * 0.10)) * 14.0 * breatheEnv;
+          const dyCluster = (bayIdx % 2 === 0 ? 1 : -1) * Math.cos(dtMean * (1.15 + bayIdx * 0.11)) * 11.0 * breatheEnv;
           const mx = pM.x + dxCluster;
           const my = pM.y + dyCluster;
 
@@ -2343,8 +2340,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           zIdx = f.isMacroHub ? 65 : 22;
         }
 
-        // 6) Morph -> `cloud3D` (`112.5..128.0s`): Giant 3D Elliptical Star-Cluster Galactic Orbit (`ΔX = ±386px, Z = ±215`, `0` Collisions, `0` Chatter!)
-        const uOrb = smootherstep(128.0 + stagger * 0.70, 130.45 + stagger * 0.70, t);
+        // 6) Morph -> `cloud3D` (`112.5..128.0s`): Giant 3D Elliptical Star-Cluster Galactic Orbit (`ΔX = ±110px, Z = ±210`, `0` Collisions, `0` Chatter!)
+        const uOrb = smootherstep(127.70 + stagger * 0.55, 129.40 + stagger * 0.55, t);
         if (uCloud > 0 && uOrb < 1) {
           const cl = evalCloudClusterNode(i, t);
           x = lerp(x, cl.sx, uCloud);
@@ -2434,7 +2431,9 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
             gray = lerp(gray, 0, smootherstep(148.8, 150.4, t));
             zIdx = Math.round(lerp(zIdx, 88, resGlideU));
           } else {
-            x -= bgDriftAfter150 * (9.5 + (i % 4) * 2.4);
+            // Uniform rigid westward paleo-wind drift (`0` differential overtaking -> `0` background collisions in Act IV!)
+            const preDimOp = o;
+            x -= bgDriftAfter150 * 12.0;
             const hhBg = fastBoxH(i, s) * 0.5;
             y = softMin(softMax(y, 28 + hhBg, 5), 404 - hhBg, 5);
 
@@ -2450,7 +2449,6 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
               (1 - smoothstep(254, 288, y));
             const clearMask = clamp(rightMask + leftPreMask, 0, 1);
 
-            // Soft `±205px × ±102px` exclusion halo around ALL 5 resonant nodes (`PL.13` 100% clear of `PL.02` & text!)
             let resonantHalo = 1.0;
             for (let k = 0; k < liveResonantXY.length; k++) {
               const [rxK, ryK] = liveResonantXY[k]!;
@@ -2458,9 +2456,11 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
               resonantHalo *= smoothstep(0.66, 1.16, dNorm);
             }
 
-            const targetBgOp = (0.14 + f.level * 0.04) * (1 - clearMask) * resonantHalo;
+            // Preserve `sphere3D` front-hemisphere lattice separation (`preDimOp >= 0.34`) so back/limb nodes never double-stack!
+            const frontOnlyMask = smoothstep(0.32, 0.56, preDimOp);
+            const targetBgOp = (0.15 + f.level * 0.05) * frontOnlyMask * (1 - clearMask) * resonantHalo;
             o = lerp(o, targetBgOp, bgSphereDim);
-            gray = lerp(gray, 96, bgSphereDim);
+            gray = lerp(gray, 92, bgSphereDim);
           }
         }
 
@@ -2647,7 +2647,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           const dimOp = smoothstep(wv.t0 + 0.14, wv.t0 + 0.50, t) * waveOut;
           const cursorX = lerp(wv.scanX0, wv.scanX1, easeInOutCubic(uWave));
 
-          ctx.globalAlpha = 0.58 * waveEnv;
+          // `Math.sin(Math.PI * uWave)` envelope eliminates cursor jump illusion at `70.0s` wave handoffs!
+          ctx.globalAlpha = 0.62 * waveEnv * Math.sin(Math.PI * uWave);
           ctx.strokeStyle = '#ff0000';
           ctx.lineWidth = 1.1;
           ctx.beginPath();
@@ -2670,8 +2671,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
             const hhA = fastBoxH(ia, pa.s) * 0.5;
             const hhB = fastBoxH(ib, pb.s) * 0.5;
 
-            const ay = clamp(pa.y < labelY ? pa.y + hhA + 15 : pa.y - hhA - 6, 30, 402);
-            const by = clamp(pb.y < labelY ? pb.y + hhB + 15 : pb.y - hhB - 6, 30, 402);
+            const ay = clamp(pa.y < labelY ? pa.y + hhA + 20 : pa.y - hhA - 6, 30, 402);
+            const by = clamp(pb.y < labelY ? pb.y + hhB + 20 : pb.y - hhB - 6, 30, 402);
             const curEndX = lerp(pa.x, pb.x, arcDrawU);
             const curEndY = lerp(ay, by, arcDrawU);
 
@@ -2886,8 +2887,10 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           const isPrimary = eIdx < 64 || ca !== cb;
 
           const wavePulse = 0.86 + 0.14 * Math.sin(t * 3.8 - pa.x * 0.0018);
-          const strokeW = isPrimary ? 1.55 + edge.strength * 0.50 : 0.75;
-          const alpha = (isPrimary ? 0.34 + 0.18 * edge.strength : 0.14 + 0.10 * edge.strength) * arteryMaster * wavePulse;
+          const strokeW = isPrimary ? 1.45 + edge.strength * 0.45 : 0.72;
+          const nodeOpSync = Math.pow(Math.min(pa.o, pb.o), 1.25);
+          const baseArteryA = isPrimary ? 0.22 + 0.14 * edge.strength : 0.09 + 0.07 * edge.strength;
+          const alpha = baseArteryA * nodeOpSync * arteryMaster * wavePulse;
 
           let c1x: number;
           let c1y: number;
@@ -3173,9 +3176,9 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         shardEls[2]!.style.color = `rgb(${sideGray}, ${sideGray}, ${sideGray})`;
         shardEls[2]!.style.transform = `translate3d(${rightX.toFixed(2)}px, ${rightY.toFixed(2)}px, 0) translate(-50%, -50%) perspective(460px) rotateY(${rightRotY.toFixed(2)}deg) rotateZ(${(3.0 * uSnap + uDrift * 2.5).toFixed(2)}deg) scale(${rightScale.toFixed(4)})`;
 
-        taperCanvasEllipse(ctx, leftX, leftY, 175 * leftScale, 36 * leftScale, sideFade);
+        taperCanvasEllipse(ctx, leftX, leftY, 235 * leftScale, 52 * leftScale, sideFade);
         taperCanvasEllipse(ctx, centerX, 216, 365 * centerScale, 66 * centerScale, 1.0);
-        taperCanvasEllipse(ctx, rightX, rightY, 105 * rightScale, 34 * rightScale, sideFade);
+        taperCanvasEllipse(ctx, rightX, rightY, 120 * rightScale, 38 * rightScale, sideFade);
 
         const cw = 378 * centerScale;
         const ch = 70 * centerScale;

@@ -1,0 +1,26 @@
+{
+  "name": "bulgwangcheon-aligned-skewed",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4320",
+    "check": "tsc --noEmit",
+    "setup:render": "playwright install chromium",
+    "render:clip": "node scripts/render-mp4.mjs --start=12 --duration=8 --out=renders/clip-preview.mp4",
+    "render:master": "node scripts/render-mp4.mjs",
+    "render:stills": "node scripts/render-stills.mjs",
+    "render:verify": "node scripts/verify-mp4.mjs"
+  },
+  "dependencies": {
+    "three": "^0.174.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.174.0",
+    "playwright": "^1.65.1",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0"
+  }
+}

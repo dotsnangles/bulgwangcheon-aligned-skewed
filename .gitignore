@@ -1,0 +1,15 @@
+# Dependencies & build output
+node_modules/
+dist/
+
+# Rendered videos, stills & temporary captures (never commit large media binaries)
+renders/
+captures/
+*.mp4
+*.mov
+*.log
+ffmpeg2pass*
+
+# OS & editor artifacts
+.DS_Store
+Thumbs.db

@@ -286,34 +286,19 @@ async function main() {
         minOp: 0.25,
         barcodePad: 0,
       },
-      {
-        name: 'spectrum2D',
-        t: 65.0,
-        selector: '.frag',
-        minOp: 0.25,
-        barcodePad: 16,
-      },
-      {
-        name: 'reading2D',
-        t: 82.5,
-        selector: '.frag',
-        minOp: 0.25,
-        barcodePad: 0,
-      },
-      {
-        name: 'meaning2D',
-        t: 108.5,
-        selector: '.frag',
-        minOp: 0.25,
-        barcodePad: 0,
-      },
-      {
-        name: 'orbit2D',
-        t: 133.0,
-        selector: '.frag, .orbit-center-sanctuary',
-        minOp: 0.25,
-        barcodePad: 0,
-      },
+      { name: 'spectrum2D', t: 65.0, selector: '.frag', minOp: 0.20, barcodePad: 16 },
+      { name: 'spectrum2D', t: 70.0, selector: '.frag', minOp: 0.20, barcodePad: 16 },
+      { name: 'spectrum2D', t: 75.0, selector: '.frag', minOp: 0.20, barcodePad: 16 },
+      { name: 'reading2D', t: 80.5, selector: '.frag', minOp: 0.25, barcodePad: 0 },
+      { name: 'reading2D', t: 82.5, selector: '.frag', minOp: 0.25, barcodePad: 0 },
+      { name: 'reading2D', t: 84.5, selector: '.frag', minOp: 0.25, barcodePad: 0 },
+      { name: 'reading2D', t: 86.0, selector: '.frag', minOp: 0.25, barcodePad: 0 },
+      { name: 'meaning2D', t: 106.5, selector: '.frag', minOp: 0.25, barcodePad: 0 },
+      { name: 'meaning2D', t: 108.5, selector: '.frag', minOp: 0.25, barcodePad: 0 },
+      { name: 'orbit2D', t: 130.5, selector: '.frag, .orbit-center-sanctuary', minOp: 0.25, barcodePad: 0 },
+      { name: 'orbit2D', t: 133.0, selector: '.frag, .orbit-center-sanctuary', minOp: 0.25, barcodePad: 0 },
+      { name: 'orbit2D', t: 135.5, selector: '.frag, .orbit-center-sanctuary', minOp: 0.25, barcodePad: 0 },
+      { name: 'orbit2D', t: 137.2, selector: '.frag, .orbit-center-sanctuary', minOp: 0.25, barcodePad: 0 },
     ];
 
     let g2TotalCollisions = 0;
@@ -430,15 +415,20 @@ async function main() {
       }
     }
 
-    // Check 3D Foreground Lattice Zero-Collision (`effOp >= 0.45`) across `helix3D`, `cloud3D`, and `sphere3D`
+    // Check 3D Foreground Lattice Zero-Collision (`effOp >= 0.45`) across `helix3D` (3), `cloud3D` (3), and `sphere3D -> ActIV` (6)
     const fg3DSpecs = [
       { name: 'helix3D', t: 90.5 },
       { name: 'helix3D', t: 94.5 },
       { name: 'helix3D', t: 98.5 },
-      { name: 'cloud3D', t: 122.5 },
+      { name: 'cloud3D', t: 116.0 },
+      { name: 'cloud3D', t: 120.5 },
+      { name: 'cloud3D', t: 125.0 },
       { name: 'sphere3D', t: 141.5 },
       { name: 'sphere3D', t: 144.0 },
       { name: 'sphere3D', t: 146.5 },
+      { name: 'sphere3D', t: 148.5 },
+      { name: 'sphereToAct4', t: 149.5 },
+      { name: 'act4Resonant', t: 151.8 },
     ];
     let total3DFgCollisions = 0;
     const fg3DNotes = [];
@@ -762,9 +752,9 @@ async function main() {
     });
 
     // -------------------------------------------------------------------------
-    // G5: `200.0s` 13-Timestamp 3-Zone Active (`|corr| < 0.85`) + `t=199.60s` `100.00%` White + Loop `0 LSB`
+    // G5: `200.0s` 13-Timestamp 3-Zone Active (`|corr| < 0.85`) + Symmetric Pure-White (`0.00s, 0.35s, 199.20s` === `100.00%`) + Loop `0 LSB`
     // -------------------------------------------------------------------------
-    const g5Times = [0.55, 7.5, 15.6, 28.0, 45.8, 50.5, 68.5, 82.5, 94.5, 108.5, 121.0, 144.0, 182.0];
+    const g5Times = [1.65, 7.5, 15.6, 28.0, 45.8, 50.5, 68.5, 82.5, 94.5, 108.5, 121.0, 144.0, 182.0];
     let g5AllActive = true;
     let g5MaxCorr = 0;
     const g5FailNotes = [];
@@ -781,20 +771,29 @@ async function main() {
       }
     }
 
-    const whiteoutBuf = await getOrCapture(199.60);
-    const whiteoutPct = computeWhiteRatioPct(whiteoutBuf, 255);
     const loopStartBuf = await getOrCapture(0.0);
+    const start035Buf = await getOrCapture(0.35);
+    const end1992Buf = await getOrCapture(199.20);
     const loopEndBuf = await getOrCapture(199.967);
+    const white000Pct = computeWhiteRatioPct(loopStartBuf, 255);
+    const white035Pct = computeWhiteRatioPct(start035Buf, 255);
+    const white1992Pct = computeWhiteRatioPct(end1992Buf, 255);
     const loopMaxDiff = maxAbsDiffBuffers(loopStartBuf, loopEndBuf);
 
-    const g5Pass = g5AllActive && g5MaxCorr < 0.85 && whiteoutPct >= 99.99 && loopMaxDiff === 0;
+    const g5Pass =
+      g5AllActive &&
+      g5MaxCorr < 0.85 &&
+      white000Pct === 100 &&
+      white035Pct === 100 &&
+      white1992Pct === 100 &&
+      loopMaxDiff === 0;
     gates.push({
-      id: 'G5 (30m 전폭 & 0.70s 루프)',
+      id: 'G5 (30m 전폭 & 양단 순백 루프)',
       passed: g5Pass,
       detail:
         g5FailNotes.length > 0
           ? g5FailNotes.join(' | ')
-          : `13시점 3권역 활성 · |corr|=${g5MaxCorr.toFixed(3)} · t=199.6s 순백=${whiteoutPct.toFixed(2)}% · 루프(0s vs 199.967s)=${loopMaxDiff} LSB`,
+          : `13시점 3권역 활성 · |corr|=${g5MaxCorr.toFixed(3)} · 순백(0s=${white000Pct.toFixed(2)}%/0.35s=${white035Pct.toFixed(2)}%/199.2s=${white1992Pct.toFixed(2)}%) · 루프=${loopMaxDiff} LSB`,
     });
 
     // -------------------------------------------------------------------------

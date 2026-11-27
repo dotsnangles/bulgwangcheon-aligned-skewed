@@ -60,14 +60,14 @@ export const ALIGNED_MEMORY_LINES: readonly {
   readonly y: number;
   readonly appearAt: number;
 }[] = [
-  { text: '장독에서 갓 꺼낸 삼 년 묵은 김치 한 포기', x: 2340, y: 56, appearAt: 0.40 },
-  { text: '비 오는 저녁 뚝배기 바닥에 지진 돼지비계', x: 4320, y: 102, appearAt: 1.05 },
-  { text: '손등으로 가늠해 털어 넣은 굵은 소금', x: 3260, y: 148, appearAt: 1.70 },
-  { text: '우물물로 헹군 배추 줄기의 서늘한 단맛', x: 5860, y: 194, appearAt: 2.35 },
-  { text: '어머니가 국자로 떠 보던 마지막 간', x: 2520, y: 240, appearAt: 3.00 },
-  { text: '아궁이 잔불 위에서 밤새 깊어진 국물', x: 4860, y: 286, appearAt: 3.65 },
-  { text: '찬장 구석 사발로 퍼 담던 뿌연 쌀뜨물', x: 3680, y: 332, appearAt: 4.30 },
-  { text: '김장철 마당에 번지던 붉은 고춧물과 입김', x: 5920, y: 376, appearAt: 4.95 },
+  { text: '장독에서 갓 꺼낸 삼 년 묵은 김치 한 포기', x: 2340, y: 56, appearAt: 1.35 },
+  { text: '비 오는 저녁 뚝배기 바닥에 지진 돼지비계', x: 5160, y: 102, appearAt: 1.48 },
+  { text: '손등으로 가늠해 털어 넣은 굵은 소금', x: 3260, y: 148, appearAt: 2.15 },
+  { text: '우물물로 헹군 배추 줄기의 서늘한 단맛', x: 5860, y: 194, appearAt: 2.80 },
+  { text: '어머니가 국자로 떠 보던 마지막 간', x: 2520, y: 240, appearAt: 3.45 },
+  { text: '아궁이 잔불 위에서 밤새 깊어진 국물', x: 4860, y: 286, appearAt: 4.10 },
+  { text: '찬장 구석 사발로 퍼 담던 뿌연 쌀뜨물', x: 3680, y: 332, appearAt: 4.75 },
+  { text: '김장철 마당에 번지던 붉은 고춧물과 입김', x: 5920, y: 376, appearAt: 5.40 },
 ];
 
 export interface AlignedHeroSlide {

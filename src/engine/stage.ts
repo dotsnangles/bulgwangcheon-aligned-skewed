@@ -45,7 +45,6 @@ import {
 } from '../layouts/deconstruct-layout.ts';
 import {
   beatPulse,
-  catmullRom,
   clamp,
   clampRedGain,
   easeInCubic,
@@ -75,6 +74,7 @@ interface PlacedMonolith {
   readonly spec: CardSpec;
   readonly el: HTMLElement;
   readonly metricEl: HTMLElement;
+  readonly plateWrapEl: HTMLElement | null;
   readonly bodyEl: HTMLElement | null;
   readonly slideDoms?: readonly HeroSlideDom[];
   readonly regMark: SVGPathElement | null;
@@ -91,6 +91,14 @@ interface PlacedMonolith {
   readonly stationIdx?: number;
   readonly cardSlot?: 0 | 1 | 2;
   readonly alignedIdx?: number;
+}
+
+interface StationDeckGroupDom {
+  readonly gen: 1 | 2;
+  readonly stationIdx: number;
+  readonly spec: SkewedStationSpec;
+  readonly el: HTMLElement;
+  readonly at: number;
 }
 
 interface OrthogonalRuleArrow {
@@ -414,6 +422,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
   const monoliths: PlacedMonolith[] = [];
   const orthoArrows: OrthogonalRuleArrow[] = [];
   const stationBeacons: StationBeaconDom[] = [];
+  const stationDeckGroups: StationDeckGroupDom[] = [];
 
   const addMonolith = (
     spec: CardSpec,
@@ -430,8 +439,9 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     cardSlot?: 0 | 1 | 2,
     alignedIdx?: number,
     heroSlides?: readonly AlignedHeroSlide[],
+    parentContainer: HTMLElement = cardLayer,
   ): PlacedMonolith => {
-    const el = makeEl('article', `monolith-card ${isHero ? 'is-hero' : 'is-slab'}`, cardLayer);
+    const el = makeEl('article', `monolith-card ${isHero ? 'is-hero' : 'is-slab'}`, parentContainer);
     el.dataset.gen = String(spec.gen);
     el.dataset.group = spec.group;
     if (stationIdx !== undefined) el.dataset.station = String(stationIdx + 1);
@@ -448,13 +458,14 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     const metricEl = makeEl('span', 'monolith-metric', band, spec.metric);
     metricEl.style.opacity = isHero ? '1' : '0';
 
+    let plateWrapEl: HTMLElement | null = null;
     if (spec.plateId) {
-      const pWrap = makeEl('div', 'monolith-plate-wrap', el);
+      plateWrapEl = makeEl('div', 'monolith-plate-wrap', el);
       const img = document.createElement('img');
       img.dataset.plate = spec.plateId;
       img.src = getPlateById(spec.plateId).src;
       img.alt = spec.title;
-      pWrap.append(img);
+      plateWrapEl.append(img);
     }
 
     let bodyEl: HTMLElement | null = null;
@@ -491,6 +502,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       spec,
       el,
       metricEl,
+      plateWrapEl,
       bodyEl,
       slideDoms,
       regMark,
@@ -603,6 +615,11 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       makeEl('span', 'station-title', metaCol, st.shortTitle);
       stationBeacons.push({ gen, spec: st, el: beaconEl, x: st.x - 10, y: beaconY, z: 84, at: stAt - 0.06 });
 
+      const deckGroup = makeEl('div', 'station-deck-group', cardLayer);
+      deckGroup.dataset.gen = String(gen);
+      deckGroup.dataset.station = String(sIdx + 1);
+      stationDeckGroups.push({ gen, stationIdx: sIdx, spec: st, el: deckGroup, at: stAt });
+
       ([0, 1, 2] as const).forEach((cSlot) => {
         addMonolith(
           st.cards[cSlot]!,
@@ -614,14 +631,17 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           st.rotY,
           st.rotX,
           true,
-          stAt + cSlot * 0.10,
+          stAt,
           sIdx,
           cSlot,
+          undefined,
+          undefined,
+          deckGroup,
         );
       });
     });
 
-    // Beacon-clear orthogonal `#FF0000` trajectories routed through open inter-station corridors!
+    // Beacon-clear & upper-stack-clear orthogonal `#FF0000` trajectories routed through open corridors!
     const arrowStartAt = skewedBaseAt - 0.12;
     const arrowStep = gen === 2 ? 0.42 : 0.68;
     const beaconClearPaths: readonly (readonly [number, number][])[] = [
@@ -635,9 +655,9 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       [
         [2348, 248],
         [2610, 248],
-        [2610, 38],
-        [3042, 38],
-        [3042, 52],
+        [2610, 34],
+        [3042, 34],
+        [3042, 48],
       ],
       [
         [3208, 176],
@@ -649,9 +669,9 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       [
         [4288, 248],
         [4780, 248],
-        [4780, 38],
-        [5442, 38],
-        [5442, 54],
+        [4780, 34],
+        [5442, 34],
+        [5442, 49],
       ],
     ];
     beaconClearPaths.forEach((pts, k) => {
@@ -659,8 +679,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     });
   };
 
-  // Gen 1 (`18.60–43.92s`, strictly after `18.56s` slit-scan dissolve!) & Gen 2 (`171.52–198.8s`)
-  buildGenerationArchipelago(1, GEN1_ALIGNED_CARDS, GEN1_ALIGNED_HERO_SLIDES, GEN1_SKEWED_STATIONS, 18.60, 19.35);
+  // Gen 1 (`18.88–43.92s`, strictly after `18.85s` slit-scan dissolve!) & Gen 2 (`171.52–198.8s`)
+  buildGenerationArchipelago(1, GEN1_ALIGNED_CARDS, GEN1_ALIGNED_HERO_SLIDES, GEN1_SKEWED_STATIONS, 18.88, 19.60);
   buildGenerationArchipelago(2, GEN2_ALIGNED_CARDS, GEN2_ALIGNED_HERO_SLIDES, GEN2_SKEWED_STATIONS, 171.55, 171.52);
 
   /* --- 9. Causal 3-Copy Seamless History Conveyor (`0%` Future Spoilers + 8-Slot In-Place Gen1→Gen2 Crossfade) --- */
@@ -676,16 +696,16 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     ...GEN2_SKEWED_STATIONS.map((st) => st.cards[2]!),
   ];
 
-  // Causal `appearAt` for Gen 1 (`8` slots): Aligned `18.60..19.08s`, Skewed right after each station ignites (`19.75, 20.47, 21.19, 21.91s`)!
+  // Causal `appearAt` for Gen 1 (`8` slots): Aligned `18.88..19.36s`, Skewed right after each station ignites (`20.00, 20.72, 21.44, 22.16s`)!
   const gen1AppearTimes = [
-    18.60,
-    18.76,
-    18.92,
-    19.08,
-    19.75,
-    20.47,
-    21.19,
-    21.91,
+    18.88,
+    19.04,
+    19.20,
+    19.36,
+    20.00,
+    20.72,
+    21.44,
+    22.16,
   ];
   // Causal `crossAt` for Gen 2 (`8` slots): Gen 1 echo (`0.30`) glides initially, then crossfades in-place into Gen 2 (`1.0`) as generated!
   const gen2CrossTimes = [
@@ -949,16 +969,42 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     return [a, b];
   };
 
-  // Precompute 100% static time-independent central sanctuary arch offsets (`orbArchBow`, `sphEnterArchBow`, `sphExitArchBow`)
-  // so `cloud3D -> orbit2D` and `orbit2D ↔ sphere3D` clear `(3240, 216)` with ZERO single-frame chatter (`chatterReversals === 0`)!
+  // Rigid 3D Star-Cluster Centers (`Cloud 3D`, `112.5..128.0s`) & Static C∞ Sanctuary Arch Constants
+  const cloudBayCentersX = [459, 1576, 2698, 3822, 5481] as const;
+
+  const evalCloudClusterNode = (i: number, tEval: number) => {
+    const f = fragments[i]!;
+    const bayIdx = f.cluster < 4 ? f.cluster : 4;
+    const phi = bayIdx * 1.25 + (tEval - 112.5) * 0.44;
+    const sinP = Math.sin(phi);
+    const cosP = Math.cos(phi);
+    const ampX = bayIdx === 0 || bayIdx === 4 ? 236 : 386;
+    const clusterDx = sinP * ampX;
+    const clusterDy = Math.sin(phi * 2.0 + bayIdx) * 10.0;
+    const clusterZ = cosP * 215;
+    const depth01 = (cosP + 1) * 0.5;
+    const cScale = lerp(0.78, 1.12, depth01);
+
+    const pM = layouts.meaning2D[i]!;
+    const baseCx = cloudBayCentersX[bayIdx]!;
+    const sx = baseCx + (pM.x - baseCx) * cScale + clusterDx;
+    const cs = pM.scale * cScale;
+    const hhC = fastBoxH(i, cs) * 0.5;
+    const sy = softMin(softMax(216 + (pM.y - 216) * cScale + clusterDy, 27 + hhC, 5), 405 - hhC, 5);
+
+    const frontVis = smoothstep(-0.08, 0.48, cosP);
+    const edgeFade = smoothstep(-100, 140, sx) * smoothstep(-100, 140, STAGE_W - sx);
+    const co = lerp(0.15, 1.0, frontVis) * edgeFade;
+    const cGray = lerp(175, 0, frontVis);
+    return { sx, sy, wz: clusterZ, cs, co, cGray, frontVis };
+  };
+
   const orbArchBow = new Float64Array(fragments.length);
   const sphEnterArchBow = new Float64Array(fragments.length);
-  const sphExitArchBow = new Float64Array(fragments.length);
   for (let i = 0; i < fragments.length; i++) {
-    const c3 = layouts.cloud3D[i]!;
-    const pCloud = Z_CAM / (Z_CAM - c3.cz);
-    const xCloudEnd = STAGE_W * 0.5 + (c3.cx - 240) * pCloud + 240;
-    const yCloudEnd = STAGE_H * 0.5 - c3.cy * pCloud;
+    const cEnd = evalCloudClusterNode(i, 128.0);
+    const xCloudEnd = cEnd.sx;
+    const yCloudEnd = cEnd.sy;
 
     const pO = layouts.orbit2D[i]!;
     const hwO = fastBoxW(i, pO.scale) * 0.5;
@@ -978,26 +1024,38 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     const sp = layouts.sphere3D[i]!;
     const hhS = fastBoxH(i, Math.max(pO.scale, sp.scale * 1.15)) * 0.5;
     const hwS = fastBoxW(i, Math.max(pO.scale, sp.scale * 1.15)) * 0.5;
-
-    const evalSphereArch = (spinMid: number): number => {
-      const lon = sp.theta + spinMid;
-      const wz = Math.sin(lon) * 280;
-      const sxSph = STAGE_W * 0.5 + Math.cos(lon) * 2980 * (Z_CAM / (Z_CAM - wz));
-      const sySph = sp.ringY + 3.0 * Math.sin(lon * 2.0);
-      if (Math.min(pO.x, sxSph) < 3540 + hwS && Math.max(pO.x, sxSph) > 2940 - hwS && Math.abs(sxSph - pO.x) > 25) {
-        const uCross = clamp((3240 - pO.x) / (sxSph - pO.x), 0.18, 0.82);
-        const yAtCross = lerp(pO.y, sySph, uCross);
-        const sinCross = Math.max(0.50, Math.sin(Math.PI * uCross));
-        return sp.isNorth
-          ? clamp(Math.min(0, (160 - hhS - yAtCross) / sinCross), -140, 0)
-          : clamp(Math.max(0, (272 + hhS - yAtCross) / sinCross), 0, 140);
-      }
-      return 0;
-    };
-
-    sphEnterArchBow[i] = evalSphereArch(1.3 * 0.28);
-    sphExitArchBow[i] = evalSphereArch(10.6 * 0.28);
+    const lonEnter = sp.theta + 1.3 * 0.28;
+    const wzEnter = Math.sin(lonEnter) * 280;
+    const sxSph = STAGE_W * 0.5 + Math.cos(lonEnter) * 2980 * (Z_CAM / (Z_CAM - wzEnter));
+    const sySph = sp.ringY + 3.0 * Math.sin(lonEnter * 2.0);
+    if (Math.min(pO.x, sxSph) < 3540 + hwS && Math.max(pO.x, sxSph) > 2940 - hwS && Math.abs(sxSph - pO.x) > 25) {
+      const uCross = clamp((3240 - pO.x) / (sxSph - pO.x), 0.18, 0.82);
+      const yAtCross = lerp(pO.y, sySph, uCross);
+      const sinCross = Math.max(0.50, Math.sin(Math.PI * uCross));
+      sphEnterArchBow[i] = sp.isNorth
+        ? clamp(Math.min(0, (160 - hhS - yAtCross) / sinCross), -140, 0)
+        : clamp(Math.max(0, (272 + hhS - yAtCross) / sinCross), 0, 140);
+    }
   }
+
+  // Order-preserving 5 `resonantSpots` mapped to `neighborIndices` sorted by their `t=149.0s` `sphere3D` X!
+  const resonantSpotTargets: readonly (readonly [number, number])[] = [
+    [960, 128],
+    [1980, 316],
+    [2620, 114],
+    [4020, 318],
+    [5840, 134],
+  ];
+  const sortedNeighborsAt149 = [...neighborIndices].sort((ia, ib) => {
+    const sxA = Math.cos(layouts.sphere3D[ia]!.theta + 11.0 * 0.28);
+    const sxB = Math.cos(layouts.sphere3D[ib]!.theta + 11.0 * 0.28);
+    return sxA - sxB;
+  });
+  const resonantSpotOf = new Map<number, readonly [number, number]>();
+  sortedNeighborsAt149.forEach((nIdx, k) => {
+    resonantSpotOf.set(nIdx, resonantSpotTargets[k] ?? [2620, 114]);
+  });
+  const scanHighlightW = new Float32Array(fragments.length);
 
   // `0.65s` overlapped 4 waves (`64.30..67.80`, `67.15..70.65`, `70.00..73.50`, `72.85..76.60`)
   const multiWaveScans: readonly {
@@ -1159,9 +1217,10 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       const pressOut = 1 - span(t, 12.25, 12.90, easeInOutCubic);
       pressLayer.style.opacity = pressOut.toFixed(4);
 
-      const qEnter = span(t, 0.16, 0.56, easeInOutCubic);
+      // Symmetric `0.00..0.45s` `100.00% #FFFFFF` loop silence -> gentle C² emergence `0.45s → 1.55s`!
+      const qEnter = t <= 0.45 ? 0 : smootherstep(0.45, 1.55, t);
       const qDock = span(t, 10.80, 12.25, easeInOutCubic);
-      const wght = Math.round(lerp(280, 780, span(t, 0.25, 6.2, easeInOut) + pulse * 0.06));
+      const wght = Math.round(lerp(280, 780, span(t, 0.55, 6.4, easeInOut) + pulse * 0.06));
       const qScale = lerp(1.0, 56 / 120, qDock);
       const qX = lerp(118, 110, qDock);
       const qY = lerp(216, 62.24, qDock);
@@ -1170,15 +1229,14 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       pressHeroQuery.style.transform = `translate3d(${(qX - 118).toFixed(2)}px, ${(qY - 216).toFixed(2)}px, 0) translateY(-50%) scale(${qScale.toFixed(4)})`;
 
       // Full-span cobalt vernier datum line extending right out to `X = 6380px`!
-      const datumBridgeOp = span(t, 0.18, 0.56) * (1 - span(t, 10.8, 11.6)) * pressOut;
+      const datumBridgeOp = (t <= 0.48 ? 0 : smootherstep(0.48, 1.52, t)) * (1 - span(t, 10.8, 11.6)) * pressOut;
       if (datumBridgeOp > 0.01) {
         ctx.save();
         ctx.globalAlpha = datumBridgeOp * 0.84;
         ctx.strokeStyle = '#0000ff';
         ctx.lineWidth = 1.1;
-        const dRight = lerp(1142, 6380, span(t, 0.18, 0.62, easeOutCubic));
+        const dRight = lerp(1142, 6380, smootherstep(0.48, 1.56, t));
         ctx.beginPath();
-        // Leave central formula chamber `[3560..4360]` clean once formula opens
         const formGap = span(t, 8.25, 8.55, easeOutCubic);
         if (formGap > 0.02 && dRight > 3560) {
           ctx.moveTo(1142, 216.5);
@@ -1207,7 +1265,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         ctx.restore();
       }
 
-      const vOp = span(t, 0.20, 0.62) * (1 - span(t, 11.75, 12.55, easeInOutCubic)) * 0.32;
+      const vOp = (t <= 0.52 ? 0 : smootherstep(0.52, 1.58, t)) * (1 - span(t, 11.75, 12.55, easeInOutCubic)) * 0.32;
       voronoiImgA.style.opacity = vOp.toFixed(3);
       voronoiImgA.style.transform = `scale(${(1.0 + t * 0.011).toFixed(4)})`;
       voronoiImgB.style.opacity = (vOp * 0.92).toFixed(3);
@@ -1215,8 +1273,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
       const crushU = span(t, 8.15, 9.85, easeInOutCubic);
       const formOpen = span(t, 8.38, 8.68, easeOutExpo);
-      const platenVis = span(t, 0.16, 0.28) * (1 - span(t, 11.8, 12.55));
-      const ruleDrawScaleX = span(t, 0.16, 0.52, easeOutCubic);
+      const platenVis = (t <= 0.46 ? 0 : smootherstep(0.46, 1.38, t)) * (1 - span(t, 11.8, 12.55));
+      const ruleDrawScaleX = t <= 0.46 ? 0 : smootherstep(0.46, 1.52, t);
       const pTopY = lerp(34, 154, crushU);
       const pBotY = lerp(398, 278, crushU);
 
@@ -1295,9 +1353,9 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     // -----------------------------------------------------------------------
     const inGen1Anchor = t >= 12.10 && t < 43.92;
     const inGaleWeathering = t >= 161.8 && t < 171.45;
-    const inGen2Anchor = t >= 171.45 && t < 199.10;
+    const inGen2Anchor = t >= 171.45 && t < 198.90;
 
-    const blizzardU = progress(t, 193.0, 199.42);
+    const blizzardU = progress(t, 192.6, 198.88);
     const blizzardFrontX = lerp(6680, -420, easeInOutCubic(blizzardU));
 
     // Exact `0.0px` left-edge & vertical-center docking onto `datumGen2Span` (`left: 110px, centerY: 62.24px, scale: 56/104`) at `t = 171.45s`!
@@ -1431,11 +1489,11 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     }
 
     // -----------------------------------------------------------------------
-    // 3. ACT I.2 (`13.0 – 18.56s`): CLEAR TOP-LEFT ANCHOR & `1.25s` PANORAMA DWELL
+    // 3. ACT I.2 (`13.0 – 18.85s`): CLEAR TOP-LEFT ANCHOR & `1.70s` (`16.55..18.25s`) PANORAMA CONTEMPLATION
     // -----------------------------------------------------------------------
-    if (t >= 13.0 && t < 18.56) {
-      const runnerFade = span(t, 13.0, 13.25, easeOutCubic) * (1 - smootherstep(18.05, 18.56, t));
-      const leadU = easeInOutCubic(progress(t, 13.05, 16.80));
+    if (t >= 13.0 && t < 18.85) {
+      const runnerFade = span(t, 13.0, 13.25, easeOutCubic) * (1 - smootherstep(18.25, 18.85, t));
+      const leadU = easeInOutCubic(progress(t, 13.05, 16.55));
       const leadX = lerp(600, 6360, leadU);
 
       if (runnerFade > 0.005) {
@@ -1525,7 +1583,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
           ctx.globalAlpha = runnerFade * lerp(0.94, 0.44, age);
           ctx.strokeStyle = '#ff0000';
-          ctx.lineWidth = t < 16.85 && k === Math.floor(leadU * (stCount - 1)) ? 2.4 : 1.35;
+          ctx.lineWidth = t < 16.60 && k === Math.floor(leadU * (stCount - 1)) ? 2.4 : 1.35;
           ctx.beginPath();
           ctx.moveTo(sx + 0.5, syTop - 8);
           ctx.lineTo(sx + 0.5, syTop + sh + 10);
@@ -1537,8 +1595,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           ctx.fillText(`SL.${String(k + 1).padStart(2, '0')}`, leftX + 4, syTop - 4);
         }
 
-        // Sweep lead cursor fades gracefully once it reaches `6360px` at `16.80s` so `16.80..18.05s` is serene panorama dwell!
-        const cursorOp = runnerFade * (1 - smoothstep(16.75, 17.15, t));
+        // Sweep lead cursor fades gracefully once it reaches `6360px` at `16.55s` so `16.55..18.25s` (`1.70s`) is pure panorama contemplation!
+        const cursorOp = runnerFade * (1 - smoothstep(16.50, 16.92, t));
         if (cursorOp > 0.01) {
           ctx.globalAlpha = cursorOp;
           ctx.strokeStyle = '#0000ff';
@@ -1598,10 +1656,10 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       ctx.restore();
     };
 
-    if (inAct1Arch && t >= 18.05) {
+    if (inAct1Arch && t >= 18.30) {
       const foldOutFade = 1 - span(t, 42.50, 43.60, easeInOutCubic);
-      const pIn = span(t, 18.05, 18.58, easeOutCubic) * foldOutFade;
-      const pShift = Math.sin((t - 18.1) * 0.56) * 12.0;
+      const pIn = span(t, 18.30, 18.85, easeOutCubic) * foldOutFade;
+      const pShift = Math.sin((t - 18.3) * 0.56) * 12.0;
       prismGateGen1.style.display = pIn > 0.002 ? 'flex' : 'none';
       prismGateGen1.style.opacity = pIn.toFixed(3);
       prismGateGen1.style.transform = `translate3d(${pShift.toFixed(3)}px, 0, 0)`;
@@ -1612,7 +1670,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     }
 
     if (inAct4Arch) {
-      const veilAtten = t >= 193.0 ? smoothstep(blizzardFrontX - 420, blizzardFrontX + 140, 1784) : 0;
+      const veilAtten = t >= 192.6 ? smoothstep(blizzardFrontX - 420, blizzardFrontX + 140, 1784) : 0;
       const pIn = span(t, 170.90, 171.50, easeOutCubic) * (1 - veilAtten);
       const pShift = Math.sin((t - 171.0) * 0.56) * 12.0;
       prismGateGen2.style.display = pIn > 0.002 ? 'flex' : 'none';
@@ -1624,10 +1682,14 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       prismGateGen2.style.opacity = '0';
     }
 
-    const anyArchLive = (t >= 18.58 && t < 43.96) || (t >= 171.40 && t < 199.35);
+    const anyArchLive = (t >= 18.85 && t < 43.96) || (t >= 171.40 && t < 198.95);
 
     if (!anyArchLive) {
       if (!wasMonolithsHidden) {
+        for (const dg of stationDeckGroups) {
+          dg.el.style.opacity = '0';
+          dg.el.style.visibility = 'hidden';
+        }
         for (const c of monoliths) {
           c.el.style.opacity = '0';
           c.el.style.transform = 'translate3d(-9999px, -9999px, 0)';
@@ -1647,7 +1709,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       }
     } else {
       wasMonolithsHidden = false;
-      const camPanGen1 = inAct1Arch ? Math.sin((t - 19.0) * 0.48) * 96 + (t - 29.0) * 5.5 : 0;
+      const camPanGen1 = inAct1Arch ? Math.sin((t - 19.2) * 0.48) * 96 + (t - 29.0) * 5.5 : 0;
       const camPanGen2 = inAct4Arch ? Math.sin((t - 172.0) * 0.52) * 94 + (t - 181.0) * 6.0 : 0;
       const freezeSwapTimeGen1 = Math.min(t, 42.40);
 
@@ -1657,8 +1719,42 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       arrowLayerGen1.style.transform = `translate3d(${stationShiftGen1.toFixed(2)}px, 0, 0)`;
       arrowLayerGen2.style.transform = `translate3d(${stationShiftGen2.toFixed(2)}px, 0, 0)`;
 
+      // Compute Group-Opaque `.station-deck-group` Opacity (`0%` X-Ray Bleed through Front `#FFFFFF` Paper!)
+      const activeStationOp = new Map<string, number>();
+      for (const dg of stationDeckGroups) {
+        const live = (dg.gen === 1 && t >= 18.85 && t < 43.95) || (dg.gen === 2 && t >= 171.50 && t < 198.95);
+        if (!live) {
+          dg.el.style.opacity = '0';
+          dg.el.style.visibility = 'hidden';
+          activeStationOp.set(`${dg.gen}:${dg.stationIdx}`, 0);
+          continue;
+        }
+        let gOp = span(t, dg.at, dg.at + 0.56, easeInOutCubic);
+        if (dg.gen === 1 && t >= 42.50) {
+          if (dg.stationIdx === 3) {
+            gOp *= 1 - smoothstep(0.35, 0.98, foldConvergeU);
+          } else {
+            gOp *= 1 - easeInOutCubic(progress(t, 42.50, 43.65));
+          }
+        }
+        if (dg.gen === 2 && t >= 192.6) {
+          const stShift = stationShiftGen2;
+          const stCenterX = dg.spec.x + stShift + 162;
+          gOp *= 1 - smoothstep(blizzardFrontX - 460, blizzardFrontX + 180, stCenterX);
+        }
+        gOp = clamp(gOp, 0, 1);
+        activeStationOp.set(`${dg.gen}:${dg.stationIdx}`, gOp);
+        if (gOp <= 0.004) {
+          dg.el.style.opacity = '0';
+          dg.el.style.visibility = 'hidden';
+        } else {
+          dg.el.style.visibility = 'visible';
+          dg.el.style.opacity = gOp.toFixed(3);
+        }
+      }
+
       for (const c of monoliths) {
-        const live = (c.gen === 1 && t >= 18.58 && t < 43.95) || (c.gen === 2 && t >= 171.50 && t < 199.35);
+        const live = (c.gen === 1 && t >= 18.85 && t < 43.95) || (c.gen === 2 && t >= 171.50 && t < 198.95);
         if (!live) {
           c.el.style.opacity = '0';
           c.el.style.transform = 'translate3d(-9999px, -9999px, 0)';
@@ -1666,8 +1762,10 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           continue;
         }
 
+        const isStationCard = c.stationIdx !== undefined && c.cardSlot !== undefined;
+        const stGroupOp = isStationCard ? (activeStationOp.get(`${c.gen}:${c.stationIdx}`) ?? 0) : 1;
         const enter = span(t, c.at, c.at + 0.56, easeInOutCubic);
-        if (enter <= 0.002) {
+        if ((isStationCard && stGroupOp <= 0.004) || (!isStationCard && enter <= 0.002)) {
           c.el.style.opacity = '0';
           c.el.style.transform = 'translate3d(-9999px, -9999px, 0)';
           if (c.regMark) c.regMark.setAttribute('visibility', 'hidden');
@@ -1680,27 +1778,29 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         let slotDz = c.z;
         let slotScale = 1.0;
         let slotRotY = c.rotY;
-        let cardAlpha = 1.0;
+        let inkAlpha = 1.0;
         let zOrder = Math.round(200 + c.z);
 
-        if (c.stationIdx !== undefined && c.cardSlot !== undefined) {
-          // Unidirectional `r=2 -> r=1 -> r=0` Stepped Stack + Rightward `+390px` Arc (`1.68s` move + `2.32s` dwell)
+        if (isStationCard) {
+          // `2.32s` (`0.58 * 4.0s`) Stationary Reading FIRST, then `1.68s` (`0.42 * 4.0s`) Rightward `+390px` Arc Deal!
           const evalT = c.gen === 1 ? freezeSwapTimeGen1 : t;
-          const deckStart = (c.gen === 1 ? 20.1 : 172.4) + c.stationIdx * 0.65;
+          const deckStart = c.at + 0.60;
           const cycleFloat = Math.max(0, (evalT - deckStart) / 4.0);
           const cycleIdx = Math.floor(cycleFloat);
-          const dealRaw = clamp((cycleFloat - cycleIdx) / 0.42, 0, 1);
+          const subPhase = cycleFloat - cycleIdx;
+          const dealRaw = clamp((subPhase - 0.58) / 0.42, 0, 1);
           const dealU = dealRaw * dealRaw * (3 - 2 * dealRaw);
 
           const rankOf = (b: number): number => (((2 - c.cardSlot! - b) % 3) + 3) % 3;
           const r0 = rankOf(cycleIdx);
           const r1 = rankOf(cycleIdx + 1);
 
-          // [dx, dy, dz, scale, dRotY, alpha]
+          // Upper stations (`Station 02, 04`, `c.y < 80`) offset waiting cards DOWNWARD (`+10, +20`) clear of top `#FF0000` arrows!
+          const isUpperStation = c.y < 80;
           const rankPose = (r: number): [number, number, number, number, number, number] => {
             if (r === 0) return [0, 0, 84, 1.00, 0, 1.00];
-            if (r === 1) return [-58, -12, 24, 0.90, -2, 0.82];
-            return [-112, -22, -32, 0.80, -4, 0.64];
+            if (r === 1) return [-58, isUpperStation ? 10 : -12, 24, 0.90, -2, 0.82];
+            return [-112, isUpperStation ? 20 : -22, -32, 0.80, -4, 0.65];
           };
 
           const p0 = rankPose(r0);
@@ -1710,13 +1810,13 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           slotDz = lerp(p0[2], p1[2], dealU);
           slotScale = lerp(p0[3], p1[3], dealU);
           slotRotY = c.rotY + lerp(p0[4], p1[4], dealU);
-          cardAlpha = lerp(p0[5], p1[5], dealU);
+          inkAlpha = lerp(p0[5], p1[5], dealU);
 
-          const stZBase = 200 + c.stationIdx * 100;
+          const stZBase = 200 + c.stationIdx! * 100;
           const arcSin = Math.sin(Math.PI * dealU);
           if (r0 === 0 && r1 === 2 && dealU > 0.0005) {
-            slotDx += 390 * arcSin; // `-56 + 390 = +334px` at `dealU = 0.50` -> `> 60px` clear horizontal gap!
-            slotDy -= 8 * arcSin;
+            slotDx += 390 * arcSin;
+            slotDy += (isUpperStation ? 6 : -8) * arcSin;
             slotRotY -= 8 * arcSin;
             zOrder = dealU < 0.50 ? stZBase + 90 : stZBase + 10;
           } else if (r0 === 1 && r1 === 0) {
@@ -1727,7 +1827,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
             zOrder = r0 === 0 ? stZBase + 90 : r0 === 1 ? stZBase + 60 : stZBase + 30;
           }
         } else if (c.alignedIdx !== undefined) {
-          const waveStart = c.gen === 1 ? 18.65 : 171.6;
+          const waveStart = c.gen === 1 ? 18.90 : 171.6;
           const wavePhase = (t - waveStart) * Math.PI - c.alignedIdx * 0.72;
           const waveSin = Math.sin(wavePhase);
           const waveCos = Math.cos(wavePhase);
@@ -1767,17 +1867,22 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
         c.el.style.zIndex = String(zOrder);
 
-        // Lock Skewed station parallax to uniform station plane (`z = 84`) so cards, beacons & arrows stay tightly coherent!
+        // Apply back-card ink attenuation ONLY to inner plate/body content so `.monolith-card` `#ffffff` paper stays 100% opaque!
+        if (isStationCard) {
+          if (c.plateWrapEl) c.plateWrapEl.style.opacity = inkAlpha.toFixed(3);
+          if (c.bodyEl) c.bodyEl.style.opacity = inkAlpha.toFixed(3);
+        }
+
         const parallaxZ = c.stationIdx !== undefined ? 84 : slotDz;
         let pxShift = slotDx - camPan * ((parallaxZ + 60) / 120);
         let pyShift = slotDy + (1 - enter) * 22 + (c.alignedIdx !== undefined ? 0 : Math.sin(t * 0.95 + c.x * 0.002) * 2.5);
         let rotY = slotRotY + Math.sin(t * 0.50 + slotDz * 0.02) * 1.4;
         let rotX = c.rotX;
         let scale = slotScale;
-        let op = enter * cardAlpha;
+        let op = isStationCard ? 1.0 : enter;
 
         if (c.gen === 1 && t >= 42.50) {
-          const isAnchor04Front = c.stationIdx === 3 && cardAlpha > 0.9;
+          const isAnchor04Front = c.stationIdx === 3 && inkAlpha > 0.9;
           if (isAnchor04Front) {
             const targetCenterX = 4588 + 336 * 0.5;
             const targetCenterY = 30 + 244 * 0.5 + 16;
@@ -1788,21 +1893,26 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
             rotY = lerp(rotY, 0, foldConvergeU);
             rotX = lerp(rotX, 0, foldConvergeU);
             scale = lerp(slotScale, 1.02, foldConvergeU);
-            op *= 1 - smoothstep(0.35, 0.98, foldConvergeU);
+          } else if (c.stationIdx === 3) {
+            // Back cards of Station 04 peel left away from front card first, then fold out
+            const earlyFold = easeInOutCubic(progress(t, 42.50, 43.45));
+            pxShift -= 220 * earlyFold;
+            rotY = lerp(rotY, -82, earlyFold);
+            op *= 1 - smoothstep(0.45, 0.98, earlyFold);
           } else {
             const earlyFold = easeInOutCubic(progress(t, 42.50, 43.65));
             rotY = lerp(rotY, rotY < 0 ? -78 : 78, earlyFold);
             pxShift += (c.x < 4588 ? -165 : 135) * earlyFold;
-            op *= 1 - earlyFold;
+            if (!isStationCard) op *= 1 - earlyFold;
           }
         }
 
-        if (c.gen === 2 && t >= 193.0) {
+        if (c.gen === 2 && t >= 192.6) {
           const cardCenterX = c.x + pxShift + c.w * 0.5;
           const scoured = smoothstep(blizzardFrontX - 460, blizzardFrontX + 180, cardCenterX);
           pxShift -= scoured * 96;
           rotY -= scoured * 28;
-          op *= 1 - scoured;
+          if (!isStationCard) op *= 1 - scoured;
         }
 
         op = clamp(op, 0, 1);
@@ -1821,9 +1931,10 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         c.el.style.opacity = op.toFixed(3);
         c.el.style.transform = `perspective(580px) translate3d(${pxShift.toFixed(2)}px, ${pyShift.toFixed(2)}px, 0px) scale(${scale.toFixed(4)}) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
 
-        // Station-fixed Registration Crosshairs (anchored to station base `c.x - camPan * 1.2`, ZERO 4.0s jump!)
         if (c.regMark) {
-          const regOp = enter * (c.gen === 1 ? 1 - smoothstep(0.0, 0.35, foldConvergeU) : 1 - (t >= 193.0 ? smoothstep(blizzardFrontX - 460, blizzardFrontX + 180, c.x + 160) : 0));
+          const regOp = isStationCard
+            ? stGroupOp
+            : enter * (c.gen === 1 ? 1 - smoothstep(0.0, 0.35, foldConvergeU) : 1 - (t >= 192.6 ? smoothstep(blizzardFrontX - 460, blizzardFrontX + 180, c.x + 160) : 0));
           if (regOp > 0.15) {
             c.regMark.removeAttribute('visibility');
             const stShiftX = c.stationIdx !== undefined ? -camPan * ((84 + 60) / 120) : pxShift;
@@ -1844,7 +1955,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       }
 
       for (const sb of stationBeacons) {
-        const live = (sb.gen === 1 && t >= 18.58 && t < 43.80) || (sb.gen === 2 && t >= 171.45 && t < 199.35);
+        const live = (sb.gen === 1 && t >= 18.85 && t < 43.80) || (sb.gen === 2 && t >= 171.45 && t < 198.95);
         if (!live) {
           sb.el.style.opacity = '0';
           continue;
@@ -1856,7 +1967,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         if (sb.gen === 1 && t >= 42.50) {
           op *= 1 - easeInOutCubic(progress(t, 42.50, 43.55));
         }
-        if (sb.gen === 2 && t >= 193.0) {
+        if (sb.gen === 2 && t >= 192.6) {
           op *= 1 - smoothstep(blizzardFrontX - 460, blizzardFrontX + 160, sb.x + 120);
         }
         sb.el.style.opacity = clamp(op, 0, 1).toFixed(3);
@@ -1864,7 +1975,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       }
 
       for (const arr of orthoArrows) {
-        const live = (arr.gen === 1 && t >= 18.58 && t < 43.80) || (arr.gen === 2 && t >= 171.35 && t < 199.35);
+        const live = (arr.gen === 1 && t >= 18.85 && t < 43.80) || (arr.gen === 2 && t >= 171.35 && t < 198.95);
         if (!live) {
           arr.path.style.opacity = '0';
           arr.pulsePath.style.opacity = '0';
@@ -1873,8 +1984,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         }
         const drawP = span(t, arr.at, arr.at + arr.dur, easeInOutCubic);
         let fade = arr.gen === 1 ? 1 - smoothstep(0.0, 0.72, foldConvergeU) : 1;
-        if (arr.gen === 2 && t >= 193.0) {
-          fade *= 1 - progress(t, 193.4, 196.6);
+        if (arr.gen === 2 && t >= 192.6) {
+          fade *= 1 - progress(t, 193.0, 196.2);
         }
         arr.path.setAttribute('stroke-dasharray', `${drawP.toFixed(4)} 1`);
         arr.path.style.opacity = drawP > 0.005 ? (0.88 * fade).toFixed(3) : '0';
@@ -1890,9 +2001,9 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         }
       }
 
-      if (t >= 171.60 && t < 199.35) {
+      if (t >= 171.60 && t < 198.95) {
         const sReveal = span(t, 171.75, 174.20, easeInOutCubic) * 0.44;
-        const sErase = t >= 193.0 ? smoothstep(blizzardFrontX - 580, blizzardFrontX + 220, 4720) : 0;
+        const sErase = t >= 192.6 ? smoothstep(blizzardFrontX - 580, blizzardFrontX + 220, 4720) : 0;
         sastrugiBackdrop.style.opacity = (sReveal * (1 - sErase)).toFixed(3);
         sastrugiBackdrop.style.transform = `translate3d(${(Math.sin(t * 0.42) * 18).toFixed(2)}px, 0, 0)`;
       } else {
@@ -1902,7 +2013,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     }
 
     const histVis = inAct1Arch
-      ? span(t, 18.2, 18.8, easeOutCubic) * (1 - easeInOutCubic(progress(t, 42.50, 43.75)))
+      ? span(t, 18.45, 19.05, easeOutCubic) * (1 - easeInOutCubic(progress(t, 42.50, 43.75)))
       : inAct4Arch
         ? span(t, 171.1, 171.7, easeOutCubic) * (1 - smoothstep(blizzardFrontX - 420, blizzardFrontX + 100, 6220))
         : 0;
@@ -2032,6 +2143,30 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         hSlot.img.style.transform = `scale(${imgScale.toFixed(4)}) translate3d(${imgPanX.toFixed(2)}px, 0, 0)`;
       }
 
+      // Full-Width 23-Column Editorial Hairline Rules (`45.2 – 62.3s`) unifying Left & Right halves of Broadsheet!
+      if (t >= 45.2 && t < 62.35) {
+        const hRuleOp = smootherstep(45.2, 47.6, t) * (1 - smootherstep(61.4, 62.3, t));
+        if (hRuleOp > 0.005) {
+          ctx.save();
+          ctx.strokeStyle = `rgba(0, 0, 0, ${(0.18 * hRuleOp).toFixed(3)})`;
+          ctx.lineWidth = 0.65;
+          for (const rxRule of layouts.colRuleXs) {
+            ctx.beginPath();
+            ctx.moveTo(rxRule + 0.5, 29);
+            ctx.lineTo(rxRule + 0.5, 403);
+            ctx.stroke();
+          }
+          ctx.strokeStyle = `rgba(0, 0, 0, ${(0.24 * hRuleOp).toFixed(3)})`;
+          ctx.beginPath();
+          ctx.moveTo(136, 28.5);
+          ctx.lineTo(6344, 28.5);
+          ctx.moveTo(136, 403.5);
+          ctx.lineTo(6344, 403.5);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
       // B. Configure Three.js Parallel-Dolly PerspectiveCamera
       const helixSpin = Math.max(0, t - 87.0) * 0.46;
       const sphereSpin = Math.max(0, t - 138.0) * 0.28;
@@ -2042,14 +2177,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         camera3D.lookAt(hCamX, 0, 0);
         camera3D.updateMatrixWorld();
         camera3D.updateProjectionMatrix();
-      } else if (t >= 114.0 && t < 132.0) {
-        const uFly = smootherstep(115.0, 128.0, t);
-        const camX = catmullRom(-240, -90, 110, 240, uFly);
-        camera3D.position.set(camX, 0, Z_CAM);
-        camera3D.lookAt(camX, 0, 0);
-        camera3D.updateMatrixWorld();
-        camera3D.updateProjectionMatrix();
-      } else if (t >= 137.0 && t < 151.0) {
+      } else if (t >= 137.0 && t < 165.0) {
         camera3D.position.set(0, 0, Z_CAM);
         camera3D.lookAt(0, 0, 0);
         camera3D.updateMatrixWorld();
@@ -2058,18 +2186,45 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
       // C. Compute C² Positions & Carbon-Ink Depth Tones across All 8 Spaces
       const activeScanWaves = multiWaveScans.filter((st) => t >= st.t0 && t < st.t1);
-      const activeScanNodes = new Set<number>();
+      scanHighlightW.fill(0);
       for (const wv of activeScanWaves) {
+        const wEnv = smootherstep(wv.t0, wv.t0 + 0.55, t) * (1 - smootherstep(wv.t1 - 0.60, wv.t1, t));
+        if (wEnv <= 0.001) continue;
         for (const cal of wv.calipers) {
-          activeScanNodes.add(cal.pair[0]);
-          activeScanNodes.add(cal.pair[1]);
+          const [ia, ib] = cal.pair;
+          if (wEnv > scanHighlightW[ia]!) scanHighlightW[ia] = wEnv;
+          if (wEnv > scanHighlightW[ib]!) scanHighlightW[ib] = wEnv;
         }
       }
-      const scanDim = win(t, 64.25, 76.65, 0.45);
-      const orbitMarkOp = span(t, 128.2, 129.4, easeInOutCubic) * (1 - span(t, 148.8, 149.9, easeInOutCubic));
+      const scanDim = smootherstep(64.25, 64.85, t) * (1 - smootherstep(76.00, 76.65, t));
+      const dxSpec = Math.sin((t - 65.0) * 0.75) * 26.0 * scanDim;
+      const dySpec = Math.sin((t - 65.0) * 1.05) * 4.0 * scanDim;
 
-      const focusDim = span(t, 150.0, 151.2, easeInOutCubic);
+      const orbitMarkOp = span(t, 128.2, 129.4, easeInOutCubic) * (1 - span(t, 148.2, 149.1, easeInOutCubic));
+
+      // Continuous `Sphere3D -> Act IV` Handoff (`0` 2D Orbit Snap-Back!):
+      //   1) Background `sphere3D` nodes dim cleanly (`148.4..149.45s`) to `0.16` while staying on the wide 6-latitude dome
+      //   2) 5 `resonantSet` nodes glide order-preservingly (`149.0..151.4s`) to `resonantSpotOf` with `±205×102px` `resonantHalo`!
+      const bgSphereDim = smootherstep(148.4, 149.45, t);
+      const resGlideU = smootherstep(149.0, 151.4, t);
+      const bgDriftAfter150 = Math.max(0, t - 150.2) * smootherstep(150.2, 151.8, t);
       const resonantSet = new Set(neighborIndices);
+
+      // Precompute live `(rx, ry)` of the 5 resonant nodes so background fragments carve out `±205×102px` `resonantHalo`!
+      const liveResonantXY: [number, number][] = [];
+      if (bgSphereDim > 0.001) {
+        for (const nbIdx of neighborIndices) {
+          const sp = layouts.sphere3D[nbIdx]!;
+          const lon = sp.theta + sphereSpin;
+          const wz = Math.sin(lon) * 280;
+          const proj = project3D(Math.cos(lon) * 2980, 0, wz);
+          const sy = sp.ringY + 3.0 * Math.sin(lon * 2.0);
+          const spot = resonantSpotOf.get(nbIdx) ?? [2620, 114];
+          const curveN = (hash(nbIdx * 23 + 9) - 0.5) * 64;
+          const [rx, ry] = stepArc(proj.sx, sy, spot[0], spot[1], resGlideU, curveN * 0.24);
+          liveResonantXY.push([rx, ry]);
+        }
+      }
 
       for (let i = 0; i < fragments.length; i++) {
         const f = fragments[i]!;
@@ -2109,24 +2264,24 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           }
         }
 
-        // 2) Morph -> `spectrum2D` (`63.0..64.45s`, settled before `65.0s`!)
+        // 2) Morph -> `spectrum2D` (`63.0..64.45s`) + Co-Phase Sheet Breathing (`0` at `t=65.0s`!)
         const uSpec = smootherstep(63.0 + stagger * 0.50, 64.45 + stagger * 0.50, t);
         if (uSpec > 0) {
           const pS = layouts.spectrum2D[i]!;
-          [x, y] = stepArc(x, y, pS.x, pS.y, uSpec, curve * 0.45);
+          [x, y] = stepArc(x, y, pS.x + dxSpec, pS.y + dySpec, uSpec, curve * 0.45);
           s = lerp(s, pS.scale, uSpec);
           o = lerp(o, pS.opacity, uSpec);
         }
 
-        // 3) Morph -> `reading2D` (`78.0..87.0s`): Rigid `±24px` Y Counter-Glide + `±38px` X Panorama Breathing (`0` at `t=82.5s`!)
+        // 3) Morph -> `reading2D` (`78.0..87.0s`): 16 Gutter-Isolated Bays (`±18px` Y Counter-Glide + `±36px` X Glide, `0` Collisions!)
         const uRead = smootherstep(78.0 + stagger * 0.70, 79.95 + stagger * 0.70, t);
         const uHelix = smootherstep(87.0 + stagger * 0.80, 89.35 + stagger * 0.80, t);
         if (uRead > 0 && uHelix < 1) {
           const pR = layouts.reading2D[i]!;
           const rCol = layouts.readingColOf[i]!;
           const driftEnv = smootherstep(79.0, 80.3, t) * (1 - uHelix);
-          const glideY = Math.sin((t - 82.5) * 1.25) * 24.0 * (rCol % 2 === 0 ? 1 : -1) * driftEnv;
-          const glideX = Math.sin((t - 82.5) * 0.85) * 38.0 * driftEnv;
+          const glideY = Math.sin((t - 82.5) * 1.25) * 18.0 * (rCol % 2 === 0 ? 1 : -1) * driftEnv;
+          const glideX = Math.sin((t - 82.5) * 0.85) * 36.0 * driftEnv;
           const rx = pR.x + glideX;
           const ry = pR.y + glideY;
           [x, y] = stepArc(x, y, rx, ry, uRead, curve * 0.65);
@@ -2166,15 +2321,15 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           zIdx = Math.round(10 + frontVis * 65);
         }
 
-        // 5) Morph -> `meaning2D` (`102.0..115.0s`): Rigid Per-Cluster Buoyancy (`±22×15px`, exact `0` at `t=108.5s`!)
-        const uCloud = smootherstep(115.0 + stagger * 0.80, 117.35 + stagger * 0.80, t);
+        // 5) Morph -> `meaning2D` (`102.0..112.5s`): Rigid Per-Cluster Buoyancy (`0` at `t=108.5s`!)
+        const uCloud = smootherstep(112.5 + stagger * 0.65, 114.85 + stagger * 0.65, t);
         if (uMean > 0 && uCloud < 1) {
           const pM = layouts.meaning2D[i]!;
           const breatheEnv = smootherstep(103.3, 104.6, t) * (1 - uCloud);
           const bayIdx = f.cluster < 4 ? f.cluster : 4;
           const dtMean = t - 108.5;
-          const dxCluster = (bayIdx % 2 === 0 ? 1 : -1) * Math.sin(dtMean * (0.95 + bayIdx * 0.12)) * 22.0 * breatheEnv;
-          const dyCluster = (bayIdx === 0 || bayIdx === 1 || bayIdx === 3 ? 1 : -1) * Math.sin(dtMean * (1.20 + bayIdx * 0.14)) * 15.0 * breatheEnv;
+          const dxCluster = (bayIdx % 2 === 0 ? 1 : -1) * Math.sin(dtMean * (0.95 + bayIdx * 0.12)) * 20.0 * breatheEnv;
+          const dyCluster = (bayIdx === 0 || bayIdx === 1 || bayIdx === 3 ? 1 : -1) * Math.sin(dtMean * (1.20 + bayIdx * 0.14)) * 13.0 * breatheEnv;
           const mx = pM.x + dxCluster;
           const my = pM.y + dyCluster;
 
@@ -2188,56 +2343,32 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           zIdx = f.isMacroHub ? 65 : 22;
         }
 
-        // 6) Morph -> `cloud3D` (`115.0..128.0s`): Y-Preserving 2-Shell Parallax Nebula (`0` Foreground Collisions!)
-        const uOrb = smootherstep(128.0 + stagger * 0.75, 130.45 + stagger * 0.75, t);
+        // 6) Morph -> `cloud3D` (`112.5..128.0s`): Giant 3D Elliptical Star-Cluster Galactic Orbit (`ΔX = ±386px, Z = ±215`, `0` Collisions, `0` Chatter!)
+        const uOrb = smootherstep(128.0 + stagger * 0.70, 130.45 + stagger * 0.70, t);
         if (uCloud > 0 && uOrb < 1) {
-          const c3 = layouts.cloud3D[i]!;
-          const orbitAng = (t - 115.0) * 0.55;
-          const rcx = c3.cx;
-          const rcy = c3.cy + Math.sin(orbitAng + f.cluster * 1.1) * 3.5;
-          const rcz = c3.cz + Math.cos(orbitAng * 0.8 + i * 0.3) * 8.0;
-          const proj = project3D(rcx, rcy, rcz);
-          const pFactor = clamp(Z_CAM / (Z_CAM - rcz), 0.82, 1.15);
-          const cs3 = c3.scale * pFactor;
-          const hhC = fastBoxH(i, cs3) * 0.5;
-          const safeCy = softMin(softMax(proj.sy, 27 + hhC, 5), 405 - hhC, 5);
-
-          const frontVis = smoothstep(-95, 35, rcz);
-          const edgeFade = smoothstep(-120, 140, proj.sx) * smoothstep(-120, 140, STAGE_W - proj.sx);
-          const co3 = lerp(0.14, 1.0, frontVis) * edgeFade;
-          const cGray = lerp(175, 0, frontVis);
-
-          const edgeSafeBow = smoothstep(260, 720, Math.min(x, STAGE_W - x));
-          [x, y] = stepArc(x, y, proj.sx, safeCy, uCloud, curve * 0.32 * edgeSafeBow);
-          z = lerp(z, rcz, uCloud);
-          s = lerp(s, cs3, uCloud);
-          o = lerp(o, co3, uCloud);
-          gray = lerp(gray, cGray, uCloud);
-          zIdx = Math.round(10 + frontVis * 65);
+          const cl = evalCloudClusterNode(i, t);
+          x = lerp(x, cl.sx, uCloud);
+          y = lerp(y, cl.sy, uCloud);
+          z = lerp(z, cl.wz, uCloud);
+          s = lerp(s, cl.cs, uCloud);
+          o = lerp(o, cl.co, uCloud);
+          gray = lerp(gray, cl.cGray, uCloud);
+          zIdx = Math.round(10 + cl.frontVis * 65);
         }
 
-        // 7) Morph -> `orbit2D` (`128.0..138.0s`, exact phase `0.0` at `t = 133.0s` + static C∞ sanctuary arch)
-        const uSphere =
-          smootherstep(138.0 + stagger * 0.55, 140.55 + stagger * 0.55, t) *
-          (1 - smootherstep(147.30, 149.90, t));
-        if (uOrb > 0) {
+        // 7) Morph -> `orbit2D` (`128.0..138.0s`): Co-Phase Radial Breathing + Panorama Glide (`0` Overtaking Collisions!)
+        //    `uSphere` stays `1.0` from `~141s` through `164.8s` (ZERO `147.3s` snap-back into 2D Orbit!)
+        const uSphere = smootherstep(138.0 + stagger * 0.55, 140.55 + stagger * 0.55, t);
+        if (uOrb > 0 && uSphere < 1) {
           const pO = layouts.orbit2D[i]!;
-          let ox = pO.x;
-          let oy = pO.y;
+          const dtOrb = t - 133.0;
+          const orbEnv = smootherstep(129.2, 130.6, t) * (1 - uSphere);
+          const radScaleX = 1 + 0.038 * Math.sin(dtOrb * 0.95) * orbEnv;
+          const radScaleY = 1 + 0.032 * Math.sin(dtOrb * 0.95) * orbEnv;
+          const panOrbX = Math.sin(dtOrb * 0.72) * 28.0 * orbEnv;
+          const ox = STAGE_W * 0.5 + (pO.x - STAGE_W * 0.5) * radScaleX + panOrbX;
           const hhO = fastBoxH(i, pO.scale) * 0.5;
-          if (i !== targetIndex && !resonantSet.has(i)) {
-            const rawDt = t - 133.0;
-            const effDt = softMin(softMax(rawDt, -3.2, 0.9), 4.2, 0.9) - softMin(softMax(0, -3.2, 0.9), 4.2, 0.9);
-            const dTheta = effDt * (0.042 + f.level * 0.030);
-            if (Math.abs(dTheta) > 1e-5) {
-              const dx0 = pO.x - STAGE_W * 0.5;
-              const dy0 = (pO.y - 216) * 14.0;
-              const cD = Math.cos(dTheta);
-              const sD = Math.sin(dTheta);
-              ox = STAGE_W * 0.5 + (dx0 * cD - dy0 * sD);
-              oy = softMin(softMax(216 + (dx0 * sD + dy0 * cD) / 14.0, 28 + hhO, 6), 404 - hhO, 6);
-            }
-          }
+          const oy = softMin(softMax(216 + (pO.y - 216) * radScaleY, 27 + hhO, 5), 405 - hhO, 5);
 
           const [arcOx, arcOy] = stepArc(x, y, ox, oy, uOrb, curve * 0.42);
           const archO = orbArchBow[i]!;
@@ -2253,10 +2384,10 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           zIdx = Math.round(10 + f.level * 35);
         }
 
-        // 8) Morph -> `sphere3D` (`138.0..150.0s`): 6-Latitude Co-Rotating Lattice + Static C∞ Sanctuary Arch (`0` Collisions, `0` Chatter!)
+        // 8) Morph -> `sphere3D` (`138.0..164.8s`): Continuous 6-Latitude Co-Rotating Dome -> Seamless Act IV Awakening!
         if (uSphere > 0.0005) {
           const sp = layouts.sphere3D[i]!;
-          const lon = sp.theta + sphereSpin; // Rigid uniform angular velocity (`0` overtaking!)
+          const lon = sp.theta + sphereSpin;
           const cosL = Math.cos(lon);
           const sinL = Math.sin(lon);
           const wz = sinL * 280;
@@ -2270,7 +2401,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           const so3 = lerp(0.10, 1.0, frontVis) * limbFade;
           const sGray = lerp(185, 0, frontVis);
 
-          const archS = t < 144.0 ? sphEnterArchBow[i]! : sphExitArchBow[i]!;
+          const archS = sphEnterArchBow[i]!;
           const baseSy = lerp(y, sy, uSphere);
           const hhS = fastBoxH(i, Math.max(s, ss3)) * 0.5;
           x = lerp(x, proj.sx, uSphere);
@@ -2285,23 +2416,27 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           zIdx = Math.round(10 + frontVis * 65);
         }
 
-        // Act IV.1–2 (`150.0..164.0s`)
+        // Act IV.1–2 (`148.4..164.0s`): Continuous `Sphere3D` Dimming + `resonantSpotOf` Glide + `±205×102px` `resonantHalo`!
         const isTarget = i === targetIndex;
         const isResonant = resonantSet.has(i);
-        if (focusDim > 0.001) {
+        if (bgSphereDim > 0.001) {
           if (isTarget) {
-            o = lerp(o, 0, span(t, 150.0, 150.55, easeInOutCubic));
+            o = lerp(o, 0, smootherstep(148.6, 149.8, t));
           } else if (isResonant) {
-            o = lerp(o, 1.0, focusDim);
-            s = lerp(s, 1.02, focusDim);
+            const spot = resonantSpotOf.get(i) ?? [2620, 114];
+            const [rxRes, ryRes] = stepArc(x, y, spot[0], spot[1], resGlideU, curve * 0.24);
+            s = lerp(s, 0.96, resGlideU);
             const hhRes = fastBoxH(i, s) * 0.5;
-            y = softMin(softMax(y + Math.sin(t * 1.6 + i) * 5.0 * focusDim, 28 + hhRes, 5), 404 - hhRes, 5);
-            gray = lerp(gray, 0, focusDim);
-            zIdx = 88;
+            const swayY = Math.sin(t * 1.5 + i) * 4.5 * smootherstep(151.0, 152.2, t);
+            x = rxRes;
+            y = softMin(softMax(ryRes + swayY, 28 + hhRes, 5), 404 - hhRes, 5);
+            o = lerp(o, 1.0, smootherstep(148.8, 150.6, t));
+            gray = lerp(gray, 0, smootherstep(148.8, 150.4, t));
+            zIdx = Math.round(lerp(zIdx, 88, resGlideU));
           } else {
-            x -= (t - 150.0) * (11.5 + (i % 4) * 2.8) * focusDim;
+            x -= bgDriftAfter150 * (9.5 + (i % 4) * 2.4);
             const hhBg = fastBoxH(i, s) * 0.5;
-            y = softMin(softMax(y + Math.sin(t * 1.3 + i * 0.7) * 4.0 * focusDim, 28 + hhBg, 5), 404 - hhBg, 5);
+            y = softMin(softMax(y, 28 + hhBg, 5), 404 - hhBg, 5);
 
             const rightMask =
               smoothstep(3940, 4220, x) *
@@ -2314,23 +2449,34 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
               smoothstep(118, 152, y) *
               (1 - smoothstep(254, 288, y));
             const clearMask = clamp(rightMask + leftPreMask, 0, 1);
-            const targetBgOp = (0.18 + f.level * 0.06) * (1 - clearMask);
-            o = lerp(o, targetBgOp, focusDim);
-            gray = lerp(gray, 84, focusDim);
+
+            // Soft `±205px × ±102px` exclusion halo around ALL 5 resonant nodes (`PL.13` 100% clear of `PL.02` & text!)
+            let resonantHalo = 1.0;
+            for (let k = 0; k < liveResonantXY.length; k++) {
+              const [rxK, ryK] = liveResonantXY[k]!;
+              const dNorm = Math.hypot((x - rxK) / 205, (y - ryK) / 102);
+              resonantHalo *= smoothstep(0.66, 1.16, dNorm);
+            }
+
+            const targetBgOp = (0.14 + f.level * 0.04) * (1 - clearMask) * resonantHalo;
+            o = lerp(o, targetBgOp, bgSphereDim);
+            gray = lerp(gray, 96, bgSphereDim);
           }
         }
 
-        // High-legibility `scanDim` ink ceiling (`rgb(52,52,52)` sentences, `rgb(16,16,16)` anchors)
+        // Smooth C² `scanDim` hierarchy: active caliper pairs (`1.0`, `#000000`) vs background (`0.26`, `rgb(90,90,90)`)
         if (scanDim > 0.001) {
-          const highlighted = activeScanNodes.has(i);
-          if (highlighted) {
-            zIdx = 85;
-            gray = 0;
-          } else if (f.type === 'img') {
-            o *= lerp(1, 0.84, scanDim);
+          const hiW = scanHighlightW[i]!;
+          const dimW = scanDim * (1 - hiW);
+          if (f.type === 'img') {
+            o *= lerp(1.0, 0.34, dimW);
           } else {
-            const targetGray = f.tier === 'anchor' ? 16 : 52;
-            gray = lerp(gray, targetGray, scanDim);
+            o *= lerp(1.0, 0.26, dimW);
+            gray = lerp(gray, 90, dimW);
+          }
+          if (hiW > 0.05) {
+            zIdx = Math.max(zIdx, Math.round(lerp(18, 86, hiW)));
+            gray = lerp(gray, 0, hiW);
           }
         }
 
@@ -2448,7 +2594,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           if (p.o <= 0.08) continue;
           const f = fragments[i]!;
           const barcodeTop = p.y + fastBoxH(i, p.s) * 0.5 + 1.5;
-          const isHighlighted = activeScanNodes.has(i);
+          const hiW = scanHighlightW[i]!;
+          const isHighlighted = hiW > 0.45;
 
           const tickCount =
             f.tier === 'anchor'
@@ -2459,13 +2606,9 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
           const dimFactor =
             scanDim > 0.01
-              ? isHighlighted
-                ? 1.0
-                : f.tier === 'anchor'
-                  ? lerp(0.88, 0.68, scanDim)
-                  : lerp(0.88, 0.42, scanDim)
+              ? lerp(lerp(0.88, 0.24, scanDim), 1.0, hiW)
               : 0.88;
-          ctx.lineWidth = isHighlighted ? 1.35 : f.tier === 'anchor' ? 1.20 : 0.92;
+          ctx.lineWidth = isHighlighted ? 1.35 : f.tier === 'anchor' ? 1.15 : 0.88;
 
           for (let k = 0; k < tickCount; k++) {
             const reveal = progress(t, 64.15 + hash(i * 7 + k) * 0.45, 64.55 + hash(i * 7 + k) * 0.45);
@@ -2485,9 +2628,12 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         ctx.restore();
       }
 
-      // F. Act II.2 (`64.3 – 76.6s`): Overlapped 4-Wave Sanctuary-Locked Cosine Caliper Arcs (`0` `.frag` Overlap!)
+      // F. Act II.2 (`64.3 – 76.6s`): Overlapped 4-Wave Sanctuary-Locked Cosine Caliper Arcs
+      //    - Separate `beginPath()` per endpoint circle (`0` accidental horizontal red chord!)
+      //    - `destination-out` architectural dimension break so ZERO curve line crosses behind `──┤ COS 0.xxx ├──`!
       if (activeScanWaves.length > 0) {
         const bandHits = new Set<string>();
+        const pendingBadges: { labelX: number; labelY: number; dimOp: number; dimText: string }[] = [];
         ctx.save();
 
         for (const wv of activeScanWaves) {
@@ -2515,8 +2661,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
           for (const cal of wv.calipers) {
             const sanct = COSINE_LABEL_SANCTUARIES[cal.sanctuaryIdx]!;
-            const labelX = sanct.cx;
-            const labelY = sanct.cy;
+            const labelX = sanct.cx + dxSpec;
+            const labelY = sanct.cy + dySpec;
 
             const [ia, ib] = cal.pair;
             const pa = screenPos[ia]!;
@@ -2524,35 +2670,33 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
             const hhA = fastBoxH(ia, pa.s) * 0.5;
             const hhB = fastBoxH(ib, pb.s) * 0.5;
 
-            const ay = pa.y < labelY ? pa.y + hhA + 4 : pa.y - hhA - 4;
-            const by = pb.y < labelY ? pb.y + hhB + 4 : pb.y - hhB - 4;
+            const ay = clamp(pa.y < labelY ? pa.y + hhA + 15 : pa.y - hhA - 6, 30, 402);
+            const by = clamp(pb.y < labelY ? pb.y + hhB + 15 : pb.y - hhB - 6, 30, 402);
+            const curEndX = lerp(pa.x, pb.x, arcDrawU);
+            const curEndY = lerp(ay, by, arcDrawU);
 
             ctx.globalAlpha = 0.90 * waveEnv;
             ctx.strokeStyle = '#e60000';
             ctx.lineWidth = 2.0;
 
             if (cal.band === 'diag') {
-              // Exact cubic S-bezier passing strictly through `(labelX, labelY)` at `u = 0.5`!
-              const endX = lerp(pa.x, pb.x, arcDrawU);
-              const endY = lerp(ay, by, arcDrawU);
               const targetLx = lerp(pa.x, labelX, arcDrawU);
               const targetLy = lerp(ay, labelY, arcDrawU);
-              const sumCx = (8 * targetLx - pa.x - endX) / 3;
-              const sumCy = (8 * targetLy - ay - endY) / 3;
-              const dxSpan = (endX - pa.x) * 0.16;
+              const sumCx = (8 * targetLx - pa.x - curEndX) / 3;
+              const sumCy = (8 * targetLy - ay - curEndY) / 3;
+              const dxSpan = (curEndX - pa.x) * 0.16;
               const c1x = sumCx * 0.5 - dxSpan;
               const c2x = sumCx * 0.5 + dxSpan;
-              const c1y = clamp(sumCy * 0.5 - (endY - ay) * 0.24, 34, 398);
+              const c1y = clamp(sumCy * 0.5 - (curEndY - ay) * 0.24, 34, 398);
               const c2y = clamp(sumCy - c1y, 34, 398);
               ctx.beginPath();
               ctx.moveTo(pa.x, ay);
-              ctx.bezierCurveTo(c1x, c1y, c2x, c2y, endX, endY);
+              ctx.bezierCurveTo(c1x, c1y, c2x, c2y, curEndX, curEndY);
               ctx.stroke();
               bandHits.add('upper');
               bandHits.add('mid');
               bandHits.add('lower');
             } else {
-              // Exact quadratic Bezier control point inversion so `B(0.5) === (labelX, labelY)`!
               const ctrlX = 2 * labelX - 0.5 * (pa.x + pb.x);
               const ctrlY = clamp(2 * labelY - 0.5 * (ay + by), 32, 400);
               ctx.beginPath();
@@ -2560,59 +2704,67 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
               ctx.quadraticCurveTo(
                 lerp(pa.x, ctrlX, arcDrawU),
                 lerp(ay, ctrlY, arcDrawU),
-                lerp(pa.x, pb.x, arcDrawU),
-                lerp(ay, by, arcDrawU),
+                curEndX,
+                curEndY,
               );
               ctx.stroke();
               bandHits.add(cal.band);
             }
 
+            // Separate `beginPath()` per endpoint circle (`0` connecting red chord!)
             ctx.beginPath();
             ctx.arc(pa.x, ay, 3.5, 0, Math.PI * 2);
-            ctx.arc(lerp(pa.x, pb.x, arcDrawU), lerp(ay, by, arcDrawU), 3.5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(curEndX, curEndY, 3.5, 0, Math.PI * 2);
             ctx.stroke();
 
             if (dimOp > 0.05) {
-              ctx.save();
-              ctx.globalAlpha = dimOp;
-              ctx.font = '700 14.5px "JetBrains Mono", monospace';
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              const textW = ctx.measureText(cal.dimText).width;
-              const wingW = 24;
-              const textHalf = textW * 0.5 + 6;
-              const totalHalfW = textHalf + wingW;
-
-              if (dimOp >= 0.25) {
-                activeCosineBoxes.push(
-                  `${(labelX - totalHalfW).toFixed(1)},${(labelY - 10).toFixed(1)},${(labelX + totalHalfW).toFixed(1)},${(labelY + 10).toFixed(1)}`,
-                );
-              }
-
-              ctx.lineJoin = 'round';
-              ctx.lineCap = 'round';
-              ctx.lineWidth = 4.6;
-              ctx.strokeStyle = 'rgba(255, 255, 255, 0.96)';
-              ctx.strokeText(cal.dimText, labelX, labelY);
-
-              ctx.strokeStyle = '#e60000';
-              ctx.lineWidth = 1.25;
-              ctx.beginPath();
-              ctx.moveTo(labelX - totalHalfW, labelY - 4.5);
-              ctx.lineTo(labelX - totalHalfW, labelY + 4.5);
-              ctx.moveTo(labelX - totalHalfW, labelY);
-              ctx.lineTo(labelX - textHalf, labelY);
-              ctx.moveTo(labelX + textHalf, labelY);
-              ctx.lineTo(labelX + totalHalfW, labelY);
-              ctx.moveTo(labelX + totalHalfW, labelY - 4.5);
-              ctx.lineTo(labelX + totalHalfW, labelY + 4.5);
-              ctx.stroke();
-
-              ctx.fillStyle = '#e60000';
-              ctx.fillText(cal.dimText, labelX, labelY);
-              ctx.restore();
+              pendingBadges.push({ labelX, labelY, dimOp, dimText: cal.dimText });
             }
           }
+        }
+
+        // Punch crisp `destination-out` architectural line-breaks & draw `──┤ COS 0.xxx ├──`
+        ctx.font = '700 14.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (const b of pendingBadges) {
+          const textW = ctx.measureText(b.dimText).width;
+          const wingW = 24;
+          const textHalf = textW * 0.5 + 6;
+          const totalHalfW = textHalf + wingW;
+
+          if (b.dimOp >= 0.25) {
+            activeCosineBoxes.push(
+              `${(b.labelX - totalHalfW).toFixed(1)},${(b.labelY - 10).toFixed(1)},${(b.labelX + totalHalfW).toFixed(1)},${(b.labelY + 10).toFixed(1)}`,
+            );
+          }
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.fillStyle = `rgba(0, 0, 0, ${clamp(b.dimOp * 1.4, 0, 1).toFixed(3)})`;
+          ctx.fillRect(b.labelX - totalHalfW - 3, b.labelY - 11, (totalHalfW + 3) * 2, 22);
+          ctx.restore();
+
+          ctx.save();
+          ctx.globalAlpha = b.dimOp;
+          ctx.strokeStyle = '#e60000';
+          ctx.lineWidth = 1.25;
+          ctx.beginPath();
+          ctx.moveTo(b.labelX - totalHalfW, b.labelY - 4.5);
+          ctx.lineTo(b.labelX - totalHalfW, b.labelY + 4.5);
+          ctx.moveTo(b.labelX - totalHalfW, b.labelY);
+          ctx.lineTo(b.labelX - textHalf, b.labelY);
+          ctx.moveTo(b.labelX + textHalf, b.labelY);
+          ctx.lineTo(b.labelX + totalHalfW, b.labelY);
+          ctx.moveTo(b.labelX + totalHalfW, b.labelY - 4.5);
+          ctx.lineTo(b.labelX + totalHalfW, b.labelY + 4.5);
+          ctx.stroke();
+
+          ctx.fillStyle = '#e60000';
+          ctx.fillText(b.dimText, b.labelX, b.labelY);
+          ctx.restore();
         }
         ctx.restore();
         activeCosineBands = Array.from(bandHits).sort().join(',');
@@ -2800,16 +2952,35 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
 
       const ringOp = win(t, 128.8, 138.8, 0.75);
       if (ringOp > 0.005) {
+        const dtOrbR = t - 133.0;
+        const rScaleX = 1 + 0.038 * Math.sin(dtOrbR * 0.95);
+        const rScaleY = 1 + 0.032 * Math.sin(dtOrbR * 0.95);
+        const rPanX = Math.sin(dtOrbR * 0.72) * 28.0;
         ctx.save();
-        ctx.strokeStyle = `rgba(0, 0, 0, ${(0.18 * ringOp).toFixed(3)})`;
-        ctx.lineWidth = 0.7;
-        ctx.setLineDash([4, 7]);
-        ctx.lineDashOffset = -t * 16;
-        for (const frac of [0.26, 0.58, 0.92]) {
+        ctx.lineWidth = 0.8;
+        [0.26, 0.58, 0.92].forEach((frac, rIdx) => {
+          const rx = (460 + frac * 2500) * rScaleX;
+          const ry = (74 + frac * 90) * rScaleY;
+          ctx.strokeStyle =
+            rIdx === 1
+              ? `rgba(230, 0, 0, ${(0.22 * ringOp).toFixed(3)})`
+              : `rgba(0, 0, 0, ${(0.20 * ringOp).toFixed(3)})`;
+          ctx.setLineDash([5, 8]);
+          ctx.lineDashOffset = (rIdx % 2 === 0 ? -1 : 1) * t * (22 + rIdx * 8);
           ctx.beginPath();
-          ctx.ellipse(STAGE_W * 0.5, 216, 460 + frac * 2550, 74 + frac * 94, 0, 0, Math.PI * 2);
+          ctx.ellipse(STAGE_W * 0.5 + rPanX, 216, rx, ry, 0, 0, Math.PI * 2);
           ctx.stroke();
-        }
+
+          // Orbiting vernier fiducial bead along each ellipse
+          ctx.setLineDash([]);
+          const mAng = t * (0.28 - rIdx * 0.06) * (rIdx % 2 === 0 ? 1 : -1) + rIdx * 2.1;
+          const mx = STAGE_W * 0.5 + rPanX + Math.cos(mAng) * rx;
+          const my = 216 + Math.sin(mAng) * ry;
+          ctx.fillStyle = rIdx === 1 ? `rgba(230, 0, 0, ${(0.65 * ringOp).toFixed(3)})` : `rgba(0, 0, 0, ${(0.45 * ringOp).toFixed(3)})`;
+          ctx.beginPath();
+          ctx.arc(mx, my, 2.4, 0, Math.PI * 2);
+          ctx.fill();
+        });
         ctx.restore();
       }
 
@@ -2980,7 +3151,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         }
         ctx.restore();
 
-        const leftX = lerp(4550, 4240, 0.55 * uSnap + 0.45 * uDrift);
+        const leftX = lerp(4420, 4220, 0.55 * uSnap + 0.45 * uDrift);
         const leftY = lerp(216, 98, clamp(0.86 * uSnap + 0.14 * uDrift, 0, 1));
         const leftRotY = 20 * uSnap + 12 * uDrift;
         const leftScale = lerp(1.0, 0.78, 0.55 * uSnap + 0.45 * uDrift);
@@ -2989,12 +3160,12 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         shardEls[0]!.style.color = `rgb(${sideGray}, ${sideGray}, ${sideGray})`;
         shardEls[0]!.style.transform = `translate3d(${leftX.toFixed(2)}px, ${leftY.toFixed(2)}px, 0) translate(-50%, -50%) perspective(460px) rotateY(${leftRotY.toFixed(2)}deg) rotateZ(${(-3.0 * uSnap - uDrift * 2.5).toFixed(2)}deg) scale(${leftScale.toFixed(4)})`;
 
-        const centerX = 4880 - uDrift * 14;
+        const centerX = lerp(4895, 4880, uDrift);
         const centerScale = lerp(0.56, 1.0, smootherstep(157.45, 158.35, t)) * lerp(1.0, 1.04, uDrift);
         shardEls[1]!.style.opacity = Math.max(centerExit, t < 163.98 ? 1 : 0).toFixed(3);
         shardEls[1]!.style.transform = `translate3d(${centerX.toFixed(2)}px, 216px, 0) translate(-50%, -50%) scale(${centerScale.toFixed(4)})`;
 
-        const rightX = lerp(5220, 5540, 0.55 * uSnap + 0.45 * uDrift);
+        const rightX = lerp(5360, 5560, 0.55 * uSnap + 0.45 * uDrift);
         const rightY = lerp(216, 332, clamp(0.84 * uSnap + 0.16 * uDrift, 0, 1));
         const rightRotY = -20 * uSnap - 12 * uDrift;
         const rightScale = lerp(1.0, 0.78, 0.55 * uSnap + 0.45 * uDrift);
@@ -3119,9 +3290,9 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     }
 
     // -----------------------------------------------------------------------
-    // 7. ACT IV.4 (`193.0 – 199.45s`): ZERO-WARP ENVELOPE SASTRUGI BLIZZARD
+    // 7. ACT IV.4 (`192.6 – 198.95s`): ZERO-WARP ENVELOPE SASTRUGI BLIZZARD
     // -----------------------------------------------------------------------
-    if (t >= 193.0 && t < 199.45) {
+    if (t >= 192.6 && t < 198.95) {
       ctx.save();
       const gradLeft = blizzardFrontX - 720;
       const gradRight = blizzardFrontX + 460;
@@ -3132,14 +3303,14 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       ctx.fillStyle = veilGrad;
       ctx.fillRect(Math.max(0, gradLeft), 0, STAGE_W - Math.max(0, gradLeft), STAGE_H);
 
-      const stormEnv = span(t, 193.0, 193.60, easeOutCubic) * (1 - span(t, 198.90, 199.43, easeInOut));
+      const stormEnv = span(t, 192.6, 193.20, easeOutCubic) * (1 - span(t, 198.35, 198.92, easeInOut));
       if (stormEnv > 0.005) {
         ctx.lineCap = 'round';
         for (let s = 0; s < 230; s++) {
           const hs1 = hash(s * 31 + 9);
           const hs2 = hash(s * 47 + 13);
           const hs3 = hash(s * 71 + 23);
-          const uPhase = (((t - 193.0) * (0.42 + hs3 * 0.45) + hs1) % 1.0 + 1.0) % 1.0;
+          const uPhase = (((t - 192.6) * (0.42 + hs3 * 0.45) + hs1) % 1.0 + 1.0) % 1.0;
           const phaseEnv = Math.sin(Math.PI * uPhase);
           if (phaseEnv <= 0.01) continue;
 
@@ -3172,7 +3343,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         for (let p = 0; p < 480; p++) {
           const hp1 = hash(p * 29 + 7);
           const hp2 = hash(p * 61 + 19);
-          const uPhase = (((t - 193.0) * (0.52 + hp1 * 0.55) + hp2) % 1.0 + 1.0) % 1.0;
+          const uPhase = (((t - 192.6) * (0.52 + hp1 * 0.55) + hp2) % 1.0 + 1.0) % 1.0;
           const phaseEnv = Math.sin(Math.PI * uPhase);
           if (phaseEnv <= 0.01) continue;
 
@@ -3192,10 +3363,10 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     }
 
     // -----------------------------------------------------------------------
-    // 8. TAUT `0.70s` (`199.45s..200.00s` + `0.00s..0.15s`) 100.00% PURE #FFFFFF LOOP
+    // 8. SYMMETRIC `1.50s` (`198.95s..200.00s` + `0.00s..0.45s`) `100.00%` PURE #FFFFFF LOOP
     // -----------------------------------------------------------------------
-    const washEnd = t >= 199.45 ? 1.0 : span(t, 199.00, 199.45, easeInOut);
-    const washStart = t <= 0.15 ? 1.0 : 1 - span(t, 0.15, 0.28, easeOutCubic);
+    const washEnd = t >= 198.95 ? 1.0 : smootherstep(198.30, 198.95, t);
+    const washStart = t <= 0.45 ? 1.0 : 1 - smootherstep(0.45, 0.98, t);
     const washAlpha = Math.max(washEnd, washStart);
     fadeWash.style.opacity = washAlpha.toFixed(4);
 

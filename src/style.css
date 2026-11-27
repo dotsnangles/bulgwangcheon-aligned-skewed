@@ -296,6 +296,13 @@ body.raw-mode {
   pointer-events: none;
 }
 
+.station-deck-group {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+
 .station-beacon {
   position: absolute;
   pointer-events: none;
@@ -658,7 +665,7 @@ body.raw-mode {
 
 .frag.is-sentence {
   font-family: var(--font-serif);
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: -0.005em;
 }
 

@@ -78,6 +78,7 @@ export interface SphereNodeSpec {
 
 export interface PanoramicLayouts {
   readonly heroSpreadSlots: readonly HeroSpreadSlot[];
+  readonly colRuleXs: readonly number[];
   readonly page: readonly Pos3D[];
   readonly pageColOf: readonly number[];
   readonly pageRowOf: readonly number[];
@@ -87,6 +88,7 @@ export interface PanoramicLayouts {
   readonly readingColOf: readonly number[];
   readonly helixBase: readonly HelixNodeSpec[];
   readonly meaning2D: readonly Pos3D[];
+  readonly clusterCentersX: readonly number[];
   readonly clusterHubIndex: readonly number[];
   readonly cloud3D: readonly CloudNodeSpec[];
   readonly orbit2D: readonly Pos3D[];
@@ -357,8 +359,10 @@ export function computePanoramicLayouts(
   const pageRowOf: number[] = new Array(n).fill(0);
   const cuts: CutMark[] = [];
 
+  const colRuleXs: number[] = [];
   colDefs.forEach((col, cIdx) => {
     if (col.isBayFirst) return;
+    colRuleXs.push(col.left - 6);
     cuts.push({
       x1: col.left - 6,
       y1: 28,
@@ -416,14 +420,19 @@ export function computePanoramicLayouts(
       const f = fragments[i]!;
       const localRow = i - sIdx;
       const slotH = (weights[localRow]! / Math.max(1, weightSum)) * totalSpanY;
-      const sc =
+      let sc =
         f.type === 'img'
-          ? 0.75
+          ? 0.74
           : f.isMacroHub
             ? 0.36
             : f.tier === 'anchor'
               ? 0.56
-              : 0.50;
+              : 0.54;
+      if (f.type !== 'img') {
+        const bPage = fragmentBox(f, sc);
+        const maxPageW = col.width + 8;
+        if (bPage.w > maxPageW) sc *= maxPageW / bPage.w;
+      }
       const cx = col.left + col.width * 0.5;
       const cy = Math.min(388, curY + slotH * 0.5);
       page[i] = { x: cx, y: cy, z: 0, scale: sc, opacity: 1 };
@@ -455,13 +464,13 @@ export function computePanoramicLayouts(
     marginBottom: 36,
     padX: 7,
     padY: 5,
-    passes: 4500,
+    passes: 6000,
     keepOut: heroKeepOut,
   });
 
   /* -----------------------------------------------------------------------
    * 2. SPECTRUM 2D (`spectrum2D`, 63.0–78.0s)
-   *    Upgraded sentence scale `0.58` + 15 `COSINE_LABEL_SANCTUARIES` (`0` badge overlaps!)
+   *    Inset by `marginX=66, marginTop=35, marginBottom=37` so `±26×6px` sheet breathing stays bezel-safe!
    * ----------------------------------------------------------------------- */
   const sCols = 30;
   const sLeft = 116;
@@ -497,41 +506,90 @@ export function computePanoramicLayouts(
   });
 
   /* -----------------------------------------------------------------------
-   * 3. READING 2D (`reading2D`, 78.0–87.0s) — Rigid 20-Column Galley Sheet
-   *    Generous `marginTop/Bottom = 54`, `marginX = 88` so `±24px` Y & `±38px` X glides stay bezel-safe!
+   * 3. READING 2D (`reading2D`, 78.0–87.0s) — 16 Balanced Gutter-Isolated Vertical Bays
+   *    Image fragments distributed `<= 2` per bay across 16 `364px`-wide bays (`>= 30px` pure-white gutters!)
+   *    so `±18px` Y counter-gliding & `±36px` X breathing have MATHEMATICALLY ZERO collisions!
    * ----------------------------------------------------------------------- */
-  const rCols = 20;
-  const rLeft = 186;
-  const rRight = 6294;
-  const rColW = (rRight - rLeft) / rCols;
-  const rPerCol = Math.ceil(n / rCols);
+  const rBayCount = 16;
+  const rBayW = 364;
+  const rSpanLeft = 104;
+  const rSpanRight = 6376;
+  const rBayStep = (rSpanRight - rSpanLeft - rBayW) / (rBayCount - 1); // `394.13px` -> `30.13px` pure-white gutter!
   const readingColOf: number[] = new Array(n).fill(0);
+  const reading2D: Pos3D[] = new Array(n);
 
-  const reading2D: Pos3D[] = fragments.map((f, i) => {
-    const col = Math.floor(i / rPerCol);
-    const row = i % rPerCol;
-    readingColOf[i] = col;
-    const x = rLeft + (col + 0.5) * rColW;
-    const y = 68 + (row / Math.max(1, rPerCol - 1)) * 296;
-    const sc =
-      f.type === 'img'
-        ? 0.80
-        : f.isMacroHub
-          ? 0.46
-          : f.tier === 'anchor'
-            ? 0.80
-            : 0.68;
-    return { x, y, z: 0, scale: sc, opacity: 1 };
+  const bayBuckets: number[][] = Array.from({ length: rBayCount }, () => []);
+  const imgFragIndices = fragments
+    .map((_, i) => i)
+    .filter((i) => fragments[i]!.type === 'img')
+    .sort((a, b) => spectrum2D[a]!.x - spectrum2D[b]!.x);
+  imgFragIndices.forEach((imIdx, k) => {
+    const bTarget = Math.min(rBayCount - 1, Math.floor((k * rBayCount) / imgFragIndices.length));
+    bayBuckets[bTarget]!.push(imIdx);
   });
 
-  separate(reading2D, fragments, {
-    marginX: 88,
-    marginTop: 54,
-    marginBottom: 54,
-    padX: 10,
-    padY: 6,
-    passes: 3000,
-  });
+  const textFragIndices = fragments
+    .map((_, i) => i)
+    .filter((i) => fragments[i]!.type !== 'img')
+    .sort((a, b) => spectrum2D[a]!.x - spectrum2D[b]!.x);
+  let tCursor = 0;
+  for (let bIdx = 0; bIdx < rBayCount; bIdx++) {
+    const remBays = rBayCount - bIdx;
+    const remTotal = textFragIndices.length - tCursor;
+    const imgWeight = bayBuckets[bIdx]!.length >= 2 ? -1 : 0;
+    const take = Math.max(1, Math.min(remTotal, Math.round(remTotal / remBays) + imgWeight));
+    for (let k = 0; k < take && tCursor < textFragIndices.length; k++) {
+      bayBuckets[bIdx]!.push(textFragIndices[tCursor++]!);
+    }
+  }
+  while (tCursor < textFragIndices.length) {
+    bayBuckets[rBayCount - 1]!.push(textFragIndices[tCursor++]!);
+  }
+
+  for (let bIdx = 0; bIdx < rBayCount; bIdx++) {
+    const members = bayBuckets[bIdx]!;
+    members.sort((a, b) => spectrum2D[a]!.y - spectrum2D[b]!.y);
+    const bayMinX = rSpanLeft + bIdx * rBayStep;
+    const bayMaxX = bayMinX + rBayW;
+    const bayCenterX = (bayMinX + bayMaxX) * 0.5;
+    const countInBay = Math.max(1, members.length);
+
+    const subPos: Pos3D[] = [];
+    const subFrags: FragmentItem[] = [];
+    members.forEach((origIdx, localRow) => {
+      const f = fragments[origIdx]!;
+      readingColOf[origIdx] = bIdx;
+      let sc =
+        f.type === 'img'
+          ? 0.68
+          : f.isMacroHub
+            ? 0.44
+            : f.tier === 'anchor'
+              ? 0.68
+              : 0.56;
+      const bBox = fragmentBox(f, sc);
+      if (bBox.w > rBayW - 22) {
+        sc *= (rBayW - 22) / bBox.w;
+      }
+      const y = 60 + (localRow / Math.max(1, countInBay - 1)) * 312;
+      subPos.push({ x: bayCenterX + ((localRow % 2) - 0.5) * 20, y, z: 0, scale: sc, opacity: 1 });
+      subFrags.push(f);
+    });
+
+    separate(subPos, subFrags, {
+      minX: bayMinX,
+      maxX: bayMaxX,
+      marginTop: 46,
+      marginBottom: 46,
+      padX: 10,
+      padY: 7,
+      passes: 4500,
+    });
+
+    members.forEach((origIdx, k) => {
+      reading2D[origIdx] = subPos[k]!;
+    });
+  }
 
   /* -----------------------------------------------------------------------
    * 4. 30M 6-PHASE INTERLEAVED 3D DOUBLE HELIX (`helixBase`, 87.0–102.0s)
@@ -714,12 +772,12 @@ export function computePanoramicLayouts(
     z: 0,
     scale:
       f.type === 'img'
-        ? 0.72
+        ? 0.65
         : f.isMacroHub
-          ? 0.94
+          ? 0.88
           : f.tier === 'anchor'
-            ? 0.74
-            : 0.58 + hash(i * 13) * 0.03,
+            ? 0.70
+            : 0.54 + hash(i * 13) * 0.02,
     opacity: 1,
   }));
 
@@ -745,11 +803,11 @@ export function computePanoramicLayouts(
     separate(subPos, subFrags, {
       minX: bay.minX,
       maxX: bay.maxX,
-      marginTop: 45,
-      marginBottom: 45,
-      padX: 10,
-      padY: 7,
-      passes: 3800,
+      marginTop: 44,
+      marginBottom: 44,
+      padX: 12,
+      padY: 8,
+      passes: 6500,
     });
     subIndices.forEach((origIdx, k) => {
       meaning2D[origIdx]!.x = subPos[k]!.x;
@@ -899,12 +957,12 @@ export function computePanoramicLayouts(
   const orbitSanctuary: KeepOutZone[] = [{ cx: cxO, cy: cyO, hw: 404, hh: 96 }];
 
   separate(orbit2D, fragments, {
-    marginX: 44,
-    marginTop: 28,
-    marginBottom: 28,
-    padX: 12,
+    marginX: 84,
+    marginTop: 36,
+    marginBottom: 36,
+    padX: 14,
     padY: 10,
-    passes: 6000,
+    passes: 6500,
     pinned: pinnedOrbit,
     keepOut: orbitSanctuary,
   });
@@ -1067,6 +1125,7 @@ export function computePanoramicLayouts(
 
   return {
     heroSpreadSlots,
+    colRuleXs,
     page,
     pageColOf,
     pageRowOf,
@@ -1076,6 +1135,7 @@ export function computePanoramicLayouts(
     readingColOf,
     helixBase,
     meaning2D,
+    clusterCentersX,
     clusterHubIndex,
     cloud3D,
     orbit2D,

@@ -31,6 +31,8 @@ export interface CutMark {
   readonly y2: number;
   readonly orientation: 'v' | 'h';
   readonly strikeAt: number;
+  readonly heroSlotIdx?: number;
+  readonly heroEdge?: 'left' | 'right';
 }
 
 export interface HeroSpreadSlot {
@@ -68,8 +70,8 @@ export interface PanoramicLayouts {
 export function fragmentBox(f: FragmentItem, scale: number, extraBottomPx = 0): { w: number; h: number } {
   if (f.type === 'img') {
     return {
-      w: 156 * scale + 16,
-      h: 106 * scale + 14 + extraBottomPx,
+      w: 178 * scale + 14,
+      h: 118 * scale + 12 + extraBottomPx,
     };
   }
 
@@ -89,10 +91,10 @@ export function fragmentBox(f: FragmentItem, scale: number, extraBottomPx = 0): 
 
   const fontPx = f.baseFontPx * scale;
   const letterSpacingPx = f.tier === 'anchor' ? fontPx * 0.04 * f.content.length : fontPx * 0.01 * f.content.length;
-  const padHoriz = f.isMacroHub ? 16 : 10;
-  const padVert = f.isMacroHub ? 8 : 5;
-  const w = (emSum * fontPx + letterSpacingPx + padHoriz * scale) * 1.10 + 8;
-  const h = (f.baseFontPx * 1.34 + padVert) * scale + 4 + extraBottomPx;
+  const padHoriz = f.isMacroHub ? 18 : 11;
+  const padVert = f.isMacroHub ? 10 : 6;
+  const w = (emSum * fontPx + letterSpacingPx + padHoriz * scale) * 1.14 + 10;
+  const h = (f.baseFontPx * 1.38 + padVert) * scale + 6 + extraBottomPx;
   return { w, h };
 }
 
@@ -199,23 +201,41 @@ export function separate(
         const signY = dy > 0.01 ? 1 : dy < -0.01 ? -1 : (i + j) % 2 === 0 ? 1 : -1;
 
         if (overY < overX) {
-          const pushY = overY * 0.65 + 1.2;
-          const slideX = Math.min(overX * 0.14 + 2.8, 13.0);
+          const pushY = overY * 0.56 + 0.45;
+          const prevIy = pi.y;
+          const prevJy = pj.y;
           pi.y -= signY * pushY * wI;
           pj.y += signY * pushY * wJ;
-          pi.x -= signX * slideX * wI;
-          pj.x += signX * slideX * wJ;
+          clampNode(i);
+          clampNode(j);
+          const gainedY = Math.abs(pj.y - pi.y) - Math.abs(prevJy - prevIy);
+          // Proportional micro-slide normally (zero kinetic overshoot!), larger escape slide ONLY when clamped at bezel!
+          const horizMove =
+            gainedY < pushY * 0.30
+              ? Math.min(overX * 0.32 + 1.8, 16.0)
+              : Math.min(overY * 0.35, 6.0);
+          pi.x -= signX * horizMove * wI;
+          pj.x += signX * horizMove * wJ;
+          clampNode(i);
+          clampNode(j);
         } else {
-          const pushX = overX * 0.65 + 1.6;
-          const slideY = Math.min(overY * 0.14 + 1.2, 5.5);
+          const pushX = overX * 0.56 + 0.55;
+          const prevIx = pi.x;
+          const prevJx = pj.x;
           pi.x -= signX * pushX * wI;
           pj.x += signX * pushX * wJ;
-          pi.y -= signY * slideY * wI;
-          pj.y += signY * slideY * wJ;
+          clampNode(i);
+          clampNode(j);
+          const gainedX = Math.abs(pj.x - pi.x) - Math.abs(prevJx - prevIx);
+          const vertMove =
+            gainedX < pushX * 0.30
+              ? Math.min(overY * 0.32 + 1.5, 12.0)
+              : Math.min(overX * 0.25, 4.5);
+          pi.y -= signY * vertMove * wI;
+          pj.y += signY * vertMove * wJ;
+          clampNode(i);
+          clampNode(j);
         }
-
-        clampNode(i);
-        clampNode(j);
       }
     }
 
@@ -238,29 +258,30 @@ export function computePanoramicLayouts(
 
   /* -----------------------------------------------------------------------
    * 1. FULL-BLEED FINE-PRESS BROADSHEET (`page`, 30.0–37.6s)
-   *    5 Monumental Hero Lithograph Plates (`Y = 30..402`, bezel-safe!) + 20 columns
-   *    + `>= 12px` Bold Mono `.frag-lab` (`img scale = 0.88`) + Tectonic Shear Cuts (`32.05..37.1s`)!
+   *    5 Monumental Hero Lithograph Plates (`w = 336`, `>= 28px` gutters to adjacent bays!)
+   *    + Inter-column gutter cuts ONLY (zero duplicate first-column cut, zero `FIG` intrusion!)
    * ----------------------------------------------------------------------- */
   const heroSpreadSlots: HeroSpreadSlot[] = [
-    { plateId: 'plate-02', code: 'FIG.01 · 4.2μm', caption: '옹기 미세 기공과 소금 꽃', x: 136, y: 30, w: 344, h: 372 },
-    { plateId: 'plate-03', code: 'FIG.02 · 90.0°', caption: '정육면체 호퍼 결정 계단', x: 1556, y: 30, w: 344, h: 372 },
-    { plateId: 'plate-05', code: 'FIG.03 · -812m', caption: '지하 812m 암염 돔 습곡', x: 3068, y: 30, w: 344, h: 372 },
-    { plateId: 'plate-07', code: 'FIG.04 · 280MA', caption: '페름기 암염 유체 포유물', x: 4580, y: 30, w: 344, h: 372 },
-    { plateId: 'plate-09', code: 'FIG.05 · -3000m', caption: '남극 심부 빙하 포획 대기', x: 6000, y: 30, w: 344, h: 372 },
+    { plateId: 'plate-02', code: 'FIG.01 · 4.2μm', caption: '옹기 미세 기공과 소금 꽃', x: 136, y: 30, w: 336, h: 372 },
+    { plateId: 'plate-03', code: 'FIG.02 · 90.0°', caption: '정육면체 호퍼 결정 계단', x: 1548, y: 30, w: 336, h: 372 },
+    { plateId: 'plate-05', code: 'FIG.03 · -812m', caption: '지하 812m 암염 돔 습곡', x: 3068, y: 30, w: 336, h: 372 },
+    { plateId: 'plate-07', code: 'FIG.04 · 280MA', caption: '페름기 암염 유체 포유물', x: 4588, y: 30, w: 336, h: 372 },
+    { plateId: 'plate-09', code: 'FIG.05 · -3000m', caption: '남극 심부 빙하 포획 대기', x: 6008, y: 30, w: 336, h: 372 },
   ];
 
+  // Exact `28px` (`>= 26px`) pure-white gutters between every `FIG` (`w=336`) and adjacent editorial bays!
   const editorialBays: [number, number, number][] = [
-    [496, 1540, 5],
-    [1916, 3052, 6],
-    [3428, 4564, 6],
-    [4940, 5984, 6],
+    [500, 1520, 5],
+    [1912, 3040, 6],
+    [3432, 4560, 6],
+    [4952, 5980, 6],
   ];
 
-  const colDefs: { left: number; width: number }[] = [];
+  const colDefs: { left: number; width: number; isBayFirst: boolean }[] = [];
   for (const [bL, bR, cCount] of editorialBays) {
     const cW = (bR - bL) / cCount;
     for (let k = 0; k < cCount; k++) {
-      colDefs.push({ left: bL + k * cW + 6, width: cW - 12 });
+      colDefs.push({ left: bL + k * cW + 6, width: cW - 12, isBayFirst: k === 0 });
     }
   }
 
@@ -269,7 +290,9 @@ export function computePanoramicLayouts(
   const pageRowOf: number[] = new Array(n).fill(0);
   const cuts: CutMark[] = [];
 
+  // Place vertical column cuts strictly in inter-column gutters (omit `isBayFirst` left cut!)
   colDefs.forEach((col, cIdx) => {
+    if (col.isBayFirst) return;
     cuts.push({
       x1: col.left - 6,
       y1: 28,
@@ -281,8 +304,26 @@ export function computePanoramicLayouts(
   });
   heroSpreadSlots.forEach((slot, sIdx) => {
     const beatT = 32.05 + sIdx * 0.80;
-    cuts.push({ x1: slot.x, y1: 28, x2: slot.x, y2: 404, orientation: 'v', strikeAt: beatT });
-    cuts.push({ x1: slot.x + slot.w, y1: 28, x2: slot.x + slot.w, y2: 404, orientation: 'v', strikeAt: beatT + 0.25 });
+    cuts.push({
+      x1: slot.x,
+      y1: 28,
+      x2: slot.x,
+      y2: 404,
+      orientation: 'v',
+      strikeAt: beatT,
+      heroSlotIdx: sIdx,
+      heroEdge: 'left',
+    });
+    cuts.push({
+      x1: slot.x + slot.w,
+      y1: 28,
+      x2: slot.x + slot.w,
+      y2: 404,
+      orientation: 'v',
+      strikeAt: beatT + 0.25,
+      heroSlotIdx: sIdx,
+      heroEdge: 'right',
+    });
   });
 
   let cursor = 0;
@@ -294,23 +335,22 @@ export function computePanoramicLayouts(
     const eIdx = Math.min(n, sIdx + take);
     cursor = eIdx;
 
-    // Weight vertical allocation so `.frag.is-img` (`scale = 0.88`, `>= 12px` Bold Mono label) gets generous vertical air!
     const weights: number[] = [];
     let weightSum = 0;
     for (let i = sIdx; i < eIdx; i++) {
-      const w = fragments[i]!.type === 'img' ? 4.4 : fragments[i]!.tier === 'anchor' ? 1.25 : 1.0;
+      const w = fragments[i]!.type === 'img' ? 4.6 : fragments[i]!.tier === 'anchor' ? 1.25 : 1.0;
       weights.push(w);
       weightSum += w;
     }
 
     let curY = 34;
-    const totalSpanY = 364;
+    const totalSpanY = 358;
 
     for (let i = sIdx; i < eIdx; i++) {
       const f = fragments[i]!;
       const localRow = i - sIdx;
       const slotH = (weights[localRow]! / Math.max(1, weightSum)) * totalSpanY;
-      // Note: `.frag-lab` is `16px` Bold Mono, so `scale = 0.75` renders at exact `12.0px >= 12px` Bold Mono!
+      // `.frag-lab` is `16px` Bold Mono, so `scale = 0.75` renders at exact `12.0px >= 12px` Bold Mono!
       const sc =
         f.type === 'img'
           ? 0.75
@@ -320,7 +360,7 @@ export function computePanoramicLayouts(
               ? 0.54
               : 0.42;
       const cx = col.left + col.width * 0.5;
-      const cy = Math.min(394, curY + slotH * 0.5);
+      const cy = Math.min(390, curY + slotH * 0.5);
       page[i] = { x: cx, y: cy, z: 0, scale: sc, opacity: 1 };
       pageColOf[i] = colIdx;
       pageRowOf[i] = localRow;
@@ -328,9 +368,9 @@ export function computePanoramicLayouts(
       const hBeat = 32.5 + colIdx * 0.22 + (localRow % 2) * 0.125;
       cuts.push({
         x1: col.left - 3,
-        y1: Math.min(402, curY + slotH),
+        y1: Math.min(398, curY + slotH),
         x2: col.left + col.width + 3,
-        y2: Math.min(402, curY + slotH),
+        y2: Math.min(398, curY + slotH),
         orientation: 'h',
         strikeAt: Math.min(37.0, hBeat),
       });
@@ -341,16 +381,16 @@ export function computePanoramicLayouts(
   const heroKeepOut: KeepOutZone[] = heroSpreadSlots.map((s) => ({
     cx: s.x + s.w * 0.5,
     cy: s.y + s.h * 0.5,
-    hw: s.w * 0.5 + 8,
-    hh: s.h * 0.5 + 6,
+    hw: s.w * 0.5 + 24,
+    hh: s.h * 0.5 + 8,
   }));
   separate(page, fragments, {
     marginX: 36,
     marginTop: 28,
-    marginBottom: 28,
-    padX: 6,
-    padY: 5,
-    passes: 2000,
+    marginBottom: 34,
+    padX: 8,
+    padY: 6,
+    passes: 3200,
     keepOut: heroKeepOut,
   });
 
@@ -380,20 +420,21 @@ export function computePanoramicLayouts(
     return { x, y, z: 0, scale: sc, opacity: 1 };
   });
 
+  // 3 Upper Dimension-Caliper Sanctuaries (`X ≈ 1050, 3240, 5380`) for simultaneous 3-zone cosine arcs!
   const spectrumSanctuaries: KeepOutZone[] = [
-    { cx: 920, cy: 42, hw: 170, hh: 16 },
-    { cx: 3180, cy: 42, hw: 170, hh: 16 },
-    { cx: 4920, cy: 42, hw: 170, hh: 16 },
+    { cx: 1050, cy: 42, hw: 185, hh: 18 },
+    { cx: 3240, cy: 42, hw: 185, hh: 18 },
+    { cx: 5380, cy: 42, hw: 185, hh: 18 },
   ];
 
   separate(spectrum2D, fragments, {
     marginX: 38,
     marginTop: 28,
     marginBottom: 30,
-    padX: 8,
-    padY: 6,
+    padX: 9,
+    padY: 8,
     extraBottomPx: 20,
-    passes: 2000,
+    passes: 3000,
     keepOut: spectrumSanctuaries,
   });
 
@@ -428,9 +469,9 @@ export function computePanoramicLayouts(
     marginX: 46,
     marginTop: 28,
     marginBottom: 28,
-    padX: 9,
-    padY: 4,
-    passes: 700,
+    padX: 10,
+    padY: 6,
+    passes: 2200,
   });
 
   /* -----------------------------------------------------------------------
@@ -540,12 +581,12 @@ export function computePanoramicLayouts(
     z: 0,
     scale:
       f.type === 'img'
-        ? 0.78
+        ? 0.75
         : f.isMacroHub
           ? 1.0
           : f.tier === 'anchor'
-            ? 0.80
-            : 0.62 + hash(i * 13) * 0.05,
+            ? 0.76
+            : 0.58 + hash(i * 13) * 0.04,
     opacity: 1,
   }));
 
@@ -556,11 +597,11 @@ export function computePanoramicLayouts(
   //   Bay 3 (`c=3`): `3414 .. 4214`| Canyon 4: `4214 .. 4540` (`326px`)
   //   Bay 4 (`c=4,5`): `4540 .. 6440` (`1,900px` wide for the binary outer nebula!)
   const starClusterBays: readonly { clusters: readonly number[]; minX: number; maxX: number }[] = [
-    { clusters: [0], minX: 44, maxX: 844 },
-    { clusters: [1], minX: 1164, maxX: 1964 },
-    { clusters: [2], minX: 2284, maxX: 3094 },
-    { clusters: [3], minX: 3414, maxX: 4214 },
-    { clusters: [4, 5], minX: 4540, maxX: 6440 },
+    { clusters: [0], minX: 40, maxX: 860 },
+    { clusters: [1], minX: 1160, maxX: 1984 },
+    { clusters: [2], minX: 2284, maxX: 3108 },
+    { clusters: [3], minX: 3408, maxX: 4232 },
+    { clusters: [4, 5], minX: 4532, maxX: 6444 },
   ];
 
   for (const bay of starClusterBays) {
@@ -579,9 +620,9 @@ export function computePanoramicLayouts(
       maxX: bay.maxX,
       marginTop: 28,
       marginBottom: 28,
-      padX: 7,
-      padY: 5,
-      passes: 2200,
+      padX: 9,
+      padY: 7,
+      passes: 3400,
     });
     subIndices.forEach((origIdx, k) => {
       meaning2D[origIdx]!.x = subPos[k]!.x;
@@ -644,7 +685,7 @@ export function computePanoramicLayouts(
       y: 216,
       z: 0,
       scale: 0.82,
-      opacity: 0.28,
+      opacity: 0.30,
     };
     pinnedOrbit.add(targetIndex);
 
@@ -675,9 +716,9 @@ export function computePanoramicLayouts(
     marginX: 44,
     marginTop: 28,
     marginBottom: 28,
-    padX: 10,
-    padY: 7,
-    passes: 1400,
+    padX: 12,
+    padY: 9,
+    passes: 2600,
     pinned: pinnedOrbit,
     keepOut: orbitSanctuary,
   });
@@ -687,7 +728,7 @@ export function computePanoramicLayouts(
    * ----------------------------------------------------------------------- */
   const sphere3D = fragments.map((f, i) => {
     const distU = 1 - f.level;
-    const shellR = 0.48 + 0.52 * Math.pow(distU, 0.72);
+    const shellR = 0.62 + 0.38 * Math.pow(distU, 0.72);
     const phi = Math.acos(1 - (2 * (i + 0.5)) / n);
     const theta = golden * i * 3.0;
     return { phi, theta, shellR };

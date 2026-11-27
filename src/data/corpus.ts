@@ -60,14 +60,56 @@ export const ALIGNED_MEMORY_LINES: readonly {
   readonly y: number;
   readonly appearAt: number;
 }[] = [
-  { text: '장독에서 갓 꺼낸 삼 년 묵은 김치 한 포기', x: 2480, y: 58, appearAt: 0.85 },
-  { text: '비 오는 저녁 뚝배기 바닥에 지진 돼지비계', x: 4220, y: 102, appearAt: 1.25 },
-  { text: '손등으로 가늠해 털어 넣은 굵은 소금', x: 3180, y: 146, appearAt: 1.65 },
-  { text: '우물물로 헹군 배추 줄기의 서늘한 단맛', x: 5260, y: 190, appearAt: 2.05 },
-  { text: '어머니가 국자로 떠 보던 마지막 간', x: 2380, y: 242, appearAt: 2.45 },
-  { text: '아궁이 잔불 위에서 밤새 깊어진 국물', x: 4680, y: 286, appearAt: 2.85 },
-  { text: '찬장 구석 사발로 퍼 담던 뿌연 쌀뜨물', x: 3460, y: 330, appearAt: 3.25 },
-  { text: '김장철 마당에 번지던 붉은 고춧물과 입김', x: 5340, y: 374, appearAt: 3.65 },
+  { text: '장독에서 갓 꺼낸 삼 년 묵은 김치 한 포기', x: 2480, y: 56, appearAt: 0.32 },
+  { text: '비 오는 저녁 뚝배기 바닥에 지진 돼지비계', x: 4220, y: 102, appearAt: 0.68 },
+  { text: '손등으로 가늠해 털어 넣은 굵은 소금', x: 3180, y: 148, appearAt: 1.04 },
+  { text: '우물물로 헹군 배추 줄기의 서늘한 단맛', x: 5260, y: 194, appearAt: 1.40 },
+  { text: '어머니가 국자로 떠 보던 마지막 간', x: 2380, y: 240, appearAt: 1.76 },
+  { text: '아궁이 잔불 위에서 밤새 깊어진 국물', x: 4680, y: 286, appearAt: 2.12 },
+  { text: '찬장 구석 사발로 퍼 담던 뿌연 쌀뜨물', x: 3460, y: 332, appearAt: 2.48 },
+  { text: '김장철 마당에 번지던 붉은 고춧물과 입김', x: 5340, y: 376, appearAt: 2.84 },
+];
+
+export interface AlignedHeroSlide {
+  readonly metric: string;
+  readonly title: string;
+  readonly snippet: string;
+}
+
+export const GEN1_ALIGNED_HERO_SLIDES: readonly AlignedHeroSlide[] = [
+  {
+    metric: 'COS 0.884',
+    title: '반복 요약이 빚어낸 평균의 평균',
+    snippet: '질문이 머뭇거릴 여백 없이 확률 분포의 가장 두터운 중심부로 귀속된다.',
+  },
+  {
+    metric: '450 ml · 1.15%',
+    title: '450ml · 1.75큰술 · 12.5분 표준 수렴',
+    snippet: '수만 건의 조리 기록이 단일 계량 공식으로 압축되며 손맛의 편차가 지워진다.',
+  },
+  {
+    metric: 'pH 4.3 · 85°C',
+    title: '젖산 산도와 가열 온도의 균질화 규격',
+    snippet: '부엌의 계절과 불길 대신 재현 가능한 평균 수치만이 상위 응답에 남는다.',
+  },
+];
+
+export const GEN2_ALIGNED_HERO_SLIDES: readonly AlignedHeroSlide[] = [
+  {
+    metric: 'O₂ 28.5%',
+    title: '결정 용해 시 방출되는 고대 기체',
+    snippet: '단단한 격자가 허물어지며 풀려난 기포 하나가 행성 대기 순환과 공명한다.',
+  },
+  {
+    metric: '-3,000 m · EPICA',
+    title: '심부 빙하와 황토 단애의 표준 연대기',
+    snippet: '빙하 코어와 풍성 퇴적층의 측정값이 수억 년 대기 순환의 평균 축을 세운다.',
+  },
+  {
+    metric: 'DIP 24° · 300 MA',
+    title: '사층리 경사각과 화석 기공의 기후 역산',
+    snippet: '바위와 화석에 새겨진 바람의 흔적이 정량 기후 지표로 나란히 정렬된다.',
+  },
 ];
 
 export const GEN1_ALIGNED_CARDS: readonly CardSpec[] = [
@@ -129,7 +171,7 @@ export const GEN1_ALIGNED_CARDS: readonly CardSpec[] = [
     metric: 'COS 0.884',
     title: '반복 요약이 빚어낸 평균의 평균',
     snippet: '질문이 머뭇거릴 여백 없이 확률 분포의 가장 두터운 중심부로 귀속된다.',
-    plateId: 'plate-01',
+    plateId: 'plate-15',
   },
 ];
 
@@ -142,7 +184,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '01 옹기 기공과 소금 꽃',
     sublabel: '유약의 미세 균열을 건너 피어오른 염분의 호흡',
     x: 2020,
-    y: 140,
+    y: 126,
     rotY: -20,
     rotX: 5,
     heroPlateId: 'plate-02',
@@ -156,7 +198,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: '4.2 μm',
         title: '숨 쉬는 옹기 태토의 미세 기공',
         snippet: '소성된 흙 입자 틈으로 공기와 염수가 느리게 교차한다.',
-        plateId: 'plate-02',
+        plateId: 'plate-11',
       },
       {
         id: 'g1_s1_1',
@@ -167,7 +209,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: 'RH 42%',
         title: '발효 항아리 내벽의 모세관 증발',
         snippet: '그릇의 숨구멍이 사계절의 습도를 하얀 염분 테로 기록한다.',
-        plateId: 'plate-15',
+        plateId: 'plate-17',
       },
       {
         id: 'g1_s1_2',
@@ -190,7 +232,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '02 정육면체 호퍼 결정',
     sublabel: '수면 위에서 스스로 깎이는 90도 역피라미드 계단',
     x: 2880,
-    y: 48,
+    y: 54,
     rotY: -25,
     rotX: -5,
     heroPlateId: 'plate-03',
@@ -215,7 +257,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: '26% NaCl',
         title: '염전 증발지 기하학과 결정 뗏목',
         snippet: '수증기가 마른 수면 끝에 얇은 결정 격자들이 부유한다.',
-        plateId: 'plate-15',
+        plateId: 'plate-18',
       },
       {
         id: 'g1_s2_2',
@@ -238,7 +280,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '03 지하 812m 암염 습곡',
     sublabel: '사라진 고생대 내륙해가 대륙 심부에 남긴 지질 연층',
     x: 3960,
-    y: 140,
+    y: 126,
     rotY: -30,
     rotX: 5,
     heroPlateId: 'plate-05',
@@ -263,7 +305,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: '140 m',
         title: '산맥 아래 봉인된 페름기 증발암',
         snippet: '판게아 내륙해가 마르며 남긴 광맥이 심부에 잠들어 있다.',
-        plateId: 'plate-06',
+        plateId: 'plate-19',
       },
       {
         id: 'g1_s3_2',
@@ -286,7 +328,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '04 페름기 유체 포유물',
     sublabel: '음결정 공동 안에서 떨리는 2억 8천만 년 전 기포',
     x: 5280,
-    y: 48,
+    y: 56,
     rotY: -36,
     rotX: -4,
     heroPlateId: 'plate-07',
@@ -300,7 +342,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: 'Ø 0.30mm',
         title: '암염 음결정 내부의 원시 염수',
         snippet: '정육면체 미세 공동 안에 고생대 바닷물과 기포가 갇혀 있다.',
-        plateId: 'plate-07',
+        plateId: 'plate-20',
       },
       {
         id: 'g1_s4_1',
@@ -367,7 +409,7 @@ export const GEN2_ALIGNED_CARDS: readonly CardSpec[] = [
     metric: '-2,540 m',
     title: '그린란드 빙하 시추 코어의 연층 기포',
     snippet: '북극권 설원이 해마다 가둔 계절의 공기가 얼음 기둥 속에 촘촘히 포개진다.',
-    plateId: 'plate-09',
+    plateId: 'plate-06',
   },
   {
     id: 'g2_a4',
@@ -377,7 +419,7 @@ export const GEN2_ALIGNED_CARDS: readonly CardSpec[] = [
     metric: '180 m LOESS',
     title: '황토 고원에 퇴적된 계절풍 먼지층',
     snippet: '대륙을 건넌 겨울 바람이 수백 미터 두께의 고운 실트 단애를 쌓아 올렸다.',
-    plateId: 'plate-10',
+    plateId: 'plate-19',
   },
   {
     id: 'g2_a5',
@@ -387,7 +429,7 @@ export const GEN2_ALIGNED_CARDS: readonly CardSpec[] = [
     metric: 'O₂ 28.5%',
     title: '결정 용해 시 방출되는 고대 기체',
     snippet: '단단한 격자가 허물어지며 풀려난 기포 하나가 행성 대기 순환과 공명한다.',
-    plateId: 'plate-13',
+    plateId: 'plate-07',
   },
 ];
 
@@ -400,7 +442,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '01 빙하 심부 기포의 호흡',
     sublabel: '만년설 절편이 녹을 때 울리는 십만 년 전 공기의 진동',
     x: 2020,
-    y: 140,
+    y: 126,
     rotY: -20,
     rotX: 5,
     heroPlateId: 'plate-09',
@@ -448,7 +490,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '02 사암에 굳은 모래바람',
     sublabel: '겹쳐진 화석 사구의 능선과 노래하는 석영의 공명',
     x: 2880,
-    y: 48,
+    y: 54,
     rotY: -25,
     rotX: -5,
     heroPlateId: 'plate-10',
@@ -462,7 +504,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: '95 Hz',
         title: '사막 사면을 미끄러지는 석영 공명',
         snippet: '마모된 모래 알갱이가 마찰하며 대지를 낮은 현악기처럼 울린다.',
-        plateId: 'plate-14',
+        plateId: 'plate-20',
       },
       {
         id: 'g2_s2_1',
@@ -473,7 +515,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: '3-FACET',
         title: '편서풍이 깎아낸 다면체 풍식 자갈',
         snippet: '보이지 않는 대기의 흐름이 현무암 모서리에 날카로운 결을 새긴다.',
-        plateId: 'plate-10',
+        plateId: 'plate-21',
       },
       {
         id: 'g2_s2_2',
@@ -496,7 +538,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '03 화석 기공과 성층권 우주진',
     sublabel: '화석 잎이 삼킨 숨결로부터 성층권을 떠도는 미세 구체까지',
     x: 3960,
-    y: 140,
+    y: 126,
     rotY: -30,
     rotX: 5,
     heroPlateId: 'plate-11',
@@ -521,7 +563,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: '-5,000 m',
         title: '심해 점토층에 가라앉은 태고 먼지',
         snippet: '성층권을 건넌 극미세 석영 입자가 바다 밑에서 풍속계를 이룬다.',
-        plateId: 'plate-12',
+        plateId: 'plate-22',
       },
       {
         id: 'g2_s3_2',
@@ -544,7 +586,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '04 극지 사스트루기 설원',
     sublabel: '발자국 없는 순백의 지평 위에 바람 스스로 조각한 파동',
     x: 5280,
-    y: 48,
+    y: 56,
     rotY: -36,
     rotX: -4,
     heroPlateId: 'plate-16',
@@ -558,7 +600,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: '38 m/s',
         title: '극지 활강풍이 깎은 사스트루기 능선',
         snippet: '거센 극지 바람이 단단한 설면을 파내며 자신의 형상을 남긴다.',
-        plateId: 'plate-16',
+        plateId: 'plate-24',
       },
       {
         id: 'g2_s4_1',
@@ -569,7 +611,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
         metric: '4.6 GA',
         title: '운석 속 선태양 입자가 품은 별의 바람',
         snippet: '지구 대기 이전에 늙은 별이 불어낸 규소 먼지가 설원에서 발견된다.',
-        plateId: 'plate-12',
+        plateId: 'plate-23',
       },
       {
         id: 'g2_s4_2',
@@ -859,24 +901,24 @@ const FINAL_IMAGE_SPECS: readonly {
 }[] = [
   { plateId: 'plate-01', cluster: 0, customLabel: '보로노이 세포막', code: 'PL.01 · 100°C' },
   { plateId: 'plate-15', cluster: 0, customLabel: '염전 증발지', code: 'PL.15 · 1.15%' },
-  { plateId: 'plate-01', cluster: 0, customLabel: '대류 거품망', code: 'PL.01B · FOAM' },
   { plateId: 'plate-02', cluster: 1, customLabel: '옹기 미세 기공', code: 'PL.02 · 4.2μm' },
-  { plateId: 'plate-08', cluster: 1, customLabel: '결정 격자 회절', code: 'PL.08B · LAUE' },
-  { plateId: 'plate-02', cluster: 1, customLabel: '백화 결정침', code: 'PL.02B · NaCl' },
+  { plateId: 'plate-17', cluster: 1, customLabel: '모세관 결정침', code: 'PL.17 · NaCl' },
   { plateId: 'plate-03', cluster: 2, customLabel: '호퍼 결정', code: 'PL.03 · 90.0°' },
   { plateId: 'plate-08', cluster: 2, customLabel: 'X선 회절무늬', code: 'PL.08 · 5.64Å' },
-  { plateId: 'plate-03', cluster: 2, customLabel: '역피라미드 계단', code: 'PL.03B · FCC' },
+  { plateId: 'plate-18', cluster: 2, customLabel: '결정 뗏목 부유면', code: 'PL.18 · 26%' },
   { plateId: 'plate-05', cluster: 3, customLabel: '암염 돔 습곡', code: 'PL.05 · -812m' },
   { plateId: 'plate-06', cluster: 3, customLabel: '시추 코어 연층', code: 'PL.06 · H-204' },
+  { plateId: 'plate-19', cluster: 3, customLabel: '경석고 습곡 단면', code: 'PL.19 · FOLD' },
   { plateId: 'plate-07', cluster: 4, customLabel: '페름기 포유물', code: 'PL.07 · 280MA' },
   { plateId: 'plate-13', cluster: 4, customLabel: '상승 기포열', code: 'PL.13 · O₂ 28%', resonantOrder: 3 },
-  { plateId: 'plate-07', cluster: 4, customLabel: '고생대 기포', code: 'PL.07B · 0.3mm' },
+  { plateId: 'plate-20', cluster: 4, customLabel: '메니스커스 고리', code: 'PL.20 · 0.3mm' },
   { plateId: 'plate-09', cluster: 5, customLabel: '남극 빙하 기포', code: 'PL.09 · -3000m', resonantOrder: 0 },
   { plateId: 'plate-10', cluster: 5, customLabel: '풍성 사층리', code: 'PL.10 · 248°', resonantOrder: 1 },
   { plateId: 'plate-11', cluster: 5, customLabel: '양치류 화석 기공', code: 'PL.11 · 300MA', resonantOrder: 2 },
   { plateId: 'plate-14', cluster: 5, customLabel: '음향 오실로그램', code: 'PL.14 · 1.4kHz', resonantOrder: 4 },
-  { plateId: 'plate-12', cluster: 5, customLabel: '성층권 우주진', code: 'PL.12 · 32km' },
-  { plateId: 'plate-16', cluster: 5, customLabel: '사스트루기 설원', code: 'PL.16 · 38m/s' },
+  { plateId: 'plate-21', cluster: 5, customLabel: '다면체 풍식암', code: 'PL.21 · 3-FACET' },
+  { plateId: 'plate-22', cluster: 5, customLabel: '심해 석영 연층', code: 'PL.22 · -5000m' },
+  { plateId: 'plate-24', cluster: 5, customLabel: '사스트루기 능선', code: 'PL.24 · 38m/s' },
 ];
 
 function buildSemanticVector(cluster: number, globalIdx: number): Float32Array {
@@ -1079,8 +1121,8 @@ export function getCorpus(): CorpusBundle {
 
     const level = isTarget ? 0.0 : Math.max(0, Math.min(1, (r.querySim - minSim) / simSpan));
     const scale = isTarget ? 0.72 : 0.72 + level;
-    // Preserve non-erasure principle while keeping outdoor P4.6 LED visibility crisp (0.28 + 0.72 * level)
-    const opacity = isTarget ? 0.28 : Math.max(0.28, 0.28 + 0.72 * level);
+    // Preserve non-erasure principle while ensuring crisp outdoor daylight contrast (`0.30 + 0.70 * level`)
+    const opacity = isTarget ? 0.30 : Math.max(0.30, 0.30 + 0.70 * level);
     const vec = buildSemanticVector(r.cluster, idx);
 
     return {

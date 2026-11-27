@@ -147,17 +147,8 @@ export const ARCHIVAL_PLATES: readonly ArchivalPlateSpec[] = [
   },
 ];
 
-export const STRIDE_SOURCES: readonly string[] = [
-  `${BASE}plates/stride-01.webp`,
-  `${BASE}plates/stride-02.webp`,
-  `${BASE}plates/stride-03.webp`,
-  `${BASE}plates/stride-04.webp`,
-  `${BASE}plates/stride-05.webp`,
-];
-
 const PLATE_BY_ID = new Map<string, ArchivalPlateSpec>(ARCHIVAL_PLATES.map((p) => [p.id, p]));
 const DECODED_IMAGES = new Map<string, HTMLImageElement>();
-const DECODED_STRIDES: HTMLImageElement[] = [];
 
 let preloadPromise: Promise<void> | null = null;
 
@@ -171,12 +162,6 @@ export function getPlateById(id: string): ArchivalPlateSpec {
 
 export function getDecodedPlate(id: string): HTMLImageElement | undefined {
   return DECODED_IMAGES.get(id);
-}
-
-export function getDecodedStride(frameIndex: number): HTMLImageElement | undefined {
-  const n = DECODED_STRIDES.length;
-  if (n === 0) return undefined;
-  return DECODED_STRIDES[((frameIndex % n) + n) % n];
 }
 
 async function loadAndDecodeImage(src: string): Promise<HTMLImageElement> {
@@ -202,21 +187,17 @@ async function loadAndDecodeImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Preload & decode all 16 archival plates + 5 Muybridge stride frames,
+ * Preload & decode all active mineral/atmospheric archival lithograph plates,
  * plus verify every `<img>` element already mounted in the document.
  */
 export function preloadAllPlates(root: ParentNode = document): Promise<void> {
   if (!preloadPromise) {
     preloadPromise = (async () => {
-      const plateTasks = ARCHIVAL_PLATES.map(async (spec) => {
+      const plateTasks = ARCHIVAL_PLATES.filter((spec) => spec.id !== 'plate-04').map(async (spec) => {
         const img = await loadAndDecodeImage(spec.src);
         DECODED_IMAGES.set(spec.id, img);
       });
-      const strideTasks = STRIDE_SOURCES.map(async (src, idx) => {
-        const img = await loadAndDecodeImage(src);
-        DECODED_STRIDES[idx] = img;
-      });
-      await Promise.all([...plateTasks, ...strideTasks]);
+      await Promise.all(plateTasks);
     })();
   }
 

@@ -151,7 +151,13 @@ async function main() {
   try {
     browser = await chromium.launch({
       headless: true,
-      args: ['--enable-webgl', '--ignore-gpu-blocklist'],
+      args: [
+        '--enable-webgl',
+        '--ignore-gpu-blocklist',
+        '--disable-background-timer-throttling',
+        '--disable-renderer-backgrounding',
+        '--disable-backgrounding-occluded-windows',
+      ],
     });
 
     const pageUrl = `${serverHandle.origin}/?raw=1&rgain=${rGain.toFixed(4)}`;
@@ -316,7 +322,7 @@ async function main() {
         const frameIdx = nextToSchedule++;
         const sec = start + frameIdx / fps;
         await page.evaluate((s) => window.renderAt(s), sec);
-        const pngBuf = await page.screenshot({ type: 'png' });
+        const pngBuf = await page.screenshot({ type: 'png', timeout: 0 });
         if (aborted) break;
 
         completed.set(frameIdx, pngBuf);

@@ -142,7 +142,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '01 옹기 기공과 소금 꽃',
     sublabel: '유약의 미세 균열을 건너 피어오른 염분의 호흡',
     x: 2020,
-    y: 132,
+    y: 140,
     rotY: -20,
     rotX: 5,
     heroPlateId: 'plate-02',
@@ -190,7 +190,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '02 정육면체 호퍼 결정',
     sublabel: '수면 위에서 스스로 깎이는 90도 역피라미드 계단',
     x: 2880,
-    y: 86,
+    y: 48,
     rotY: -25,
     rotX: -5,
     heroPlateId: 'plate-03',
@@ -238,7 +238,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '03 지하 812m 암염 습곡',
     sublabel: '사라진 고생대 내륙해가 대륙 심부에 남긴 지질 연층',
     x: 3960,
-    y: 138,
+    y: 140,
     rotY: -30,
     rotX: 5,
     heroPlateId: 'plate-05',
@@ -286,7 +286,7 @@ export const GEN1_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '04 페름기 유체 포유물',
     sublabel: '음결정 공동 안에서 떨리는 2억 8천만 년 전 기포',
     x: 5280,
-    y: 88,
+    y: 48,
     rotY: -36,
     rotX: -4,
     heroPlateId: 'plate-07',
@@ -364,6 +364,26 @@ export const GEN2_ALIGNED_CARDS: readonly CardSpec[] = [
     gen: 2,
     group: 'aligned',
     indexCode: 'ALIGNED · 04',
+    metric: '-2,540 m',
+    title: '그린란드 빙하 시추 코어의 연층 기포',
+    snippet: '북극권 설원이 해마다 가둔 계절의 공기가 얼음 기둥 속에 촘촘히 포개진다.',
+    plateId: 'plate-09',
+  },
+  {
+    id: 'g2_a4',
+    gen: 2,
+    group: 'aligned',
+    indexCode: 'ALIGNED · 05',
+    metric: '180 m LOESS',
+    title: '황토 고원에 퇴적된 계절풍 먼지층',
+    snippet: '대륙을 건넌 겨울 바람이 수백 미터 두께의 고운 실트 단애를 쌓아 올렸다.',
+    plateId: 'plate-10',
+  },
+  {
+    id: 'g2_a5',
+    gen: 2,
+    group: 'aligned',
+    indexCode: 'ALIGNED · 06',
     metric: 'O₂ 28.5%',
     title: '결정 용해 시 방출되는 고대 기체',
     snippet: '단단한 격자가 허물어지며 풀려난 기포 하나가 행성 대기 순환과 공명한다.',
@@ -380,7 +400,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '01 빙하 심부 기포의 호흡',
     sublabel: '만년설 절편이 녹을 때 울리는 십만 년 전 공기의 진동',
     x: 2020,
-    y: 130,
+    y: 140,
     rotY: -20,
     rotX: 5,
     heroPlateId: 'plate-09',
@@ -428,7 +448,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '02 사암에 굳은 모래바람',
     sublabel: '겹쳐진 화석 사구의 능선과 노래하는 석영의 공명',
     x: 2880,
-    y: 86,
+    y: 48,
     rotY: -25,
     rotX: -5,
     heroPlateId: 'plate-10',
@@ -476,7 +496,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '03 화석 기공과 성층권 우주진',
     sublabel: '화석 잎이 삼킨 숨결로부터 성층권을 떠도는 미세 구체까지',
     x: 3960,
-    y: 138,
+    y: 140,
     rotY: -30,
     rotX: 5,
     heroPlateId: 'plate-11',
@@ -524,7 +544,7 @@ export const GEN2_SKEWED_STATIONS: readonly SkewedStationSpec[] = [
     label: '04 극지 사스트루기 설원',
     sublabel: '발자국 없는 순백의 지평 위에 바람 스스로 조각한 파동',
     x: 5280,
-    y: 88,
+    y: 48,
     rotY: -36,
     rotX: -4,
     heroPlateId: 'plate-16',
@@ -668,7 +688,7 @@ const CLUSTER_SENTENCES: readonly (readonly string[])[] = [
     '끓어오르는 국물 표면의 보로노이 세포망',
     '뚝배기 바닥에서 수직으로 오르는 기포',
     '어머니의 눈대중이 소수점 아래로 절삭된다',
-    '모두에게 무난한 답이 기이한 질문을 덮는다',
+    '끓는점의 온도계가 서로 다른 부엌의 불길을 하나로 묶는다',
     '산도 pH 4.3에 맞춰 정렬된 조리 순서',
     '수분 증발률 18%를 역산한 균질한 농도',
     '굵은 천일염 한 줌이 정량 g으로 바뀐다',
@@ -692,8 +712,8 @@ const CLUSTER_SENTENCES: readonly (readonly string[])[] = [
     '기압이 낮아진 저녁이면 옹기 표면이 촉촉해진다',
     '부엌의 그릇 벽면에서 미세한 광물학이 시작된다',
     '모세관 현상이 끌어 올린 느리고 투명한 염수 길',
-    '질주하는 시간의 발굽이 정지된 규격을 깨뜨린다',
-    '연속 촬영된 다섯 개의 그림자가 지평을 가른다',
+    '옹기 외벽의 미세한 숨구멍마다 하얀 염분 침상이 자란다',
+    '장독대 서늘한 새벽 공기가 포화 염수를 결정으로 응결시킨다',
     '발효의 기포가 어두운 수면에 작은 원을 그린다',
     '계절마다 다른 높이로 새겨진 염분의 나이테',
     '반투과성 점토막이 안과 밖의 공기를 교환한다',
@@ -768,8 +788,8 @@ const CLUSTER_SENTENCES: readonly (readonly string[])[] = [
     '성층권 편서풍을 타고 떠돌던 수지상 우주진 입자',
     '고대 기포가 터질 때 기록된 미세 음향 파형',
     '극지 활강풍이 설원에 깎아 놓은 사스트루기 물결',
-    '가장 먼 변방의 파편도 0.14 아래로 지워지지 않는다',
-    '중심에서 밀려난 미약한 문장이 처음의 목적을 허문다',
+    '극점의 만년설 아래에도 녹지 않은 미세 기포층이 숨을 쉰다',
+    '빙하 시추공 깊은 벽면에서 고대 대기압의 균열음이 울린다',
     '그린란드 심부 얼음이 물속에서 맑은 파열음을 낸다',
     '모래 언덕이 이동하며 남긴 사선이 바위로 남았다',
     '백악기 호박 수지 안에 멈춘 작은 공기방울 하나',
@@ -777,7 +797,7 @@ const CLUSTER_SENTENCES: readonly (readonly string[])[] = [
     '운석 속 선태양 입자에 새겨진 늙은 별의 바람',
     '대양 바닥 점토층에 가라앉은 성층권의 석영 가루',
     '요리법의 기억이 지워진 자리에 광활한 대기가 열린다',
-    '평균 바깥의 길은 답이 아닌 다음 질문에서 시작된다',
+    '염전 바닥의 소금 결정이 지질 시대의 먼 바람과 공명한다',
     '부엌에서 출발한 사선이 마침내 극지의 지평에 닿는다',
     '순백의 설원 위로 수억 년 전의 바람이 다시 분다',
   ],
@@ -800,9 +820,19 @@ export interface FragmentItem {
   readonly scale: number;
   readonly opacity: number;
   readonly isHeading?: boolean;
+  readonly isMacroHub?: boolean;
   readonly baseFontPx: number;
   readonly vec: Float32Array;
 }
+
+export const MACRO_HUB_TEXTS = new Set<string>([
+  '평균의 냄비',
+  '옹기 기공',
+  '호퍼 결정',
+  '판게아 해',
+  '유체 포유물',
+  '빙하의 숨',
+]);
 
 export interface PairWeight {
   readonly a: number;
@@ -831,7 +861,7 @@ const FINAL_IMAGE_SPECS: readonly {
   { plateId: 'plate-15', cluster: 0, customLabel: '염전 증발지', code: 'PL.15 · 1.15%' },
   { plateId: 'plate-01', cluster: 0, customLabel: '대류 거품망', code: 'PL.01B · FOAM' },
   { plateId: 'plate-02', cluster: 1, customLabel: '옹기 미세 기공', code: 'PL.02 · 4.2μm' },
-  { plateId: 'plate-04', cluster: 1, customLabel: '5연속 질주', code: 'PL.04 · 15FPS' },
+  { plateId: 'plate-08', cluster: 1, customLabel: '결정 격자 회절', code: 'PL.08B · LAUE' },
   { plateId: 'plate-02', cluster: 1, customLabel: '백화 결정침', code: 'PL.02B · NaCl' },
   { plateId: 'plate-03', cluster: 2, customLabel: '호퍼 결정', code: 'PL.03 · 90.0°' },
   { plateId: 'plate-08', cluster: 2, customLabel: 'X선 회절무늬', code: 'PL.08 · 5.64Å' },
@@ -901,6 +931,7 @@ export function getCorpus(): CorpusBundle {
     querySim: number;
     isHeading: boolean;
     baseFontPx: number;
+    isMacroHub?: boolean;
     resonantOrder?: number;
   }[] = [];
 
@@ -920,6 +951,7 @@ export function getCorpus(): CorpusBundle {
         const txt = anchors[aPtr]!;
         const frac = 1 - aPtr / Math.max(1, anchors.length - 1);
         const qSim = Math.max(0.015, Math.min(0.99, sLo + (sHi - sLo) * (0.25 + 0.7 * frac)));
+        const isMacroHub = MACRO_HUB_TEXTS.has(txt);
         const isHeroAnchor = aPtr < 2;
         rawItems.push({
           type: 'text',
@@ -927,9 +959,10 @@ export function getCorpus(): CorpusBundle {
           content: txt,
           code: `C0${c + 1}.A${String(aPtr + 1).padStart(2, '0')}`,
           cluster: c,
-          querySim: qSim,
+          querySim: isMacroHub ? sHi : qSim,
           isHeading: true,
-          baseFontPx: isHeroAnchor ? 23.5 : 19.5,
+          isMacroHub,
+          baseFontPx: isMacroHub ? 42 : isHeroAnchor ? 23.5 : 19.5,
         });
         aPtr++;
       }
@@ -976,15 +1009,17 @@ export function getCorpus(): CorpusBundle {
 
     while (aPtr < anchors.length) {
       const txt = anchors[aPtr++]!;
+      const isMacroHub = MACRO_HUB_TEXTS.has(txt);
       rawItems.push({
         type: 'text',
         tier: 'anchor',
         content: txt,
         code: `C0${c + 1}.A${String(aPtr).padStart(2, '0')}`,
         cluster: c,
-        querySim: sLo + (sHi - sLo) * 0.5,
+        querySim: isMacroHub ? sHi : sLo + (sHi - sLo) * 0.5,
         isHeading: true,
-        baseFontPx: 19.5,
+        isMacroHub,
+        baseFontPx: isMacroHub ? 42 : 19.5,
       });
     }
     while (iPtr < imgs.length) {
@@ -1063,6 +1098,7 @@ export function getCorpus(): CorpusBundle {
       scale,
       opacity,
       isHeading: r.isHeading,
+      isMacroHub: r.isMacroHub,
       baseFontPx: r.baseFontPx,
       vec,
     };

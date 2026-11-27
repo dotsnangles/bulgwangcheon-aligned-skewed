@@ -8,12 +8,12 @@ export const BEAT = 60 / BPM; // 0.50s exact downbeat
 export const RED_GAIN_MIN = 0.5;
 export const RED_GAIN_MAX = 1.0;
 
-/** Vivid 4-step silkscreen orange palette calibrated for outdoor LED red-bias legibility */
+/** Golden-amber 4-step silkscreen palette calibrated for high separation from #FF0000 under outdoor LED */
 export const ORANGE: Record<1 | 2 | 3 | 4, string> = {
-  1: '#ff8524',
-  2: '#ff9b42',
-  3: '#ffb066',
-  4: '#ffc488',
+  1: '#ff9626',
+  2: '#ffa947',
+  3: '#ffbc6b',
+  4: '#ffcf8e',
 };
 
 export const COLOR_BLUE = '#0000ff';

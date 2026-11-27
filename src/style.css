@@ -1,9 +1,9 @@
 /* ==========================================================================
-   Aligned / Skewed — Museum-Grade Fine-Press & Silkscreen Style Sheet (Round 2)
+   Aligned / Skewed — Museum-Grade Fine-Press & Silkscreen Style Sheet (Round 3)
    Self-hosted Noto Serif KR (Variable 200..900) × JetBrains Mono (Variable)
    Palette: #FFFFFF paper ground, #000000 carbon ink, #0000FF aligned silkscreen,
-            #FF8524/#FF9B42/#FFB066/#FFC488 vivid 01~04 skewed, #FF0000 surgical red
-   100% Zero App UI Chrome · 100% Zero Burn-in HUD · 100% Deterministic `renderAt(t)`
+            #FF9626/#FFA947/#FFBC6B/#FFCF8E golden-amber 01~04 skewed, #FF0000 surgical red
+   Bezel Envelope: Y ∈ [26px, 404px] · 100% Zero UI Chrome · 100% Zero Burn-In HUD
    ========================================================================== */
 
 * {
@@ -19,10 +19,10 @@
   --paper: #ffffff;
   --blue: #0000ff;
   --red: #ff0000;
-  --o1: #ff8524;
-  --o2: #ff9b42;
-  --o3: #ffb066;
-  --o4: #ffc488;
+  --o1: #ff9626;
+  --o2: #ffa947;
+  --o3: #ffbc6b;
+  --o4: #ffcf8e;
 }
 
 html,
@@ -97,7 +97,7 @@ body.raw-mode {
   z-index: 4;
 }
 
-/* --- Act I.1: High-Contrast Silkscreen Press & Left Pure-White Hero Sanctuary --- */
+/* --- Act I.1: Razor Guillotine Silkscreen Press & Left Pure-White Hero Sanctuary --- */
 .press-layer {
   position: absolute;
   inset: 0;
@@ -107,9 +107,9 @@ body.raw-mode {
 
 .press-voronoi-plate {
   position: absolute;
-  width: 1560px;
-  height: 376px;
-  top: 28px;
+  width: 1520px;
+  height: 364px;
+  top: 34px;
   object-fit: cover;
   mix-blend-mode: multiply;
   pointer-events: none;
@@ -122,15 +122,21 @@ body.raw-mode {
   left: 118px;
   top: 216px;
   font-family: var(--font-serif);
-  font-size: 122px;
+  font-size: 120px;
   line-height: 1.04;
   letter-spacing: -0.025em;
   white-space: nowrap;
   color: #000000;
   transform-origin: 0 50%;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 0 28px 18px #ffffff;
+  background: #ffffff;
   padding: 2px 8px;
+}
+
+.press-clip-upper,
+.press-clip-lower {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .press-memory-line {
@@ -148,13 +154,14 @@ body.raw-mode {
 
 .press-platen-rule {
   position: absolute;
-  left: 1800px;
-  width: 4520px;
-  height: 4px;
+  left: 1796px;
+  width: 4524px;
+  height: 3px;
   background: #0000ff;
   pointer-events: none;
 }
 
+/* ZERO box-shadow feathering: razor-sharp solid #FFFFFF silkscreen chamber + 2.5px #0000FF blades! */
 .press-formula-stamp {
   position: absolute;
   left: 3960px;
@@ -167,18 +174,20 @@ body.raw-mode {
   letter-spacing: 0.025em;
   white-space: nowrap;
   color: #000000;
-  padding: 10px 28px;
+  padding: 9px 28px;
   border-top: 2.5px solid #0000ff;
   border-bottom: 2.5px solid #0000ff;
+  border-left: 1.5px solid #000000;
+  border-right: 1.5px solid #000000;
   background: #ffffff;
-  box-shadow: 0 0 22px 12px #ffffff;
+  box-shadow: none;
 }
 
-/* --- 20m Macro Query Anchor (56px Bold Serif, Granular Weathering Ready) --- */
+/* --- 20m Macro Query Anchor (56px Bold Serif, Bezel-Safe `top: 32px`) --- */
 .datum-query-anchor {
   position: absolute;
   left: 110px;
-  top: 34px;
+  top: 32px;
   z-index: 20;
   pointer-events: none;
   white-space: nowrap;
@@ -207,17 +216,20 @@ body.raw-mode {
 .datum-query-rule {
   height: 2px;
   background: #0000ff;
-  margin-top: 8px;
+  margin-top: 7px;
   transform-origin: 0 50%;
 }
 
-/* --- Refraction Lens Prism Gate (`X = 1715..1855, Y = 36..396`) --- */
+/* --- Refraction Lens Prism Gate (`X = 1716..1852, Y = 38..394` Bezel-Safe!) --- */
 .prism-gate {
   position: absolute;
   left: 1716px;
-  top: 36px;
+  top: 38px;
   width: 136px;
-  height: 360px;
+  height: 356px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
   z-index: 8;
 }
@@ -231,14 +243,10 @@ body.raw-mode {
 }
 
 .prism-gate-label {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 0 14px 8px #ffffff;
-  border-top: 1.5px solid #ff0000;
-  border-bottom: 1.5px solid #000000;
+  position: relative;
+  background: #ffffff;
+  border-top: 2px solid #ff0000;
+  border-bottom: 2px solid #000000;
   padding: 8px 12px;
   white-space: nowrap;
   text-align: center;
@@ -264,13 +272,13 @@ body.raw-mode {
   color: #000000;
 }
 
-/* --- Polar Sastrugi Horizon Backdrop (Strictly Inside Safe Area + 4-Edge Soft Mask) --- */
+/* --- Polar Sastrugi Horizon Backdrop (Bezel-Safe + 4-Edge Soft Mask) --- */
 .sastrugi-backdrop {
   position: absolute;
-  left: 3600px;
-  top: 150px;
-  width: 2300px;
-  height: 252px;
+  left: 3580px;
+  top: 146px;
+  width: 2280px;
+  height: 250px;
   object-fit: cover;
   mix-blend-mode: multiply;
   pointer-events: none;
@@ -302,7 +310,7 @@ body.raw-mode {
 
 .station-big-num {
   font-family: var(--font-serif);
-  font-size: 62px;
+  font-size: 60px;
   font-weight: 700;
   line-height: 0.88;
   letter-spacing: -0.04em;
@@ -313,7 +321,7 @@ body.raw-mode {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.96);
   padding: 2px 6px;
 }
 
@@ -330,7 +338,7 @@ body.raw-mode {
   font-family: var(--font-serif);
   font-size: 21px;
   font-weight: 700;
-  line-height: 1.18;
+  line-height: 1.16;
   letter-spacing: -0.015em;
   color: #000000;
 }
@@ -376,70 +384,66 @@ body.raw-mode {
 .monolith-plate-wrap {
   position: relative;
   width: 100%;
+  flex: 1;
   overflow: hidden;
   background: #ffffff;
-}
-
-.monolith-card.is-hero .monolith-plate-wrap {
-  height: 116px;
-  border-bottom: 1px solid #000000;
-}
-
-.monolith-card.is-slab .monolith-plate-wrap {
-  flex: 1;
 }
 
 .monolith-plate-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  mix-blend-mode: multiply;
   display: block;
 }
 
 .monolith-body {
-  padding: 8px 11px 9px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 94px;
+  border-top: 1px solid #000000;
+  padding: 7px 11px 8px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  flex: 1;
+  gap: 4px;
   background: #ffffff;
 }
 
 .monolith-title {
   font-family: var(--font-serif);
-  font-size: 16.5px;
+  font-size: 16px;
   font-weight: 700;
-  line-height: 1.26;
+  line-height: 1.24;
   letter-spacing: -0.01em;
   word-break: keep-all;
 }
 
 .monolith-snippet {
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: 12.8px;
   font-weight: 400;
-  line-height: 1.36;
+  line-height: 1.34;
   color: #111111;
   word-break: keep-all;
 }
 
-/* --- Right-Edge 3D Oblique History Ribbon (Soft Masked Top & Bottom, Zero Hard Cut!) --- */
+/* --- Right-Edge 3D Oblique History Ribbon (`1.32x` Enlarged + Soft Top/Bottom Mask `14%..86%`!) --- */
 .history-rail-wrap {
   position: absolute;
   top: 0;
-  right: 16px;
-  width: 410px;
+  right: 18px;
+  width: 500px;
   height: 432px;
   overflow: hidden;
   pointer-events: none;
   z-index: 12;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000000 13%, #000000 87%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000000 13%, #000000 87%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000000 14%, #000000 86%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000000 14%, #000000 86%, transparent 100%);
 }
 
 .history-scene {
-  perspective: 620px;
+  perspective: 680px;
   perspective-origin: 50% 50%;
   width: 100%;
   height: 100%;
@@ -448,31 +452,31 @@ body.raw-mode {
 .history-list {
   --history-offset: 0px;
   list-style: none;
-  margin: 26px 0 0 68px;
+  margin: 26px 0 0 78px;
   padding: 0;
-  width: 286px;
-  transform: rotateX(36deg) rotateY(-28deg) rotateZ(-8deg) translate3d(0, calc(var(--history-offset) * -1), 0);
+  width: 342px;
+  transform: rotateX(34deg) rotateY(-26deg) rotateZ(-8deg) scale(1.16) translate3d(0, calc(var(--history-offset) * -1), 0);
   transform-origin: 50% 0%;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 10px;
 }
 
 .history-head {
   font-family: var(--font-serif);
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  padding-bottom: 4px;
-  border-bottom: 1.25px solid #000000;
+  padding-bottom: 5px;
+  border-bottom: 1.5px solid #000000;
   background: #ffffff;
 }
 
 .history-page {
   flex: none;
-  border: 1px solid #000000;
+  border: 1.15px solid #000000;
   background: #ffffff;
-  padding: 9px 11px;
+  padding: 10px 13px;
   backface-visibility: hidden;
 }
 
@@ -482,26 +486,27 @@ body.raw-mode {
   justify-content: space-between;
   margin-bottom: 5px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
 .history-badge {
-  padding: 1px 6px;
+  padding: 1.5px 7px;
   border: 1px solid #000000;
+  font-size: 12.5px;
   font-weight: 700;
 }
 
 .history-page-title {
   font-family: var(--font-serif);
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 700;
-  line-height: 1.28;
+  line-height: 1.26;
   word-break: keep-all;
 }
 
-/* --- Act II.1: Full-Bleed Fine-Press Broadsheet (`13px` Mono + `15px` Bold Serif) --- */
+/* --- Act II.1: Full-Bleed Fine-Press Broadsheet (`13px` Mono + `15px` Bold Serif, Concertina Ready) --- */
 .archive-spread {
   position: absolute;
   inset: 0;
@@ -512,8 +517,7 @@ body.raw-mode {
 .spread-hero-slot {
   position: absolute;
   background: #ffffff;
-  border-left: 1px solid #000000;
-  border-right: 1px solid #000000;
+  border: 1px solid #000000;
   overflow: hidden;
 }
 
@@ -528,7 +532,6 @@ body.raw-mode {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  mix-blend-mode: multiply;
   display: block;
   transform-origin: 50% 50%;
 }
@@ -573,7 +576,7 @@ body.raw-mode {
   z-index: 6;
 }
 
-/* --- Act II–IV: 200 Fragments with Fine-Press Paper Halo (`z-index: 9`) --- */
+/* --- Act II–IV: 200 Fragments with Solid Fine-Press Paper Knockout Halo (`z-index: 9`) --- */
 .frag-layer {
   position: absolute;
   inset: 0;
@@ -593,7 +596,7 @@ body.raw-mode {
 
 .frag:not(.is-img) {
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 9px 5px rgba(255, 255, 255, 0.94);
+  box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.95);
   border-radius: 2px;
   padding: 1px 4px;
 }
@@ -602,6 +605,15 @@ body.raw-mode {
   font-family: var(--font-serif);
   font-weight: 700;
   letter-spacing: 0.03em;
+}
+
+.frag.is-macro-hub {
+  font-family: var(--font-serif);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 0 14px 8px rgba(255, 255, 255, 0.97);
+  padding: 2px 7px;
 }
 
 .frag.is-sentence {
@@ -616,8 +628,8 @@ body.raw-mode {
 
 .frag.is-img img {
   display: block;
-  width: 132px;
-  height: 84px;
+  width: 106px;
+  height: 68px;
   object-fit: cover;
   margin: 0 auto;
   mix-blend-mode: multiply;
@@ -625,42 +637,26 @@ body.raw-mode {
 
 .frag.is-img .frag-lab {
   display: inline-block;
-  margin-top: 4px;
+  margin-top: 3px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1.15;
   color: #000000;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.96);
   border-radius: 2px;
   padding: 1px 5px;
 }
 
-/* --- Special Callouts, Pure Orbit Center & Zero-Aberration 3D Fault/Gale --- */
+/* --- Special Callouts, Persistent Orbit Nucleus & Zero-Aberration 3D Fault/Gale --- */
 .special-layer {
   position: absolute;
   inset: 0;
   z-index: 16;
   pointer-events: none;
-}
-
-.laser-telemetry {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: #e60000;
-  background: #ffffff;
-  box-shadow: 0 0 14px 10px #ffffff;
-  border: 1.25px solid #e60000;
-  padding: 3px 11px;
-  white-space: nowrap;
 }
 
 .orbit-center-sanctuary {
@@ -670,9 +666,9 @@ body.raw-mode {
   transform: translate(-50%, -50%);
   text-align: center;
   white-space: nowrap;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 0 28px 18px #ffffff;
-  padding: 6px 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 0 32px 20px #ffffff;
+  padding: 6px 20px;
 }
 
 .orbit-center-query {
@@ -693,7 +689,7 @@ body.raw-mode {
   font-weight: 700;
   letter-spacing: 0.06em;
   color: #d90000;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.96);
   padding: 1px 6px;
   white-space: nowrap;
 }
@@ -710,8 +706,8 @@ body.raw-mode {
   line-height: 1.12;
   letter-spacing: -0.02em;
   white-space: nowrap;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 0 32px 20px #ffffff;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 0 28px 18px #ffffff;
   padding: 6px 18px;
 }
 
@@ -731,7 +727,7 @@ body.raw-mode {
   font-weight: 700;
   letter-spacing: -0.025em;
   color: #000000;
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.97);
   box-shadow: 0 0 12px 6px #ffffff;
   padding: 6px 18px;
 }
@@ -741,12 +737,12 @@ body.raw-mode {
   font-weight: 600;
   letter-spacing: -0.015em;
   color: #3a3a3a;
-  background: rgba(255, 255, 255, 0.90);
-  box-shadow: 0 0 18px 10px #ffffff;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 16px 8px #ffffff;
   padding: 4px 12px;
 }
 
-/* Act IV.3a Elemental Paleo-Wind Gale Hero Text (`104px` Bold + `560x130` Eye-of-the-Storm Halo) */
+/* Act IV.3a Elemental Paleo-Wind Gale Hero Text (`104px` Bold + Eye-of-the-Storm Halo) */
 .gale-wind-banner {
   position: absolute;
   left: 0;
@@ -759,10 +755,10 @@ body.raw-mode {
   letter-spacing: -0.025em;
   transform-origin: 50% 50%;
   color: #000000;
-  background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 0 44px 32px #ffffff;
-  border-radius: 6px;
-  padding: 12px 32px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 0 36px 24px #ffffff;
+  border-radius: 4px;
+  padding: 10px 26px;
   z-index: 22;
 }
 

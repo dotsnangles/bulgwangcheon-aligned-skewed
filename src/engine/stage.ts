@@ -381,7 +381,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
   );
   const datumGen2Span = makeEl('span', 'datum-char', datumCharsWrap, QUERY_GEN2);
   const datumRule = makeEl('div', 'datum-query-rule', datumAnchor);
-  datumRule.style.width = '468px';
+  datumRule.style.width = '100%';
 
   /* --- 6. Refraction Lens Prism Gates --- */
   const buildStaticPrismGate = (titleText: string): HTMLElement => {
@@ -1474,9 +1474,11 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       datumGen2Span.style.display = 'inline-block';
       datumGen2Span.style.opacity = '1';
       datumGen2Span.style.transform = 'none';
+      const ruleInOp = smootherstep(171.65, 172.65, t);
+      const ruleDraw = smootherstep(171.65, 173.45, t);
       datumRule.style.background = '#000000';
-      datumRule.style.opacity = '1';
-      datumRule.style.transform = `scaleX(${span(t, 171.45, 172.25, easeOutCubic).toFixed(3)})`;
+      datumRule.style.opacity = (g2Op * ruleInOp).toFixed(3);
+      datumRule.style.transform = `scaleX(${ruleDraw.toFixed(4)})`;
     }
 
     // -----------------------------------------------------------------------
@@ -3139,8 +3141,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       if (t >= 157.45 && t < 164.00) {
         const uSnap = smootherstep(157.45, 158.65, t);
         const uDrift = progress(t, 157.45, 163.95);
-        const sideFade = 1 - smootherstep(163.45, 163.98, t);
-        const centerExit = 1 - smootherstep(163.88, 164.00, t);
+        const sideFade = 1 - smootherstep(163.15, 163.92, t);
 
         ctx.save();
         ctx.strokeStyle = `rgba(225, 0, 0, ${(0.85 * sideFade * uSnap).toFixed(3)})`;
@@ -3163,10 +3164,12 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         shardEls[0]!.style.color = `rgb(${sideGray}, ${sideGray}, ${sideGray})`;
         shardEls[0]!.style.transform = `translate3d(${leftX.toFixed(2)}px, ${leftY.toFixed(2)}px, 0) translate(-50%, -50%) perspective(460px) rotateY(${leftRotY.toFixed(2)}deg) rotateZ(${(-3.0 * uSnap - uDrift * 2.5).toFixed(2)}deg) scale(${leftScale.toFixed(4)})`;
 
-        const centerX = lerp(4895, 4880, uDrift);
-        const centerScale = lerp(0.56, 1.0, smootherstep(157.45, 158.35, t)) * lerp(1.0, 1.04, uDrift);
-        shardEls[1]!.style.opacity = Math.max(centerExit, t < 163.98 ? 1 : 0).toFixed(3);
-        shardEls[1]!.style.transform = `translate3d(${centerX.toFixed(2)}px, 216px, 0) translate(-50%, -50%) scale(${centerScale.toFixed(4)})`;
+        const centerX = lerp(4895, 4866, smootherstep(157.45, 163.50, t));
+        const centerScale =
+          lerp(54 / 104, 0.96, smootherstep(157.45, 158.55, t)) +
+          lerp(0, 0.04, smootherstep(158.55, 163.50, t));
+        shardEls[1]!.style.opacity = '1';
+        shardEls[1]!.style.transform = `translate3d(${centerX.toFixed(2)}px, 216.00px, 0) scale(${centerScale.toFixed(4)}) translate(-50.000%, -50%)`;
 
         const rightX = lerp(5360, 5560, 0.55 * uSnap + 0.45 * uDrift);
         const rightY = lerp(216, 332, clamp(0.84 * uSnap + 0.16 * uDrift, 0, 1));
@@ -3180,8 +3183,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         taperCanvasEllipse(ctx, centerX, 216, 365 * centerScale, 66 * centerScale, 1.0);
         taperCanvasEllipse(ctx, rightX, rightY, 120 * rightScale, 38 * rightScale, sideFade);
 
-        const cw = 378 * centerScale;
-        const ch = 70 * centerScale;
+        const cw = 394 * centerScale;
+        const ch = 72 * centerScale;
         ctx.save();
         ctx.strokeStyle = `rgba(230, 0, 0, ${(0.95 * sideFade).toFixed(3)})`;
         ctx.lineWidth = 1.65;
@@ -3216,6 +3219,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       galeBannerEl.style.transform = 'translate3d(-9999px, -9999px, 0)';
     } else {
       galeBannerEl.style.opacity = '1';
+      galeBannerEl.style.webkitTextStroke = `${(3.5 * (1 - dockGen2)).toFixed(2)}px #ffffff`;
       galeBannerEl.style.transform = `translate3d(${galeAnchorX.toFixed(2)}px, ${galeAnchorY.toFixed(2)}px, 0) scale(${galeScale.toFixed(4)}) translate(${galeAlignPct.toFixed(3)}%, -50%)`;
 
       const streamEnv = 1 - smootherstep(170.85, 171.45, t);

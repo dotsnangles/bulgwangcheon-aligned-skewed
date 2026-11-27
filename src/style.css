@@ -777,8 +777,8 @@ body.raw-mode {
   white-space: nowrap;
   font-family: var(--font-serif);
   line-height: 1.08;
-  word-spacing: 0.22em;
-  letter-spacing: 0.015em;
+  word-spacing: normal;
+  letter-spacing: -0.02em;
   transform-origin: 50% 50%;
   background: transparent;
   box-shadow: none;
@@ -786,13 +786,17 @@ body.raw-mode {
 }
 
 .fault-shard.is-center {
-  font-size: 96px;
+  font-family: var(--font-serif);
+  font-size: 104px;
   font-weight: 700;
-  letter-spacing: -0.025em;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  word-spacing: normal;
+  transform-origin: 0% 50%;
   color: #000000;
   background: transparent;
   box-shadow: none;
-  padding: 2px 6px;
+  padding: 0;
   paint-order: stroke fill;
   -webkit-text-stroke: 3.5px #ffffff;
 }
@@ -816,17 +820,18 @@ body.raw-mode {
   top: 0;
   white-space: nowrap;
   font-family: var(--font-serif);
-  font-weight: 700;
   font-size: 104px;
+  font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.02em;
+  word-spacing: normal;
   transform-origin: 0% 50%;
   color: #000000;
   background: transparent;
   box-shadow: none;
   padding: 0;
   paint-order: stroke fill;
-  -webkit-text-stroke: 3.8px #ffffff;
+  -webkit-text-stroke: 3.5px #ffffff;
   will-change: transform, opacity;
   z-index: 22;
 }

@@ -155,7 +155,7 @@ body.raw-mode {
 .press-platen-rule {
   position: absolute;
   left: 1796px;
-  width: 4524px;
+  width: 4584px;
   height: 3px;
   background: #0000ff;
   transform-origin: 0% 50%;
@@ -365,6 +365,7 @@ body.raw-mode {
 }
 
 .monolith-band {
+  flex: 0 0 25px;
   height: 25px;
   border-bottom: 1px solid #000000;
   display: flex;
@@ -393,9 +394,14 @@ body.raw-mode {
 .monolith-plate-wrap {
   position: relative;
   width: 100%;
-  flex: 1;
+  flex: 1 1 auto;
   overflow: hidden;
   background: #ffffff;
+}
+
+.monolith-card.is-hero .monolith-plate-wrap {
+  flex: 0 0 116px;
+  height: 116px;
 }
 
 .monolith-plate-wrap img {
@@ -406,11 +412,9 @@ body.raw-mode {
 }
 
 .monolith-body {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 102px;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 100px;
   border-top: 1px solid #000000;
   padding: 7px 12px 8px;
   display: flex;
@@ -447,12 +451,12 @@ body.raw-mode {
   word-break: keep-all;
 }
 
-/* --- Right-Edge 3D Oblique History Ribbon (`1.32x` Enlarged + Soft Top/Bottom Mask `14%..86%`!) --- */
+/* --- Right-Edge 3D Oblique History Ribbon (`>= 28px+` Right Margin Clearance + Causal In-Place Crossfade) --- */
 .history-rail-wrap {
   position: absolute;
   top: 0;
-  right: 18px;
-  width: 500px;
+  right: 38px;
+  width: 520px;
   height: 432px;
   overflow: hidden;
   pointer-events: none;
@@ -472,21 +476,21 @@ body.raw-mode {
 .history-list {
   position: absolute;
   top: 26px;
-  left: 78px;
+  left: 48px;
   list-style: none;
   margin: 0;
   padding: 0;
-  width: 342px;
-  transform: rotateX(34deg) rotateY(-26deg) rotateZ(-8deg) scale(1.16) translate3d(0, 0px, 0);
+  width: 326px;
+  transform: rotateX(34deg) rotateY(-26deg) rotateZ(-8deg) scale(1.14) translate3d(0, 0px, 0);
   transform-origin: 50% 0%;
   will-change: transform;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .history-page.is-echo {
-  opacity: 0.34;
+  opacity: 0.30;
 }
 
 .history-head {
@@ -501,10 +505,15 @@ body.raw-mode {
 
 .history-page {
   flex: none;
+  display: grid;
   border: 1.15px solid #000000;
   background: #ffffff;
   padding: 10px 13px;
   backface-visibility: hidden;
+}
+
+.history-slot-layer {
+  grid-area: 1 / 1;
 }
 
 .history-page-top {
@@ -627,7 +636,7 @@ body.raw-mode {
   box-shadow: none;
   padding: 1px 3px;
   paint-order: stroke fill;
-  -webkit-text-stroke: 3.2px #ffffff;
+  -webkit-text-stroke: 4.4px #ffffff;
 }
 
 .frag.is-anchor {
@@ -790,7 +799,7 @@ body.raw-mode {
   -webkit-text-stroke: 3.2px #ffffff;
 }
 
-/* Act IV.3a Elemental Paleo-Wind Gale Hero Text (`104px` Bold, Transparent Ground) */
+/* Act IV.3a Elemental Paleo-Wind Gale Hero Text (`104px` Bold, Exact `0% 50%` Left-Edge Docking to `datumGen2Span`) */
 .gale-wind-banner {
   position: absolute;
   left: 0;
@@ -799,13 +808,13 @@ body.raw-mode {
   font-family: var(--font-serif);
   font-weight: 700;
   font-size: 104px;
-  line-height: 1.02;
-  letter-spacing: -0.025em;
-  transform-origin: 50% 50%;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  transform-origin: 0% 50%;
   color: #000000;
   background: transparent;
   box-shadow: none;
-  padding: 4px 8px;
+  padding: 0;
   paint-order: stroke fill;
   -webkit-text-stroke: 3.8px #ffffff;
   will-change: transform, opacity;

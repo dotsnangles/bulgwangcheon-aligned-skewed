@@ -36,20 +36,27 @@ from scipy import ndimage
 raw_dir = sys.argv[1]
 out_dir = sys.argv[2]
 
-def litho_grade(gray_u8: np.ndarray, seed: int, feather_px: int = 20) -> np.ndarray:
+def litho_grade(gray_u8: np.ndarray, seed: int, feather_px: int = 20, boost_contrast: bool = False) -> np.ndarray:
     """
     Fine-press lithographic tone curve + subtle unsharp + midtone stochastic grain
     with guaranteed pure-white RGB(255,255,255) clamp for L >= 236 and deep carbon ink #000000 for L <= 28.
+    When boost_contrast=True (plates 06, 07, 15), applies strong copperplate unsharp & [44..232] S-curve.
     """
     pil_img = Image.fromarray(gray_u8, mode="L")
-    sharpened = pil_img.filter(ImageFilter.UnsharpMask(radius=1.15, percent=135, threshold=2))
+    if boost_contrast:
+        sharpened = pil_img.filter(ImageFilter.UnsharpMask(radius=1.5, percent=210, threshold=1))
+    else:
+        sharpened = pil_img.filter(ImageFilter.UnsharpMask(radius=1.15, percent=135, threshold=2))
     L = np.asarray(sharpened, dtype=np.float32)
 
-    # Normalize [28 .. 236] -> [0 .. 1]; clamp strictly outside
-    u = np.clip((L - 28.0) / (236.0 - 28.0), 0.0, 1.0)
+    lo_thr = 44.0 if boost_contrast else 28.0
+    hi_thr = 232.0 if boost_contrast else 236.0
+
+    # Normalize [lo_thr .. hi_thr] -> [0 .. 1]; clamp strictly outside
+    u = np.clip((L - lo_thr) / (hi_thr - lo_thr), 0.0, 1.0)
     # Smooth Hermite S-curve with rich lithographic midtone density
     s = u * u * (3.0 - 2.0 * u)
-    s = np.power(s, 0.94)
+    s = np.power(s, 0.88 if boost_contrast else 0.94)
 
     # Deterministic fine-press stochastic grain strictly inside midtones (zero grain on white >= 0.95 or black <= 0.04)
     rng = np.random.Generator(np.random.PCG64(seed))
@@ -59,8 +66,8 @@ def litho_grade(gray_u8: np.ndarray, seed: int, feather_px: int = 20) -> np.ndar
     s = np.clip(s + noise * 0.022 * mid_mask, 0.0, 1.0)
 
     # Re-enforce exact pure-white & deep-carbon thresholds
-    s = np.where(L >= 236.0, 1.0, s)
-    s = np.where(L <= 28.0, 0.0, s)
+    s = np.where(L >= hi_thr, 1.0, s)
+    s = np.where(L <= lo_thr, 0.0, s)
 
     # Soft stone-margin feather on outer perimeter so full-bleed plates never show a hard rectangular cut on #FFFFFF
     if feather_px > 0:
@@ -130,7 +137,7 @@ for idx in range(1, 17):
     gray = np.asarray(resized, dtype=np.uint8)
 
     # Plates with internal margins already have pure white borders; feather_px=18 handles full-bleed plates seamlessly
-    baked = litho_grade(gray, seed=20261100 + idx, feather_px=18)
+    baked = litho_grade(gray, seed=20261100 + idx, feather_px=18, boost_contrast=(idx in (6, 7, 15)))
     w_out, h_out = save_verified_webp(baked, out_path, quality=92)
     sz = os.path.getsize(out_path)
     total_bytes += sz

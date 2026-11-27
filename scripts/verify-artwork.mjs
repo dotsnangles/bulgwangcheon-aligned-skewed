@@ -399,36 +399,137 @@ async function main() {
       };
     });
 
-    // Check `sphere3D@144.0s` central `.orbit-center-sanctuary` intrusion (`=== 0`)
-    await page.evaluate(() => window.renderAt(144.0));
-    const sphere144Check = await page.evaluate(() => {
-      const sanct = document.querySelector('.orbit-center-sanctuary');
-      const sanctOp = parseFloat(window.getComputedStyle(sanct).opacity || '0');
-      const sRect = sanct.getBoundingClientRect();
-      const pad = 4;
-      const intrusions = [];
-      for (const el of document.querySelectorAll('.frag')) {
-        const op = parseFloat(window.getComputedStyle(el).opacity || '0');
-        if (op < 0.12) continue;
-        const r = el.getBoundingClientRect();
-        const ox = Math.min(r.right, sRect.right + pad) - Math.max(r.left, sRect.left - pad);
-        const oy = Math.min(r.bottom, sRect.bottom + pad) - Math.max(r.top, sRect.top - pad);
-        if (ox > 0.5 && oy > 0.5) {
-          intrusions.push(`"${(el.textContent || '').trim().slice(0, 18)}" (${ox.toFixed(1)}x${oy.toFixed(1)})`);
+    // Check `sphere3D` & `orbit2D ↔ sphere3D` transitions across 9 timestamps for central `.orbit-center-sanctuary` intrusion (`=== 0`)
+    const sanctTimes = [129.5, 133.0, 138.8, 139.2, 140.0, 144.0, 147.8, 148.4, 149.0];
+    let totalSanctIntrusions = 0;
+    const sanctIntrusionSamples = [];
+    for (const st of sanctTimes) {
+      await page.evaluate((sec) => window.renderAt(sec), st);
+      const sRes = await page.evaluate(() => {
+        const sanct = document.querySelector('.orbit-center-sanctuary');
+        const sanctOp = parseFloat(window.getComputedStyle(sanct).opacity || '0');
+        if (sanctOp < 0.1) return { sanctOp, intrusionCount: 0, samples: [] };
+        const sRect = sanct.getBoundingClientRect();
+        const pad = 3;
+        const intrusions = [];
+        for (const el of document.querySelectorAll('.frag')) {
+          const op = parseFloat(window.getComputedStyle(el).opacity || '0');
+          if (op < 0.12) continue;
+          const r = el.getBoundingClientRect();
+          const ox = Math.min(r.right, sRect.right + pad) - Math.max(r.left, sRect.left - pad);
+          const oy = Math.min(r.bottom, sRect.bottom + pad) - Math.max(r.top, sRect.top - pad);
+          if (ox > 0.5 && oy > 0.5) {
+            intrusions.push(`"${(el.textContent || '').trim().slice(0, 18)}" (${ox.toFixed(1)}x${oy.toFixed(1)})`);
+          }
         }
+        return { sanctOp, intrusionCount: intrusions.length, samples: intrusions.slice(0, 4) };
+      });
+      totalSanctIntrusions += sRes.intrusionCount;
+      if (sRes.intrusionCount > 0) {
+        sanctIntrusionSamples.push(`t=${st}s:${sRes.samples.join(',')}`);
       }
-      return { sanctOp, intrusionCount: intrusions.length, samples: intrusions.slice(0, 5) };
-    });
+    }
+
+    // Check 3D Foreground Lattice Zero-Collision (`effOp >= 0.45`) across `helix3D`, `cloud3D`, and `sphere3D`
+    const fg3DSpecs = [
+      { name: 'helix3D', t: 90.5 },
+      { name: 'helix3D', t: 94.5 },
+      { name: 'helix3D', t: 98.5 },
+      { name: 'cloud3D', t: 122.5 },
+      { name: 'sphere3D', t: 141.5 },
+      { name: 'sphere3D', t: 144.0 },
+      { name: 'sphere3D', t: 146.5 },
+    ];
+    let total3DFgCollisions = 0;
+    const fg3DNotes = [];
+    for (const fsp of fg3DSpecs) {
+      await page.evaluate((sec) => window.renderAt(sec), fsp.t);
+      const cRes = await page.evaluate(() => {
+        const boxes = [];
+        for (const el of document.querySelectorAll('.frag')) {
+          const op = parseFloat(window.getComputedStyle(el).opacity || '0');
+          if (op < 0.45) continue;
+          const r = el.getBoundingClientRect();
+          if (r.width <= 0.5 || r.height <= 0.5 || r.right < 0 || r.left > 6480) continue;
+          boxes.push({
+            text: (el.textContent || '').trim().slice(0, 18),
+            left: r.left,
+            top: r.top,
+            right: r.right,
+            bottom: r.bottom,
+          });
+        }
+        const cols = [];
+        for (let i = 0; i < boxes.length; i++) {
+          const a = boxes[i];
+          for (let j = i + 1; j < boxes.length; j++) {
+            const b = boxes[j];
+            const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+            const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+            if (ox > 0.5 && oy > 0.5) {
+              cols.push(`"${a.text}"<->"${b.text}"(${ox.toFixed(1)}x${oy.toFixed(1)})`);
+            }
+          }
+        }
+        return { count: cols.length, samples: cols.slice(0, 5) };
+      });
+      total3DFgCollisions += cRes.count;
+      if (cRes.count > 0) {
+        fg3DNotes.push(`${fsp.name}@${fsp.t}s:${cRes.count}[${cRes.samples.join(',')}]`);
+      }
+    }
+
+    // Check Active `COS` Badge Sanctuary Zero-Collision (`65.8, 68.5, 71.2, 74.0s`)
+    const cosWaveTimes = [65.8, 68.5, 71.2, 74.0];
+    let totalCosBadgeCollisions = 0;
+    const cosBadgeNotes = [];
+    for (const ct of cosWaveTimes) {
+      await page.evaluate((sec) => window.renderAt(sec), ct);
+      const bRes = await page.evaluate(() => {
+        const stage = document.querySelector('.motion-stage');
+        const raw = stage?.dataset.activeCosineBoxes || '';
+        const cosBoxes = raw
+          .split(';')
+          .filter(Boolean)
+          .map((s) => {
+            const [l, t, r, b] = s.split(',').map(Number);
+            return { left: l, top: t, right: r, bottom: b };
+          });
+        const hits = [];
+        for (const el of document.querySelectorAll('.frag')) {
+          const op = parseFloat(window.getComputedStyle(el).opacity || '0');
+          if (op < 0.20) continue;
+          const r = el.getBoundingClientRect();
+          for (const cb of cosBoxes) {
+            const ox = Math.min(r.right, cb.right) - Math.max(r.left, cb.left);
+            const oy = Math.min(r.bottom, cb.bottom) - Math.max(r.top, cb.top);
+            if (ox > 0.5 && oy > 0.5) {
+              hits.push(`"${(el.textContent || '').trim().slice(0, 16)}"(${ox.toFixed(1)}x${oy.toFixed(1)})`);
+            }
+          }
+        }
+        return { badgeCount: cosBoxes.length, collisionCount: hits.length, samples: hits.slice(0, 4) };
+      });
+      if (bRes.badgeCount === 0) {
+        totalCosBadgeCollisions += 1;
+        cosBadgeNotes.push(`t=${ct}s:no_badges`);
+      } else if (bRes.collisionCount > 0) {
+        totalCosBadgeCollisions += bRes.collisionCount;
+        cosBadgeNotes.push(`t=${ct}s:${bRes.samples.join(',')}`);
+      }
+    }
 
     const g2PressOk = !press88Check.clipUsed && press88Check.formulaOp >= 0.85 && press88Check.minFormulaGap >= 12.0;
-    const g2SphereOk = sphere144Check.sanctOp >= 0.9 && sphere144Check.intrusionCount === 0;
+    const g2SphereOk = totalSanctIntrusions === 0 && total3DFgCollisions === 0 && totalCosBadgeCollisions === 0;
     if (!g2PressOk) console.error('  [G2 press@8.8s 결함]:', press88Check);
-    if (!g2SphereOk) console.error('  [G2 sphere3D@144.0s 침범]:', sphere144Check);
+    if (totalSanctIntrusions > 0) console.error('  [G2 중앙 성소 침범]:', sanctIntrusionSamples);
+    if (total3DFgCollisions > 0) console.error('  [G2 3D 전면 충돌]:', fg3DNotes);
+    if (totalCosBadgeCollisions > 0) console.error('  [G2 COS 배지 충돌]:', cosBadgeNotes);
 
     gates.push({
-      id: 'G2 (2D무충돌·중앙성소)',
+      id: 'G2 (2D/3D무충돌·성소·COS)',
       passed: g2TotalCollisions === 0 && g2PressOk && g2SphereOk,
-      detail: `${g2Details.join(' · ')} · sphere3D@144s 성소침범=${sphere144Check.intrusionCount} · press@8.8s 여백=${press88Check.minFormulaGap.toFixed(1)}px`,
+      detail: `${g2Details.join(' · ')} · 3D전면충돌=${total3DFgCollisions} · 9시점성소침범=${totalSanctIntrusions} · COS배지충돌=${totalCosBadgeCollisions} · press@8.8s=${press88Check.minFormulaGap.toFixed(1)}px`,
     });
 
     // -------------------------------------------------------------------------

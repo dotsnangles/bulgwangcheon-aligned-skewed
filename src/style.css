@@ -1,12 +1,10 @@
 /* ==========================================================================
-   Aligned / Skewed — Professional Art-Grade Fine-Press & Silkscreen Style Sheet
+   Aligned / Skewed — Museum-Grade Fine-Press & Silkscreen Style Sheet (Round 2)
    Self-hosted Noto Serif KR (Variable 200..900) × JetBrains Mono (Variable)
-   Palette: #FFFFFF paper ground, #000000 carbon ink, #0000FF aligned overprint,
-            #FF9E4D/#FFAF66/#FFC080/#FFD09A 01~04 skewed overprint, #FF0000 surgical red
-   Zero CSS transitions/keyframes inside `.motion-stage` (100% deterministic `renderAt(t)`).
+   Palette: #FFFFFF paper ground, #000000 carbon ink, #0000FF aligned silkscreen,
+            #FF8524/#FF9B42/#FFB066/#FFC488 vivid 01~04 skewed, #FF0000 surgical red
+   100% Zero App UI Chrome · 100% Zero Burn-in HUD · 100% Deterministic `renderAt(t)`
    ========================================================================== */
-
-/* Fonts are preloaded & declared via relative ./fonts/*.woff2 in index.html for GitHub Pages compatibility */
 
 * {
   box-sizing: border-box;
@@ -21,10 +19,10 @@
   --paper: #ffffff;
   --blue: #0000ff;
   --red: #ff0000;
-  --o1: #ff9e4d;
-  --o2: #ffaf66;
-  --o3: #ffc080;
-  --o4: #ffd09a;
+  --o1: #ff8524;
+  --o2: #ff9b42;
+  --o3: #ffb066;
+  --o4: #ffc488;
 }
 
 html,
@@ -46,7 +44,7 @@ body.raw-mode {
 }
 
 /* ==========================================================================
-   SINGLE UNBROKEN 6480 × 432 MUSEUM MOVING-IMAGE STAGE (ZERO APP UI CHROME)
+   SINGLE UNBROKEN 6480 × 432 MOVING-IMAGE STAGE (OPEN BOUNDLESS PAPER)
    ========================================================================== */
 
 .motion-stage {
@@ -78,7 +76,7 @@ body.raw-mode {
   transform-origin: 0 0;
 }
 
-/* --- Swiss Precision Vernier Hairline Grid (Static Registration Layer) --- */
+/* --- Subtle Interior Fiducial Crosshairs Only (No Outer Box Lines!) --- */
 .swiss-grid-svg {
   position: absolute;
   inset: 0;
@@ -88,29 +86,7 @@ body.raw-mode {
   z-index: 1;
 }
 
-.swiss-telemetry-bar {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 6480px;
-  height: 20px;
-  pointer-events: none;
-  z-index: 24;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 9.5px;
-  letter-spacing: 0.09em;
-  color: #000000;
-}
-
-.telemetry-tag {
-  position: absolute;
-  top: 4px;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-/* --- Floor SVG (Compact Architectural Cast Polygons + Bezier Trajectories) --- */
+/* --- Floor SVG (3D Registration Crosshairs + Orthogonal Red Trajectories) --- */
 .stage-floor-svg {
   position: absolute;
   inset: 0;
@@ -118,168 +94,299 @@ body.raw-mode {
   height: 432px;
   pointer-events: none;
   overflow: visible;
-  z-index: 2;
+  z-index: 4;
 }
 
-/* --- Act I.1: Opening Press of Alignment & Voronoi Lithograph --- */
+/* --- Act I.1: High-Contrast Silkscreen Press & Left Pure-White Hero Sanctuary --- */
 .press-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 8;
+  z-index: 10;
 }
 
 .press-voronoi-plate {
   position: absolute;
-  width: 820px;
-  height: 432px;
+  width: 1560px;
+  height: 376px;
+  top: 28px;
   object-fit: cover;
   mix-blend-mode: multiply;
   pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 48% 48% at 50% 50%, #000 45%, transparent 98%);
+  mask-image: radial-gradient(ellipse 48% 48% at 50% 50%, #000 45%, transparent 98%);
 }
 
 .press-hero-query {
   position: absolute;
-  left: 160px;
-  top: 138px;
+  left: 118px;
+  top: 216px;
   font-family: var(--font-serif);
-  font-size: 136px;
-  line-height: 1.02;
+  font-size: 122px;
+  line-height: 1.04;
   letter-spacing: -0.025em;
   white-space: nowrap;
   color: #000000;
   transform-origin: 0 50%;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 28px 18px #ffffff;
+  padding: 2px 8px;
 }
 
 .press-memory-line {
   position: absolute;
   font-family: var(--font-serif);
-  font-size: 31px;
-  font-weight: 400;
-  line-height: 1.2;
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.18;
   letter-spacing: -0.01em;
   white-space: nowrap;
-  color: #000000;
+  padding: 3px 14px;
+  border: 1px solid #000000;
   transform-origin: 50% 50%;
 }
 
-.press-blue-slab {
+.press-platen-rule {
   position: absolute;
+  left: 1800px;
+  width: 4520px;
+  height: 4px;
   background: #0000ff;
-  mix-blend-mode: multiply;
-  transform-origin: 0 50%;
+  pointer-events: none;
 }
 
 .press-formula-stamp {
   position: absolute;
-  left: 3420px;
+  left: 3960px;
   top: 216px;
   transform: translate(-50%, -50%);
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 56px;
+  font-size: 52px;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.025em;
   white-space: nowrap;
   color: #000000;
   padding: 10px 28px;
-  border-top: 1.5px solid #000000;
-  border-bottom: 1.5px solid #000000;
-  background: rgba(255, 255, 255, 0.88);
+  border-top: 2.5px solid #0000ff;
+  border-bottom: 2.5px solid #0000ff;
+  background: #ffffff;
+  box-shadow: 0 0 22px 12px #ffffff;
 }
 
-/* --- Architectural Query Datum Header (Zero Input/Toolbar Chrome) --- */
+/* --- 20m Macro Query Anchor (56px Bold Serif, Granular Weathering Ready) --- */
 .datum-query-anchor {
   position: absolute;
-  left: 118px;
-  top: 22px;
+  left: 110px;
+  top: 34px;
   z-index: 20;
   pointer-events: none;
   white-space: nowrap;
 }
 
-.datum-query-kicker {
-  display: block;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
-  color: #0000ff;
-  margin-bottom: 2px;
-}
-
-.datum-query-text {
-  display: block;
+.datum-query-chars {
+  display: inline-flex;
+  align-items: baseline;
   font-family: var(--font-serif);
-  font-size: 30px;
+  font-size: 56px;
   font-weight: 700;
-  line-height: 1.12;
-  letter-spacing: -0.015em;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
   color: #000000;
 }
 
+.datum-char {
+  display: inline-block;
+  transform-origin: 50% 50%;
+}
+
+.datum-char.has-gap {
+  margin-left: 0.24em;
+}
+
 .datum-query-rule {
-  height: 1px;
-  background: #000000;
-  margin-top: 5px;
+  height: 2px;
+  background: #0000ff;
+  margin-top: 8px;
   transform-origin: 0 50%;
 }
 
-/* --- Act I & Act IV: 3D Architectural Silkscreen & Lithograph Monoliths --- */
+/* --- Refraction Lens Prism Gate (`X = 1715..1855, Y = 36..396`) --- */
+.prism-gate {
+  position: absolute;
+  left: 1716px;
+  top: 36px;
+  width: 136px;
+  height: 360px;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.prism-gate-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.prism-gate-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 14px 8px #ffffff;
+  border-top: 1.5px solid #ff0000;
+  border-bottom: 1.5px solid #000000;
+  padding: 8px 12px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.prism-gate-kicker {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #ff0000;
+  margin-bottom: 4px;
+}
+
+.prism-gate-title {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.18;
+  color: #000000;
+}
+
+/* --- Polar Sastrugi Horizon Backdrop (Strictly Inside Safe Area + 4-Edge Soft Mask) --- */
+.sastrugi-backdrop {
+  position: absolute;
+  left: 3600px;
+  top: 150px;
+  width: 2300px;
+  height: 252px;
+  object-fit: cover;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 2;
+  -webkit-mask-image: radial-gradient(ellipse 48% 46% at 50% 52%, #000 36%, transparent 98%);
+  mask-image: radial-gradient(ellipse 48% 46% at 50% 52%, #000 36%, transparent 98%);
+}
+
+/* --- Act I.3 & Act IV.3b: Genuine `perspective(580px)` 3D Monolith Archipelago --- */
 .card-layer {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: 7;
   pointer-events: none;
+}
+
+.station-beacon {
+  position: absolute;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 320;
+}
+
+.station-beacon-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.station-big-num {
+  font-family: var(--font-serif);
+  font-size: 62px;
+  font-weight: 700;
+  line-height: 0.88;
+  letter-spacing: -0.04em;
+  color: #000000;
+}
+
+.station-meta-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 2px 6px;
+}
+
+.station-code {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #000000;
+}
+
+.station-title {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  color: #000000;
 }
 
 .monolith-card {
   position: absolute;
   background: #ffffff;
-  border: 1px solid #000000;
+  border: 1.25px solid #000000;
   color: #000000;
   transform-origin: 50% 50%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  backface-visibility: hidden;
 }
 
 .monolith-band {
-  height: 22px;
+  height: 25px;
   border-bottom: 1px solid #000000;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 0 8px;
+  padding: 0 9px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  overflow: hidden;
-  mix-blend-mode: multiply;
 }
 
 .monolith-band.aligned {
   background: #0000ff;
   color: #ffffff;
-  mix-blend-mode: normal;
 }
 
-.monolith-band.skewed-1 { background: #ff9e4d; color: #000000; }
-.monolith-band.skewed-2 { background: #ffaf66; color: #000000; }
-.monolith-band.skewed-3 { background: #ffc080; color: #000000; }
-.monolith-band.skewed-4 { background: #ffd09a; color: #000000; }
+.monolith-band.skewed-1 { background: var(--o1); color: #000000; }
+.monolith-band.skewed-2 { background: var(--o2); color: #000000; }
+.monolith-band.skewed-3 { background: var(--o3); color: #000000; }
+.monolith-band.skewed-4 { background: var(--o4); color: #000000; }
 
 .monolith-plate-wrap {
   position: relative;
   width: 100%;
-  height: 108px;
   overflow: hidden;
-  border-bottom: 0.75px solid #000000;
   background: #ffffff;
+}
+
+.monolith-card.is-hero .monolith-plate-wrap {
+  height: 116px;
+  border-bottom: 1px solid #000000;
+}
+
+.monolith-card.is-slab .monolith-plate-wrap {
+  flex: 1;
 }
 
 .monolith-plate-wrap img {
@@ -290,123 +397,49 @@ body.raw-mode {
   display: block;
 }
 
-.monolith-rank-num {
-  position: absolute;
-  right: 7px;
-  bottom: -5px;
-  font-family: var(--font-serif);
-  font-size: 46px;
-  font-weight: 200;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: #000000;
-  mix-blend-mode: multiply;
-}
-
-.monolith-tint-slab {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 34%;
-  height: 100%;
-  mix-blend-mode: multiply;
-  opacity: 0.42;
-  pointer-events: none;
-}
-
 .monolith-body {
-  padding: 7px 9px 8px;
+  padding: 8px 11px 9px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   flex: 1;
   background: #ffffff;
 }
 
 .monolith-title {
   font-family: var(--font-serif);
-  font-size: 14.5px;
+  font-size: 16.5px;
   font-weight: 700;
-  line-height: 1.28;
+  line-height: 1.26;
   letter-spacing: -0.01em;
   word-break: keep-all;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .monolith-snippet {
   font-family: var(--font-serif);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 1.38;
+  line-height: 1.36;
   color: #111111;
   word-break: keep-all;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
-/* --- Skewed Distance Datum Axis (`01 -> 04`) --- */
-.axis-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 7;
-  pointer-events: none;
-}
-
-.axis-bar {
-  position: absolute;
-  height: 1px;
-  background: #000000;
-  transform-origin: 0 50%;
-}
-
-.axis-station {
-  position: absolute;
-  white-space: nowrap;
-}
-
-.axis-station-code {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 9.5px;
-  letter-spacing: 0.08em;
-  color: #000000;
-}
-
-.axis-station-title {
-  font-family: var(--font-serif);
-  font-size: 15.5px;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-top: 1px;
-}
-
-.axis-dot {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border: 1px solid #000000;
-  transform-origin: 50% 50%;
-}
-
-/* --- Right-Edge 3D Oblique History Ribbon (Pierces Top & Bottom Frame Boldly) --- */
+/* --- Right-Edge 3D Oblique History Ribbon (Soft Masked Top & Bottom, Zero Hard Cut!) --- */
 .history-rail-wrap {
   position: absolute;
-  top: -64px;
-  right: 12px;
-  width: 440px;
-  height: 560px;
-  overflow: visible;
+  top: 0;
+  right: 16px;
+  width: 410px;
+  height: 432px;
+  overflow: hidden;
   pointer-events: none;
   z-index: 12;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000000 13%, #000000 87%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000000 13%, #000000 87%, transparent 100%);
 }
 
 .history-scene {
-  perspective: 740px;
+  perspective: 620px;
   perspective-origin: 50% 50%;
   width: 100%;
   height: 100%;
@@ -415,24 +448,23 @@ body.raw-mode {
 .history-list {
   --history-offset: 0px;
   list-style: none;
-  margin: 0 0 0 74px;
+  margin: 26px 0 0 68px;
   padding: 0;
-  width: 278px;
-  transform: rotateX(38deg) rotateY(-30deg) rotateZ(-8deg) translate3d(0, calc(var(--history-offset) * -1), 0);
-  transform-origin: 50% 25%;
+  width: 286px;
+  transform: rotateX(36deg) rotateY(-28deg) rotateZ(-8deg) translate3d(0, calc(var(--history-offset) * -1), 0);
+  transform-origin: 50% 0%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
 }
 
 .history-head {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-serif);
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   padding-bottom: 4px;
-  border-bottom: 1px solid #000000;
+  border-bottom: 1.25px solid #000000;
   background: #ffffff;
 }
 
@@ -440,7 +472,7 @@ body.raw-mode {
   flex: none;
   border: 1px solid #000000;
   background: #ffffff;
-  padding: 8px 10px;
+  padding: 9px 11px;
   backface-visibility: hidden;
 }
 
@@ -448,39 +480,28 @@ body.raw-mode {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .history-badge {
-  padding: 1px 5px;
+  padding: 1px 6px;
   border: 1px solid #000000;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .history-page-title {
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
-  line-height: 1.26;
+  line-height: 1.28;
   word-break: keep-all;
 }
 
-.history-page-snip {
-  font-family: var(--font-serif);
-  font-size: 10.5px;
-  line-height: 1.34;
-  margin-top: 3px;
-  color: #222222;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* --- Act II: 6,200 × 432 Full-Bleed Fine-Press Archive Spread (Zero Browser Chrome) --- */
+/* --- Act II.1: Full-Bleed Fine-Press Broadsheet (`13px` Mono + `15px` Bold Serif) --- */
 .archive-spread {
   position: absolute;
   inset: 0;
@@ -491,44 +512,57 @@ body.raw-mode {
 .spread-hero-slot {
   position: absolute;
   background: #ffffff;
-  border-left: 0.75px solid #000000;
-  border-right: 0.75px solid #000000;
+  border-left: 1px solid #000000;
+  border-right: 1px solid #000000;
   overflow: hidden;
 }
 
-.spread-hero-slot img {
+.spread-hero-img-box {
   width: 100%;
-  height: calc(100% - 26px);
+  height: calc(100% - 34px);
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.spread-hero-img-box img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   mix-blend-mode: multiply;
   display: block;
+  transform-origin: 50% 50%;
 }
 
 .spread-hero-meta {
-  height: 26px;
-  border-top: 0.75px solid #000000;
+  height: 34px;
+  border-top: 1px solid #000000;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px;
+  gap: 8px;
+  padding: 0 10px;
   background: #ffffff;
 }
 
 .spread-hero-code {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #000000;
+  white-space: nowrap;
 }
 
 .spread-hero-cap {
   font-family: var(--font-serif);
-  font-size: 11px;
-  color: #111111;
+  font-size: 15px;
+  font-weight: 700;
+  color: #000000;
+  white-space: nowrap;
 }
 
-/* --- High-Precision 2D Silkscreen Canvas (Strides, CUTS, Barcodes, Bezier Arteries, Gale) --- */
+/* --- High-Precision 2D Silkscreen Canvas (Strictly Below `.frag-layer`!) --- */
 .stage-canvas {
   position: absolute;
   left: 0;
@@ -539,7 +573,7 @@ body.raw-mode {
   z-index: 6;
 }
 
-/* --- Act II–IV: 200 Multi-Layered Deconstructed Fragments --- */
+/* --- Act II–IV: 200 Fragments with Fine-Press Paper Halo (`z-index: 9`) --- */
 .frag-layer {
   position: absolute;
   inset: 0;
@@ -557,6 +591,13 @@ body.raw-mode {
   color: #000000;
 }
 
+.frag:not(.is-img) {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 9px 5px rgba(255, 255, 255, 0.94);
+  border-radius: 2px;
+  padding: 1px 4px;
+}
+
 .frag.is-anchor {
   font-family: var(--font-serif);
   font-weight: 700;
@@ -571,7 +612,6 @@ body.raw-mode {
 
 .frag.is-img {
   text-align: center;
-  mix-blend-mode: multiply;
 }
 
 .frag.is-img img {
@@ -584,17 +624,22 @@ body.raw-mode {
 }
 
 .frag.is-img .frag-lab {
-  display: block;
-  margin-top: 3px;
+  display: inline-block;
+  margin-top: 4px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 9px;
-  letter-spacing: 0.05em;
-  line-height: 1.1;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
   color: #000000;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.92);
+  border-radius: 2px;
+  padding: 1px 5px;
 }
 
-/* --- Special Callouts, Central Orbit Sanctuary & Act IV 3D Fault-Line Fracture --- */
+/* --- Special Callouts, Pure Orbit Center & Zero-Aberration 3D Fault/Gale --- */
 .special-layer {
   position: absolute;
   inset: 0;
@@ -609,11 +654,12 @@ body.raw-mode {
   font-variant-numeric: tabular-nums;
   font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #ff0000;
+  letter-spacing: 0.06em;
+  color: #e60000;
   background: #ffffff;
-  border: 1px solid #ff0000;
-  padding: 2px 9px;
+  box-shadow: 0 0 14px 10px #ffffff;
+  border: 1.25px solid #e60000;
+  padding: 3px 11px;
   white-space: nowrap;
 }
 
@@ -624,40 +670,52 @@ body.raw-mode {
   transform: translate(-50%, -50%);
   text-align: center;
   white-space: nowrap;
-}
-
-.orbit-center-kicker {
-  display: block;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: #ff0000;
-  margin-bottom: 3px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 28px 18px #ffffff;
+  padding: 6px 18px;
 }
 
 .orbit-center-query {
   display: block;
   font-family: var(--font-serif);
-  font-size: 44px;
+  font-size: 48px;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
-  color: #ff0000;
+  color: #e60000;
 }
 
-.periphery-beacon {
+.periphery-num-tag {
   position: absolute;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  color: #ff0000;
+  letter-spacing: 0.06em;
+  color: #d90000;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 1px 6px;
   white-space: nowrap;
 }
 
-/* 3D Fault-Line Fracture Shards (Act IV 95.0–101.5s) */
+/* Act IV.1 Awakened Peripheral Sentence (`54px` Bold Single-Ink Razor Edge) */
+.awakened-sentence {
+  position: absolute;
+  left: 4880px;
+  top: 216px;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-serif);
+  font-size: 54px;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 32px 20px #ffffff;
+  padding: 6px 18px;
+}
+
+/* Act IV.2 Zero-Chromatic-Aberration 3D Perspective Fault Shards */
 .fault-shard {
   position: absolute;
   left: 0;
@@ -668,20 +726,27 @@ body.raw-mode {
   transform-origin: 50% 50%;
 }
 
-.fault-shard-overprint {
-  position: absolute;
-  left: 0;
-  top: 0;
-  white-space: nowrap;
-  font-family: var(--font-serif);
+.fault-shard.is-center {
+  font-size: 96px;
   font-weight: 700;
-  line-height: 1.08;
-  transform-origin: 50% 50%;
-  color: #0000ff;
-  mix-blend-mode: multiply;
+  letter-spacing: -0.025em;
+  color: #000000;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 12px 6px #ffffff;
+  padding: 6px 18px;
 }
 
-/* Act IV Horizontal Gale Hero Text ("수억 년 전의 바람" sweeping 6,480px) */
+.fault-shard.is-side {
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: #3a3a3a;
+  background: rgba(255, 255, 255, 0.90);
+  box-shadow: 0 0 18px 10px #ffffff;
+  padding: 4px 12px;
+}
+
+/* Act IV.3a Elemental Paleo-Wind Gale Hero Text (`104px` Bold + `560x130` Eye-of-the-Storm Halo) */
 .gale-wind-banner {
   position: absolute;
   left: 0;
@@ -689,28 +754,16 @@ body.raw-mode {
   white-space: nowrap;
   font-family: var(--font-serif);
   font-weight: 700;
-  font-size: 92px;
-  line-height: 1;
-  letter-spacing: -0.02em;
+  font-size: 104px;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
   transform-origin: 50% 50%;
   color: #000000;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 0 44px 32px #ffffff;
+  border-radius: 6px;
+  padding: 12px 32px;
   z-index: 22;
-}
-
-.gale-wind-overprint {
-  position: absolute;
-  left: 0;
-  top: 0;
-  white-space: nowrap;
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: 92px;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  transform-origin: 50% 50%;
-  color: #ff0000;
-  mix-blend-mode: multiply;
-  z-index: 21;
 }
 
 /* Seamless Pure-White Loop Wash */
@@ -908,7 +961,7 @@ body.raw-mode {
 }
 
 .scene-btn.is-current {
-  border-bottom: 3px solid #ff9e4d;
+  border-bottom: 3px solid var(--o1);
   font-weight: 700;
 }
 

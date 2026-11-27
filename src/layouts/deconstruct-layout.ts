@@ -1,14 +1,15 @@
 /**
- * Deterministic Collision-Free 7-Space Layout Solver (`src/layouts/deconstruct-layout.ts`)
+ * Deterministic Collision-Free 8-Space Layout Solver (`src/layouts/deconstruct-layout.ts`)
  *
- * Spaces implemented across the single unbroken 6480 × 432 (15:1) canvas:
- *   1. `page`      : 6,200 × 432 full-bleed fine-press archive spread (with 5 large hero plate zones + multi-column serif + guillotine CUTS)
- *   2. `reading2D` : Collision-free 2D reading columns (`separate()` verified 0 overlaps)
- *   3. `helixBase` : 30m 3D Horizontal Helix (`z in [-260, +260]` for focal-plane DOF)
- *   4. `meaning2D` : Collision-free 2D semantic spring nebulae (`separate()` verified 0 overlaps)
- *   5. `cloud3D`   : Volumetric 3D semantic nebula (`Catmull-Rom` fly-through ready)
- *   6. `orbit2D`   : Collision-free 2D elliptical query orbit (`scale=0.72+t, opacity=0.14+0.86t`, verified 0 overlaps)
- *   7. `sphere3D`  : 3D Question Sphere Shell (radial distance = `1 - querySim`, rotating panoramic shell)
+ * Spaces across the single unbroken 6480 × 432 (15:1) canvas:
+ *   1. `page`       : Full-bleed broadsheet (5 hero plates + 16 serif columns, `separate()` verified 0 overlaps)
+ *   2. `spectrum2D` : Dedicated barcode & cosine-laser layout (`+20px` bottom barcode slot reserved per item, 0 overlaps!)
+ *   3. `reading2D`  : Collision-free 2D reading columns (`0` overlaps)
+ *   4. `helixBase`  : 30m 3D Horizontal Helix (`z in [-255, +255]`)
+ *   5. `meaning2D`  : Collision-free 2D semantic affinity nebulae (`0` overlaps)
+ *   6. `cloud3D`    : Volumetric 3D semantic nebula
+ *   7. `orbit2D`    : Collision-free 2D elliptical query orbit (`0` overlaps)
+ *   8. `sphere3D`   : 30m Panoramic Celestial Armillary Dome (`phi, theta, shellR` spanning `X = 180..6300`)
  */
 
 import type { FragmentItem, PairWeight } from '../data/corpus.ts';
@@ -23,12 +24,12 @@ export interface Pos3D {
 }
 
 export interface CutMark {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  orientation: 'v' | 'h';
-  beatOrder: number;
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
+  readonly orientation: 'v' | 'h';
+  readonly strikeAt: number;
 }
 
 export interface HeroSpreadSlot {
@@ -45,25 +46,24 @@ export interface PanoramicLayouts {
   readonly heroSpreadSlots: readonly HeroSpreadSlot[];
   readonly page: readonly Pos3D[];
   readonly cuts: readonly CutMark[];
+  readonly spectrum2D: readonly Pos3D[];
   readonly reading2D: readonly Pos3D[];
   readonly helixBase: readonly { x: number; angle: number; radiusY: number; radiusZ: number; strand: 0 | 1 }[];
   readonly meaning2D: readonly Pos3D[];
   readonly cloud3D: readonly { cx: number; cy: number; cz: number }[];
   readonly orbit2D: readonly Pos3D[];
-  readonly sphere3D: readonly { sx: number; sy: number; sz: number; shellR: number }[];
+  readonly sphere3D: readonly { phi: number; theta: number; shellR: number }[];
 }
 
 /**
- * Conservative, high-precision pixel bounding box estimator (`w, h` after `scale` transform)
+ * High-precision pixel bounding box estimator (`w, h` after `scale` transform + paper halo padding `1px 4px`)
  * matching rendered `Noto Serif KR` + `JetBrains Mono` DOM metrics in Chromium (`6480×432`).
- * Includes safety margin so DOM `getBoundingClientRect()` has ZERO text-text or text-plate collisions.
  */
-export function fragmentBox(f: FragmentItem, scale: number): { w: number; h: number } {
+export function fragmentBox(f: FragmentItem, scale: number, extraBottomPx = 0): { w: number; h: number } {
   if (f.type === 'img') {
-    // Rendered plate card is 132x84 image + 16px micro-index caption => ~138 x 104 at scale=1
     return {
-      w: 144 * scale + 10,
-      h: 108 * scale + 8,
+      w: 138 * scale + 6,
+      h: 108 * scale + 4 + extraBottomPx,
     };
   }
 
@@ -71,24 +71,25 @@ export function fragmentBox(f: FragmentItem, scale: number): { w: number; h: num
   for (const ch of f.content) {
     const code = ch.charCodeAt(0);
     if (ch === ' ') {
-      emSum += 0.36;
+      emSum += 0.34;
     } else if (code <= 0x007f) {
-      emSum += 0.62;
+      emSum += 0.60;
     } else if (code >= 0xac00 && code <= 0xd7a3) {
-      emSum += 1.03;
+      emSum += 1.01;
     } else {
-      emSum += 0.85;
+      emSum += 0.82;
     }
   }
 
   const fontPx = f.baseFontPx * scale;
   const letterSpacingPx = f.tier === 'anchor' ? fontPx * 0.04 * f.content.length : fontPx * 0.01 * f.content.length;
-  const w = (emSum * fontPx + letterSpacingPx) * 1.14 + 14;
-  const h = fontPx * 1.48 + 6;
+  // Exact true-DOM scaled width & height (accounting for padding: 1px 4px) + crisp safety margin
+  const w = (emSum * fontPx + letterSpacingPx + 8 * scale) * 1.07 + 6;
+  const h = (f.baseFontPx * 1.32 + 4) * scale + 3 + extraBottomPx;
   return { w, h };
 }
 
-interface KeepOutZone {
+export interface KeepOutZone {
   readonly cx: number;
   readonly cy: number;
   readonly hw: number;
@@ -97,46 +98,51 @@ interface KeepOutZone {
 
 /**
  * Deterministic multi-pass AABB collision-resolution solver (`separate()`).
- * Resolves 100% of bounding-box overlaps among active items while respecting stage margins,
- * pinned indices, and optional central sanctuary keep-out zones.
+ * Treats `keepOut` zones as pinned rigid bodies so items slide cleanly around sanctuaries with zero oscillation.
  */
-function separate(
+export function separate(
   items: Pos3D[],
   fragments: readonly FragmentItem[],
   options: {
     marginX?: number;
     marginTop?: number;
     marginBottom?: number;
+    minX?: number;
+    maxX?: number;
     padX?: number;
     padY?: number;
+    extraBottomPx?: number;
     passes?: number;
     pinned?: ReadonlySet<number>;
     keepOut?: readonly KeepOutZone[];
   } = {},
 ): void {
   const n = items.length;
-  const marginX = options.marginX ?? 36;
-  const marginTop = options.marginTop ?? 24;
-  const marginBottom = options.marginBottom ?? 24;
+  const marginX = options.marginX ?? 44;
+  const marginTop = options.marginTop ?? 28;
+  const marginBottom = options.marginBottom ?? 28;
+  const minXBound = options.minX ?? marginX;
+  const maxXBound = options.maxX ?? STAGE_W - marginX;
   const padX = options.padX ?? 8;
   const padY = options.padY ?? 5;
-  const passes = options.passes ?? 180;
+  const extraBottomPx = options.extraBottomPx ?? 0;
+  const passes = options.passes ?? 550;
   const pinned = options.pinned ?? new Set<number>();
   const keepOut = options.keepOut ?? [];
 
-  const allItems: { x: number; y: number; hw: number; hh: number; pinned: boolean; srcIdx: number }[] = items.map(
-    (p, i) => {
-      const b = fragmentBox(fragments[i]!, p.scale);
-      return {
-        x: p.x,
-        y: p.y,
-        hw: (b.w + padX) * 0.5,
-        hh: (b.h + padY) * 0.5,
-        pinned: pinned.has(i),
-        srcIdx: i,
-      };
-    },
-  );
+  // Notice: if extraBottomPx > 0 (e.g., 18px barcode under text), shift asymmetric box center downward by extraBottomPx*0.5
+  const yCenterShift = extraBottomPx * 0.5;
+
+  const allItems: { x: number; y: number; hw: number; hh: number; pinned: boolean }[] = items.map((p, i) => {
+    const b = fragmentBox(fragments[i]!, p.scale, extraBottomPx);
+    return {
+      x: p.x,
+      y: p.y + yCenterShift,
+      hw: (b.w + padX) * 0.5,
+      hh: (b.h + padY) * 0.5,
+      pinned: pinned.has(i),
+    };
+  });
 
   for (const z of keepOut) {
     allItems.push({
@@ -145,7 +151,6 @@ function separate(
       hw: z.hw + padX * 0.5,
       hh: z.hh + padY * 0.5,
       pinned: true,
-      srcIdx: -1,
     });
   }
 
@@ -154,7 +159,7 @@ function separate(
   const clampNode = (idx: number) => {
     const node = allItems[idx]!;
     if (node.pinned) return;
-    node.x = Math.max(marginX + node.hw, Math.min(STAGE_W - marginX - node.hw, node.x));
+    node.x = Math.max(minXBound + node.hw, Math.min(maxXBound - node.hw, node.x));
     node.y = Math.max(marginTop + node.hh, Math.min(STAGE_H - marginBottom - node.hh, node.y));
   };
 
@@ -213,7 +218,7 @@ function separate(
 
   for (let i = 0; i < n; i++) {
     items[i]!.x = allItems[i]!.x;
-    items[i]!.y = allItems[i]!.y;
+    items[i]!.y = allItems[i]!.y - yCenterShift;
   }
 }
 
@@ -226,65 +231,51 @@ export function computePanoramicLayouts(
   const n = fragments.length;
 
   /* -----------------------------------------------------------------------
-   * 1. FULL-BLEED FINE-PRESS ARCHIVE SPREAD (`page`, 6,200 × 432 px)
-   *    5 Monumental Hero Lithograph Plates (370~400px wide) interleaved with
-   *    15 architectural serif columns + guillotine vertical & horizontal CUTS!
+   * 1. FULL-BLEED FINE-PRESS BROADSHEET (`page`, 30.0–37.8s)
+   *    5 Monumental Hero Lithograph Plates (`Y = 28..404`) + 16 collision-free columns
+   *    + 120 BPM Percussive 0.09s Guillotine Hard-Cut Strikes (`33.0..37.25s`)!
    * ----------------------------------------------------------------------- */
   const heroSpreadSlots: HeroSpreadSlot[] = [
-    { plateId: 'plate-02', code: 'FIG.01 / ONGGI SEM 4.2μm', caption: '옹기 미세 기공과 소금 꽃 결정침', x: 220, y: 24, w: 380, h: 384 },
-    { plateId: 'plate-03', code: 'FIG.02 / HOPPER 90.0°', caption: '정육면체 호퍼 결정 역피라미드 테라스', x: 1580, y: 24, w: 380, h: 384 },
-    { plateId: 'plate-05', code: 'FIG.03 / DIAPIR -812M', caption: '지하 812m 암염 돔 습곡 동판화', x: 3050, y: 24, w: 390, h: 384 },
-    { plateId: 'plate-07', code: 'FIG.04 / PERMIAN 280MA', caption: '페름기 암염 음결정과 고생대 기포', x: 4520, y: 24, w: 380, h: 384 },
-    { plateId: 'plate-09', code: 'FIG.05 / ICE CORE -3000M', caption: '남극 심부 빙하 코어 포획 대기', x: 5900, y: 24, w: 380, h: 384 },
+    { plateId: 'plate-02', code: 'FIG.01 · 4.2μm', caption: '옹기 미세 기공과 소금 꽃', x: 136, y: 28, w: 344, h: 376 },
+    { plateId: 'plate-03', code: 'FIG.02 · 90.0°', caption: '정육면체 호퍼 결정 계단', x: 1556, y: 28, w: 344, h: 376 },
+    { plateId: 'plate-05', code: 'FIG.03 · -812m', caption: '지하 812m 암염 돔 습곡', x: 3068, y: 28, w: 344, h: 376 },
+    { plateId: 'plate-07', code: 'FIG.04 · 280MA', caption: '페름기 암염 유체 포유물', x: 4580, y: 28, w: 344, h: 376 },
+    { plateId: 'plate-09', code: 'FIG.05 · -3000m', caption: '남극 심부 빙하 포획 대기', x: 6000, y: 28, w: 344, h: 376 },
   ];
 
-  // Build text columns strictly in the 4 wide editorial bays between the 5 hero plates!
   const editorialBays: [number, number, number][] = [
-    [630, 1550, 4],   // 4 columns
-    [1990, 3020, 4],  // 4 columns
-    [3470, 4490, 4],  // 4 columns
-    [4930, 5870, 4],  // 4 columns -> total 16 crisp columns!
+    [496, 1540, 5],
+    [1916, 3052, 5],
+    [3428, 4564, 5],
+    [4940, 5984, 5],
   ];
 
   const colDefs: { left: number; width: number }[] = [];
   for (const [bL, bR, cCount] of editorialBays) {
     const cW = (bR - bL) / cCount;
     for (let k = 0; k < cCount; k++) {
-      colDefs.push({ left: bL + k * cW + 8, width: cW - 16 });
+      colDefs.push({ left: bL + k * cW + 6, width: cW - 12 });
     }
   }
 
   const page: Pos3D[] = new Array(n);
   const cuts: CutMark[] = [];
 
-  // Vertical column-divider guillotine cuts across full 432px height
+  // Vertical guillotine cuts snapped onto exact 120 BPM eighth-note beats (`0.25s` intervals across 33.0..37.25s)
   colDefs.forEach((col, cIdx) => {
     cuts.push({
-      x1: col.left - 8,
-      y1: 16,
-      x2: col.left - 8,
-      y2: 416,
+      x1: col.left - 6,
+      y1: 26,
+      x2: col.left - 6,
+      y2: 406,
       orientation: 'v',
-      beatOrder: cIdx,
+      strikeAt: 33.0 + cIdx * 0.2,
     });
   });
   heroSpreadSlots.forEach((slot, sIdx) => {
-    cuts.push({
-      x1: slot.x,
-      y1: 12,
-      x2: slot.x,
-      y2: 420,
-      orientation: 'v',
-      beatOrder: sIdx * 3,
-    });
-    cuts.push({
-      x1: slot.x + slot.w,
-      y1: 12,
-      x2: slot.x + slot.w,
-      y2: 420,
-      orientation: 'v',
-      beatOrder: sIdx * 3 + 1,
-    });
+    const beatT = 33.0 + sIdx * 0.75;
+    cuts.push({ x1: slot.x, y1: 26, x2: slot.x, y2: 406, orientation: 'v', strikeAt: beatT });
+    cuts.push({ x1: slot.x + slot.w, y1: 26, x2: slot.x + slot.w, y2: 406, orientation: 'v', strikeAt: beatT + 0.25 });
   });
 
   let cursor = 0;
@@ -296,75 +287,128 @@ export function computePanoramicLayouts(
     const eIdx = Math.min(n, sIdx + take);
     cursor = eIdx;
 
-    let curY = 44;
-    const stepY = 352 / Math.max(1, eIdx - sIdx);
+    let curY = 38;
+    const stepY = 356 / Math.max(1, eIdx - sIdx);
 
     for (let i = sIdx; i < eIdx; i++) {
       const f = fragments[i]!;
-      const sc = f.type === 'img' ? 0.44 : f.tier === 'anchor' ? 0.72 : 0.68;
+      const sc = f.type === 'img' ? 0.34 : f.tier === 'anchor' ? 0.62 : 0.50;
       const cx = col.left + col.width * 0.5;
-      const cy = Math.min(398, curY + stepY * 0.5);
+      const cy = Math.min(396, curY + stepY * 0.5);
       page[i] = { x: cx, y: cy, z: 0, scale: sc, opacity: 1 };
 
-      // Surgical horizontal guillotine cut between every line/fragment
+      const hBeat = 33.5 + colIdx * 0.25 + ((i - sIdx) % 2) * 0.125;
       cuts.push({
-        x1: col.left - 4,
-        y1: Math.min(412, curY + stepY),
-        x2: col.left + col.width + 4,
-        y2: Math.min(412, curY + stepY),
+        x1: col.left - 3,
+        y1: Math.min(404, curY + stepY),
+        x2: col.left + col.width + 3,
+        y2: Math.min(404, curY + stepY),
         orientation: 'h',
-        beatOrder: colIdx + ((i - sIdx) % 4),
+        strikeAt: Math.min(37.25, hBeat),
       });
       curY += stepY;
     }
   }
 
+  // Guarantee zero text-text overlap in `page` while keeping the 5 hero lithograph slots untouched!
+  const heroKeepOut: KeepOutZone[] = heroSpreadSlots.map((s) => ({
+    cx: s.x + s.w * 0.5,
+    cy: s.y + s.h * 0.5,
+    hw: s.w * 0.5 + 8,
+    hh: s.h * 0.5 + 4,
+  }));
+  separate(page, fragments, {
+    marginX: 36,
+    marginTop: 18,
+    marginBottom: 18,
+    padX: 5,
+    padY: 4,
+    passes: 900,
+    keepOut: heroKeepOut,
+  });
+
   /* -----------------------------------------------------------------------
-   * 2. READING 2D (`reading2D`) — Zero-Overlap 20-Column Architectural Sheet
+   * 2. SPECTRUM 2D (`spectrum2D`, 37.8–46.0s) — Dedicated 1024-DIM Barcode Sheet
+   *    28 airy columns + `+18px` bottom barcode slot reserved per item!
+   * ----------------------------------------------------------------------- */
+  const sCols = 28;
+  const sLeft = 116;
+  const sRight = 6364;
+  const sColW = (sRight - sLeft) / sCols;
+  const sPerCol = Math.ceil(n / sCols);
+
+  const spectrum2D: Pos3D[] = fragments.map((f, i) => {
+    const col = Math.floor(i / sPerCol);
+    const row = i % sPerCol;
+    const x = sLeft + (col + 0.5) * sColW + ((row % 2) - 0.5) * 20;
+    const y = 38 + (row / Math.max(1, sPerCol - 1)) * 336;
+    const sc = f.type === 'img' ? 0.44 : f.tier === 'anchor' ? 0.74 : 0.62;
+    return { x, y, z: 0, scale: sc, opacity: 1 };
+  });
+
+  const spectrumSanctuaries: KeepOutZone[] = [
+    { cx: 1620, cy: 42, hw: 144, hh: 20 },
+    { cx: 3240, cy: 42, hw: 144, hh: 20 },
+    { cx: 4860, cy: 42, hw: 144, hh: 20 },
+  ];
+
+  separate(spectrum2D, fragments, {
+    marginX: 36,
+    marginTop: 20,
+    marginBottom: 24,
+    padX: 8,
+    padY: 4,
+    extraBottomPx: 18,
+    passes: 900,
+    keepOut: spectrumSanctuaries,
+  });
+
+  /* -----------------------------------------------------------------------
+   * 3. READING 2D (`reading2D`, 46.0–52.0s) — Zero-Overlap 20-Column Sheet
    * ----------------------------------------------------------------------- */
   const rCols = 20;
-  const rLeft = 170;
-  const rRight = 6310;
+  const rLeft = 166;
+  const rRight = 6314;
   const rColW = (rRight - rLeft) / rCols;
-  const rPerCol = Math.ceil(n / rCols); // 10 items per column
+  const rPerCol = Math.ceil(n / rCols);
 
   const reading2D: Pos3D[] = fragments.map((f, i) => {
     const col = Math.floor(i / rPerCol);
     const row = i % rPerCol;
     const x = rLeft + (col + 0.5) * rColW;
-    const y = 52 + (row / Math.max(1, rPerCol - 1)) * 330;
-    const sc = f.type === 'img' ? 0.58 : f.tier === 'anchor' ? 0.88 : 0.78;
+    const y = 52 + (row / Math.max(1, rPerCol - 1)) * 328;
+    const sc = f.type === 'img' ? 0.56 : f.tier === 'anchor' ? 0.86 : 0.76;
     return { x, y, z: 0, scale: sc, opacity: 1 };
   });
 
   separate(reading2D, fragments, {
-    marginX: 44,
-    marginTop: 24,
-    marginBottom: 24,
-    padX: 8,
+    marginX: 46,
+    marginTop: 28,
+    marginBottom: 28,
+    padX: 10,
     padY: 5,
-    passes: 500,
+    passes: 550,
   });
 
   /* -----------------------------------------------------------------------
-   * 3. 30M HORIZONTAL 3D DOUBLE HELIX (`helixBase`)
+   * 4. 30M HORIZONTAL 3D DOUBLE HELIX (`helixBase`, 52.0–61.5s)
    * ----------------------------------------------------------------------- */
   const helixTurns = 6.2;
   const helixBase = fragments.map((_, i) => {
     const u = i / Math.max(1, n - 1);
     const strand: 0 | 1 = (i % 2) as 0 | 1;
-    const radJitter = ((i % 3) - 1) * 14;
+    const radJitter = ((i % 3) - 1) * 16;
     return {
-      x: 200 + u * 6080,
-      angle: u * helixTurns * Math.PI * 2 + (strand === 1 ? Math.PI : 0) + (i % 5) * 0.09,
-      radiusY: 138 + radJitter,
+      x: 190 + u * 6100,
+      angle: u * helixTurns * Math.PI * 2 + (strand === 1 ? Math.PI : 0) + (i % 5) * 0.11,
+      radiusY: 136 + radJitter,
       radiusZ: 255,
       strand,
     };
   });
 
   /* -----------------------------------------------------------------------
-   * 4. MEANING 2D (`meaning2D`) & 3D SEMANTIC NEBULA (`cloud3D`)
+   * 5. MEANING 2D (`meaning2D`, 61.5–68.5s) & 3D SEMANTIC NEBULA (`cloud3D`)
    * ----------------------------------------------------------------------- */
   const clusterCentersX = [590, 1650, 2710, 3770, 4830, 5890];
   const clusterCentersY = [218, 206, 228, 206, 226, 214];
@@ -380,7 +424,7 @@ export function computePanoramicLayouts(
     };
   });
 
-  const springEdges = rankedPairs.slice(0, 620);
+  const springEdges = rankedPairs.slice(0, 560);
   for (let step = 0; step < 52; step++) {
     const heat = 1 - step / 52;
     const fx = new Float64Array(n);
@@ -428,17 +472,17 @@ export function computePanoramicLayouts(
     x: pts2[i]!.x,
     y: pts2[i]!.y,
     z: 0,
-    scale: f.type === 'img' ? 0.60 : f.tier === 'anchor' ? 0.94 : 0.76 + hash(i * 13) * 0.08,
+    scale: f.type === 'img' ? 0.56 : f.tier === 'anchor' ? 0.90 : 0.74 + hash(i * 13) * 0.08,
     opacity: 1,
   }));
 
   separate(meaning2D, fragments, {
-    marginX: 44,
-    marginTop: 24,
-    marginBottom: 24,
-    padX: 8,
+    marginX: 46,
+    marginTop: 28,
+    marginBottom: 28,
+    padX: 10,
     padY: 5,
-    passes: 500,
+    passes: 600,
   });
 
   const cloud3D = fragments.map((f, i) => ({
@@ -448,15 +492,13 @@ export function computePanoramicLayouts(
   }));
 
   /* -----------------------------------------------------------------------
-   * 5. ORBIT 2D (`orbit2D`) — Query-Similarity Elliptical Orbit + Pure-White Sanctuary
-   *    Exact art-hackathon opacity = 0.14 + 0.86*t, non-erasure 0.14 floor,
-   *    target at x=4880, y=218, and 5 resonant plates across x=940..5840!
+   * 6. ORBIT 2D (`orbit2D`, 76.0–82.5s) — Pure-White Sanctuary + P4.6 0.28 Floor
    * ----------------------------------------------------------------------- */
-  const cxO = STAGE_W * 0.5; // 3240
+  const cxO = STAGE_W * 0.5;
   const cyO = 216;
   const rxInner = 560;
   const rxOuter = 3010;
-  const ryInner = 82;
+  const ryInner = 84;
   const ryOuter = 172;
 
   const orderBySim = fragments
@@ -467,7 +509,7 @@ export function computePanoramicLayouts(
 
   orderBySim.forEach((idx, rank) => {
     const f = fragments[idx]!;
-    const distU = 1 - f.level; // 0 = closest to query, 1 = 0.14 periphery
+    const distU = 1 - f.level;
     const angle = rank * golden;
     const rx = rxInner + Math.pow(distU, 0.72) * (rxOuter - rxInner);
     const ry = ryInner + Math.pow(distU, 0.78) * (ryOuter - ryInner);
@@ -475,10 +517,10 @@ export function computePanoramicLayouts(
     const y = cyO + Math.sin(angle) * ry;
     const sc =
       f.type === 'img'
-        ? 0.50 + f.level * 0.22
+        ? 0.48 + f.level * 0.20
         : f.tier === 'anchor'
-          ? (0.72 + f.level * 0.46) * 0.76
-          : (0.72 + f.level * 0.50) * 0.70;
+          ? (0.72 + f.level * 0.44) * 0.74
+          : (0.72 + f.level * 0.48) * 0.68;
 
     orbit2D[idx] = {
       x,
@@ -489,25 +531,23 @@ export function computePanoramicLayouts(
     };
   });
 
-  // Pin peripheral hero ("결정이 녹을 때 수억 년 전의 바람이 분다", opacity = 0.14) at x = 4880, y = 216
-  // and pin the 5 resonant plates (`plate-09, 10, 11, 13, 14`) across the full 30m bridge (`x = 940..5860`)!
   const pinnedOrbit = new Set<number>();
   if (targetIndex >= 0) {
     orbit2D[targetIndex] = {
       x: 4880,
       y: 216,
       z: 0,
-      scale: 0.82,
-      opacity: 0.14,
+      scale: 0.84,
+      opacity: 0.28,
     };
     pinnedOrbit.add(targetIndex);
 
     const resonantSpots: readonly [number, number][] = [
-      [960, 126],   // plate-09: 남극 3,000m 빙하 포획 기포
-      [1980, 326],  // plate-10: 사막 사암 풍성 사층리
-      [2880, 112],  // plate-11: 석탄기 양치류 화석 기공
-      [3940, 328],  // plate-13: 녹는 결정과 상승 기포열
-      [5840, 132],  // plate-14: 고대 바람 음향 오실로그램
+      [960, 126],
+      [1980, 326],
+      [2880, 112],
+      [3940, 328],
+      [5840, 132],
     ];
 
     neighborIndices.forEach((nIdx, k) => {
@@ -517,54 +557,45 @@ export function computePanoramicLayouts(
           ...orbit2D[nIdx]!,
           x: spot[0],
           y: spot[1],
-          scale: 0.64,
+          scale: 0.62,
         };
         pinnedOrbit.add(nIdx);
       }
     });
   }
 
-  // Keep pure-white central sanctuary around central #FF0000 "김치찌개 끓이는 법" mark
-  const orbitSanctuary: KeepOutZone[] = [{ cx: cxO, cy: cyO, hw: 270, hh: 54 }];
+  const orbitSanctuary: KeepOutZone[] = [{ cx: cxO, cy: cyO, hw: 280, hh: 52 }];
 
   separate(orbit2D, fragments, {
-    marginX: 44,
+    marginX: 46,
     marginTop: 24,
     marginBottom: 24,
-    padX: 10,
-    padY: 6,
-    passes: 650,
+    padX: 12,
+    padY: 9,
+    passes: 900,
     pinned: pinnedOrbit,
     keepOut: orbitSanctuary,
   });
 
   /* -----------------------------------------------------------------------
-   * 6. 3D QUESTION SPHERE SHELL (`sphere3D`, 82.5–88.0s)
-   *    Fibonacci spherical distribution stretched across the 15:1 panoramic horizon
-   *    where radius from core = `1 - querySim` (core = high sim, outer shell = 0.14 periphery)
+   * 7. 30M PANORAMIC CELESTIAL ARMILLARY DOME (`sphere3D`, 82.5–88.0s)
+   *    Spherical angles `(phi, theta)` + radial shell `shellR` so longitude
+   *    rotation `lon = theta + sphereSpin` fills the ENTIRE `X = 180..6300` bridge!
    * ----------------------------------------------------------------------- */
   const sphere3D = fragments.map((f, i) => {
-    const distU = 1 - f.level; // 0 = inner core, 1 = outer shell
-    const shellR = 0.22 + 0.78 * Math.pow(distU, 0.78);
-    // Fibonacci lattice on unit sphere
+    const distU = 1 - f.level;
+    // Keep shellR in [0.45 .. 1.00] so full bridge width is always richly populated!
+    const shellR = 0.45 + 0.55 * Math.pow(distU, 0.72);
     const phi = Math.acos(1 - (2 * (i + 0.5)) / n);
     const theta = golden * i * 3.0;
-    const ux = Math.sin(phi) * Math.cos(theta);
-    const uy = Math.cos(phi);
-    const uz = Math.sin(phi) * Math.sin(theta);
-
-    return {
-      sx: ux * 2880 * shellR,
-      sy: uy * 176 * shellR,
-      sz: uz * 320 * shellR,
-      shellR,
-    };
+    return { phi, theta, shellR };
   });
 
   return {
     heroSpreadSlots,
     page,
     cuts,
+    spectrum2D,
     reading2D,
     helixBase,
     meaning2D,

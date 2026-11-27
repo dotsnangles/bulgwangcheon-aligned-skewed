@@ -8,11 +8,12 @@ export const BEAT = 60 / BPM; // 0.50s exact downbeat
 export const RED_GAIN_MIN = 0.5;
 export const RED_GAIN_MAX = 1.0;
 
+/** Vivid 4-step silkscreen orange palette calibrated for outdoor LED red-bias legibility */
 export const ORANGE: Record<1 | 2 | 3 | 4, string> = {
-  1: '#ff9e4d',
-  2: '#ffaf66',
-  3: '#ffc080',
-  4: '#ffd09a',
+  1: '#ff8524',
+  2: '#ff9b42',
+  3: '#ffb066',
+  4: '#ffc488',
 };
 
 export const COLOR_BLUE = '#0000ff';
@@ -37,6 +38,11 @@ export function parseRedGain(params: URLSearchParams): number {
 export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 export const progress = (t: number, a: number, b: number): number =>
   b === a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a), 0, 1);
+
+export const smoothstep = (edge0: number, edge1: number, x: number): number => {
+  const u = progress(x, edge0, edge1);
+  return u * u * (3 - 2 * u);
+};
 
 export const easeOut = (x: number): number => 1 - Math.pow(1 - clamp(x), 3.2);
 export const easeOutExpo = (x: number): number => {
@@ -124,7 +130,6 @@ export interface CameraKeyframe {
 
 /**
  * Evaluate a deterministic Catmull-Rom 2D/3D viewport camera spline.
- * Segments flagged with `hold: true` stay locked (`1:1` exact settled stillness for crisp reading/verification).
  */
 export function evalCameraRig(keyframes: readonly CameraKeyframe[], t: number): { cx: number; cy: number; zoom: number } {
   const n = keyframes.length;
@@ -134,7 +139,7 @@ export function evalCameraRig(keyframes: readonly CameraKeyframe[], t: number): 
     return { cx: k.cx, cy: k.cy, zoom: k.zoom };
   }
   if (t >= keyframes[n - 1]!.t) {
-    const k = keyframes[n - 1]!;
+    const k = keyframes[n - 1]!.t === t ? keyframes[n - 1]! : keyframes[n - 1]!;
     return { cx: k.cx, cy: k.cy, zoom: k.zoom };
   }
 
@@ -160,6 +165,6 @@ export function evalCameraRig(keyframes: readonly CameraKeyframe[], t: number): 
   return {
     cx: clamp(catmullRom(k0.cx, k1.cx, k2.cx, k3.cx, u), 200, STAGE_W - 200),
     cy: clamp(catmullRom(k0.cy, k1.cy, k2.cy, k3.cy, u), 40, STAGE_H - 40),
-    zoom: clamp(catmullRom(k0.zoom, k1.zoom, k2.zoom, k3.zoom, u), 1.0, 3.2),
+    zoom: clamp(catmullRom(k0.zoom, k1.zoom, k2.zoom, k3.zoom, u), 1.0, 3.6),
   };
 }

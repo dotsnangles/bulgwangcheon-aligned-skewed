@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
- * Quantitative Museum-Grade Artwork Integrity Verifier (`scripts/verify-artwork.mjs`)
+ * Quantitative Museum-Grade Artwork Integrity Verifier — Round 2 (`scripts/verify-artwork.mjs`)
  *
- * Evaluates 5 strict gates in Headless Chromium (`6480 × 432`, `/?raw=1`):
- *   - G1 (Deterministic Purity): Forward vs reverse/random-jump `renderAt(t)` pixel diff === `0 LSB` + all `<img>` decoded.
- *   - G2 (2D Settled Zero Text Collision): `reading2D` (50.0s), `meaning2D` (66.5s), `orbit2D` (80.5s) visible (`opacity >= 0.30`) text AABB overlaps === `0`.
+ * Evaluates 6 strict gates in Headless Chromium (`6480 × 432`, `/?raw=1`):
+ *   - G1 (Deterministic Purity): Forward vs scrambled `renderAt(t)` pixel diff === `0 LSB` + all `<img>` decoded.
+ *   - G2 (6-View 2D Zero Text Collision): `press(5.0s)`, `page(32.5s)`, `spectrum2D(40.2s + 16px barcode)`, `reading2D(50.0s)`, `meaning2D(66.5s)`, `orbit2D(80.5s)` visible (`opacity >= 0.25`) AABB overlaps === `0`.
  *   - G3 (Pure-White Editorial Ground): Mean pure-white (`RGB >= 245`) ratio across 12 key timestamps `>= 78%`.
- *   - G4 (Zero App UI Chrome): `<button>`, `<input>`, browser nav glyphs (`←`, `↻`), tutorial formula (`0.14 + 0.86`) count === `0`.
- *   - G5 (30m Full-Span Active & Non-Duplicated + Seamless Loop): Left/Center/Right zones all active with `corr < 0.85`, and loop seam (`0.0s` vs `119.967s`) `<= 2 LSB`.
+ *   - G4 (Zero UI & Zero Burn-In HUD): `<button>`, `<input>`, `←`, `↻`, `0.14 + 0.86`, `6480×432`, `6480x432`, `ACT I`, `BEAT `, `ORIGIN NUCLEUS`, `RE-ASK` === `0`.
+ *   - G5 (30m Full-Span Active & White-Out Loop): `[22, 32, 58, 66, 80, 111]` 3-zone active & `|corr| < 0.85` + `t=118.6s` white `>= 99.9%` + loop (`0.0s` vs `119.967s`) `0 LSB`.
+ *   - G6 (Zero-Freeze Motion Continuity): `[14, 21, 31, 49, 65, 79, 90, 109]` each `t -> t+1.0s` interval has `changedPixels >= 800`.
  */
 
 import { spawn } from 'node:child_process';
@@ -68,6 +69,19 @@ function maxAbsDiffBuffers(bufA, bufB) {
   return maxDiff;
 }
 
+function countChangedPixels(bufA, bufB, threshold = 6) {
+  let changed = 0;
+  for (let i = 0; i < FRAME_BYTES; i += 3) {
+    const dR = Math.abs(bufA[i] - bufB[i]);
+    const dG = Math.abs(bufA[i + 1] - bufB[i + 1]);
+    const dB = Math.abs(bufA[i + 2] - bufB[i + 2]);
+    if (dR >= threshold || dG >= threshold || dB >= threshold) {
+      changed++;
+    }
+  }
+  return changed;
+}
+
 function computeWhiteRatioPct(rgb) {
   let whiteCount = 0;
   for (let i = 0; i < FRAME_BYTES; i += 3) {
@@ -79,7 +93,7 @@ function computeWhiteRatioPct(rgb) {
 }
 
 function analyzeThreeZones(rgb) {
-  const zoneW = STAGE_W / 3; // 2160
+  const zoneW = STAGE_W / 3;
   const zoneLen = zoneW * STAGE_H;
   const z0 = new Float64Array(zoneLen);
   const z1 = new Float64Array(zoneLen);
@@ -173,20 +187,20 @@ async function main() {
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
     await page.evaluate(() => window.motionReady);
 
-    console.log('\n================================================================================');
-    console.log(' 〈정렬과 사선 (Aligned / Skewed)〉 — 프로페셔널 아트 그레이드 5대 정량 무결성 검증');
-    console.log('================================================================================');
+    console.log('\n========================================================================================');
+    console.log(' 〈정렬과 사선 (Aligned / Skewed)〉 — 프로페셔널 아트 그레이드 6대 정량 무결성 검증 (R2)');
+    console.log('========================================================================================');
 
     // -------------------------------------------------------------------------
     // G1: Deterministic Purity (`max_abs_diff === 0 LSB` + all `<img>` decoded)
     // -------------------------------------------------------------------------
-    const g1Times = [6.0, 18.0, 36.0, 65.0, 80.0, 96.0, 110.0];
+    const g1Times = [5.0, 18.0, 35.0, 65.0, 80.5, 95.0, 110.0];
     const forwardBufs = new Map();
     for (const t of g1Times) {
       forwardBufs.set(t, await captureRgbAt(page, t));
     }
 
-    const scrambledTimes = [96.0, 18.0, 110.0, 6.0, 80.0, 36.0, 65.0];
+    const scrambledTimes = [95.0, 18.0, 110.0, 5.0, 80.5, 35.0, 65.0];
     let g1MaxDiff = 0;
     for (const t of scrambledTimes) {
       const scrBuf = await captureRgbAt(page, t);
@@ -208,70 +222,127 @@ async function main() {
     });
 
     // -------------------------------------------------------------------------
-    // G2: 2D Settled Views Zero Text-Text Collision (`reading2D`, `meaning2D`, `orbit2D`)
+    // G2: 6-Timestamp 2D Zero Text Collision (`press`, `page`, `spectrum2D`, `reading2D`, `meaning2D`, `orbit2D`)
     // -------------------------------------------------------------------------
     const g2Specs = [
-      { name: 'reading2D', t: 50.0 },
-      { name: 'meaning2D', t: 66.5 },
-      { name: 'orbit2D', t: 80.5 },
+      {
+        name: 'press',
+        t: 5.0,
+        selector: '.press-hero-query, .press-memory-line, .press-formula-stamp',
+        barcodePad: 0,
+      },
+      {
+        name: 'page',
+        t: 32.5,
+        selector: '.frag:not(.is-img), .spread-hero-slot',
+        barcodePad: 0,
+      },
+      {
+        name: 'spectrum2D',
+        t: 40.2,
+        selector: '.frag, .laser-telemetry',
+        barcodePad: 16,
+      },
+      {
+        name: 'reading2D',
+        t: 50.0,
+        selector: '.frag:not(.is-img)',
+        barcodePad: 0,
+      },
+      {
+        name: 'meaning2D',
+        t: 66.5,
+        selector: '.frag:not(.is-img)',
+        barcodePad: 0,
+      },
+      {
+        name: 'orbit2D',
+        t: 80.5,
+        selector: '.frag:not(.is-img), .orbit-center-sanctuary',
+        barcodePad: 0,
+      },
     ];
+
     let g2TotalCollisions = 0;
     const g2Details = [];
 
     for (const sp of g2Specs) {
       await page.evaluate((sec) => window.renderAt(sec), sp.t);
-      const res = await page.evaluate(() => {
-        const nodes = Array.from(document.querySelectorAll('.frag:not(.is-img), .orbit-center-sanctuary'));
-        const boxes = [];
-        for (const el of nodes) {
-          const cs = window.getComputedStyle(el);
-          const op = parseFloat(cs.opacity || '0');
-          if (op < 0.3) continue;
-          const r = el.getBoundingClientRect();
-          if (r.width <= 0.5 || r.height <= 0.5) continue;
-          boxes.push({
-            text: (el.textContent || '').trim().slice(0, 24),
-            left: r.left,
-            top: r.top,
-            right: r.right,
-            bottom: r.bottom,
-          });
-        }
+      const res = await page.evaluate(
+        ({ selector, barcodePad }) => {
+          const nodes = Array.from(document.querySelectorAll(selector));
+          const boxes = [];
+          for (const el of nodes) {
+            let effOp = 1.0;
+            let cur = el;
+            while (cur && cur instanceof HTMLElement) {
+              const cs = window.getComputedStyle(cur);
+              effOp *= parseFloat(cs.opacity || '1');
+              if (cs.display === 'none' || cs.visibility === 'hidden') {
+                effOp = 0;
+                break;
+              }
+              cur = cur.parentElement;
+            }
+            if (effOp < 0.25) continue;
+            const r = el.getBoundingClientRect();
+            if (r.width <= 0.5 || r.height <= 0.5) continue;
+            if (r.right < 0 || r.left > 6480) continue;
+            const extraBottom = barcodePad > 0 && el.classList.contains('frag') ? barcodePad : 0;
+            boxes.push({
+              text: (el.textContent || el.className || '').trim().slice(0, 22),
+              left: r.left,
+              top: r.top,
+              right: r.right,
+              bottom: r.bottom + extraBottom,
+            });
+          }
 
-        const collisions = [];
-        for (let i = 0; i < boxes.length; i++) {
-          const a = boxes[i];
-          for (let j = i + 1; j < boxes.length; j++) {
-            const b = boxes[j];
-            const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
-            const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-            if (ox > 0.5 && oy > 0.5) {
-              collisions.push(`"${a.text}" <-> "${b.text}" (${ox.toFixed(1)}x${oy.toFixed(1)}px)`);
+          const collisions = [];
+          for (let i = 0; i < boxes.length; i++) {
+            const a = boxes[i];
+            for (let j = i + 1; j < boxes.length; j++) {
+              const b = boxes[j];
+              const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+              const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+              if (ox > 0.5 && oy > 0.5) {
+                collisions.push(`"${a.text}" <-> "${b.text}" (${ox.toFixed(1)}x${oy.toFixed(1)}px)`);
+              }
             }
           }
-        }
-        return { visibleCount: boxes.length, collisionCount: collisions.length, samples: collisions.slice(0, 5) };
-      });
+          return { visibleCount: boxes.length, collisionCount: collisions.length, samples: collisions.slice(0, 5) };
+        },
+        { selector: sp.selector, barcodePad: sp.barcodePad },
+      );
+
       g2TotalCollisions += res.collisionCount;
-      g2Details.push(`${sp.name}@${sp.t}s: ${res.collisionCount}건 (가시 ${res.visibleCount}개)`);
+      g2Details.push(`${sp.name}@${sp.t}s:${res.collisionCount}`);
       if (res.collisionCount > 0) {
-        console.error(`  [G2 충돌 상세 - ${sp.name}]:`, res.samples);
+        console.error(`  [G2 충돌 상세 - ${sp.name}@${sp.t}s]:`, res.samples);
       }
     }
 
     gates.push({
-      id: 'G2 (2D 텍스트 무충돌)',
+      id: 'G2 (6-시점 무충돌)',
       passed: g2TotalCollisions === 0,
-      detail: g2Details.join(' · '),
+      detail: `${g2Details.join(' · ')} (총 ${g2TotalCollisions}건)`,
     });
 
     // -------------------------------------------------------------------------
     // G3: Pure-White Editorial Ground Preservation (`mean >= 78%`)
     // -------------------------------------------------------------------------
-    const g3Times = [4, 14, 24, 33, 42, 50, 58, 66, 73, 80, 94, 110];
+    const g3Times = [4, 14, 22, 32, 41, 50, 58, 66, 73, 80, 94, 111];
     const whitePcts = [];
+    const cachedRgb = new Map(forwardBufs);
+    const getOrCapture = async (t) => {
+      if (!cachedRgb.has(t)) {
+        cachedRgb.set(t, await captureRgbAt(page, t));
+      }
+      return cachedRgb.get(t);
+    };
+
     for (const t of g3Times) {
-      const rgb = forwardBufs.get(t) ?? (await captureRgbAt(page, t));
+      const rgb = await getOrCapture(t);
       whitePcts.push(computeWhiteRatioPct(rgb));
     }
     const meanWhitePct = whitePcts.reduce((a, b) => a + b, 0) / whitePcts.length;
@@ -283,43 +354,55 @@ async function main() {
     });
 
     // -------------------------------------------------------------------------
-    // G4: Zero App UI Chrome (`<button>`, `<input>`, `←`, `↻`, `0.14 + 0.86` === 0)
+    // G4: Zero App UI Chrome & Zero Burn-In HUD Strings
     // -------------------------------------------------------------------------
+    const forbiddenStrings = [
+      '←',
+      '↻',
+      '0.14 + 0.86',
+      '6480×432',
+      '6480x432',
+      'ACT I',
+      'BEAT ',
+      'ORIGIN NUCLEUS',
+      'RE-ASK',
+    ];
     let g4Violations = 0;
-    const g4SampleTimes = [5.0, 24.0, 33.0, 50.0, 80.5, 96.0, 110.0];
+    const g4SampleTimes = [5.0, 16.0, 24.0, 33.0, 41.0, 50.0, 66.0, 80.5, 95.0, 103.0, 111.0];
     const g4Notes = [];
+
     for (const t of g4SampleTimes) {
       await page.evaluate((sec) => window.renderAt(sec), t);
-      const uiRes = await page.evaluate(() => {
+      const uiRes = await page.evaluate((forbidden) => {
         const stage = document.querySelector('.motion-stage') || document.body;
         const controls = stage.querySelectorAll('button, input, select, textarea').length;
         const txt = stage.textContent || '';
-        const hasNav = (txt.includes('←') ? 1 : 0) + (txt.includes('↻') ? 1 : 0);
-        const hasFormula = txt.includes('0.14 + 0.86') ? 1 : 0;
-        return { controls, hasNav, hasFormula };
-      });
-      const v = uiRes.controls + uiRes.hasNav + uiRes.hasFormula;
+        const hits = forbidden.filter((f) => txt.includes(f));
+        return { controls, hits };
+      }, forbiddenStrings);
+      const v = uiRes.controls + uiRes.hits.length;
       if (v > 0) {
         g4Violations += v;
-        g4Notes.push(`t=${t}s: ctrl=${uiRes.controls}, nav=${uiRes.hasNav}, formula=${uiRes.hasFormula}`);
+        g4Notes.push(`t=${t}s: ctrl=${uiRes.controls}, hits=[${uiRes.hits.join(',')}]`);
       }
     }
+
     gates.push({
-      id: 'G4 (무크롬 Zero-UI)',
+      id: 'G4 (무크롬·무번인 HUD)',
       passed: g4Violations === 0,
-      detail: g4Violations === 0 ? 'button/input/toolbar(←,↻)/수식(0.14+0.86) = 0건' : g4Notes.join('; '),
+      detail: g4Violations === 0 ? '앱 컨트롤·번인 타임코드·메타 슬로건 노출 = 0건' : g4Notes.join('; '),
     });
 
     // -------------------------------------------------------------------------
-    // G5: 30m Full-Span Active & Non-Duplicated (`corr < 0.85`) + Loop Seam (`<= 2 LSB`)
+    // G5: 30m Full-Span Active (`[22, 32, 58, 66, 80, 111]`) + White-Out (`118.6s >= 99.9%`) + `0 LSB` Loop
     // -------------------------------------------------------------------------
-    const g5Times = [23, 33, 58, 66, 80, 112];
+    const g5Times = [22, 32, 58, 66, 80, 111];
     let g5AllActive = true;
     let g5MaxCorr = 0;
     const g5FailNotes = [];
 
     for (const t of g5Times) {
-      const rgb = forwardBufs.get(t) ?? (await captureRgbAt(page, t));
+      const rgb = await getOrCapture(t);
       const z = analyzeThreeZones(rgb);
       const activeHere = z.ink[0] >= 500 && z.ink[1] >= 500 && z.ink[2] >= 500;
       const maxC = Math.max(Math.abs(z.corr01), Math.abs(z.corr12));
@@ -330,28 +413,56 @@ async function main() {
       }
     }
 
-    const loopStartBuf = await captureRgbAt(page, 0.0);
-    const loopEndBuf = await captureRgbAt(page, 119.967);
+    const whiteoutBuf = await getOrCapture(118.6);
+    const whiteoutPct = computeWhiteRatioPct(whiteoutBuf);
+    const loopStartBuf = await getOrCapture(0.0);
+    const loopEndBuf = await getOrCapture(119.967);
     const loopMaxDiff = maxAbsDiffBuffers(loopStartBuf, loopEndBuf);
 
-    const g5Pass = g5AllActive && g5MaxCorr < 0.85 && loopMaxDiff <= 2;
+    const g5Pass = g5AllActive && g5MaxCorr < 0.85 && whiteoutPct >= 99.9 && loopMaxDiff === 0;
     gates.push({
-      id: 'G5 (30m 전폭 & 무이음 루프)',
+      id: 'G5 (30m 전폭 & 설원 루프)',
       passed: g5Pass,
       detail:
         g5FailNotes.length > 0
           ? g5FailNotes.join(' | ')
-          : `3권역 전수 활성 · 최대 상관계수 |corr| = ${g5MaxCorr.toFixed(3)} (< 0.85) · 루프 오차 = ${loopMaxDiff} LSB (<= 2 LSB)`,
+          : `3권역 활성 · |corr| = ${g5MaxCorr.toFixed(3)} · t=118.6s 순백 = ${whiteoutPct.toFixed(2)}% · 루프 오차 = ${loopMaxDiff} LSB`,
+    });
+
+    // -------------------------------------------------------------------------
+    // G6: Zero-Freeze Motion Continuity (`[14, 21, 31, 49, 65, 79, 90, 109]`, `changedPixels >= 800`)
+    // -------------------------------------------------------------------------
+    const g6Times = [14, 21, 31, 49, 65, 79, 90, 109];
+    let g6MinChanged = Infinity;
+    const g6FailNotes = [];
+
+    for (const t of g6Times) {
+      const bufA = await getOrCapture(t);
+      const bufB = await getOrCapture(t + 1.0);
+      const changed = countChangedPixels(bufA, bufB, 6);
+      if (changed < g6MinChanged) g6MinChanged = changed;
+      if (changed < 800) {
+        g6FailNotes.push(`${t}->${t + 1}s: ${changed}px`);
+      }
+    }
+
+    gates.push({
+      id: 'G6 (정지 고원 Zero-Freeze)',
+      passed: g6FailNotes.length === 0,
+      detail:
+        g6FailNotes.length === 0
+          ? `8개 구간 전수 유영 활성 · 최소 변화 픽셀 = ${g6MinChanged.toLocaleString('en-US')} px (>= 800 px)`
+          : `정지 감지: ${g6FailNotes.join(', ')}`,
     });
 
     for (const g of gates) {
-      console.log(` [${g.passed ? 'PASS' : 'FAIL'}] ${g.id.padEnd(24)} : ${g.detail}`);
+      console.log(` [${g.passed ? 'PASS' : 'FAIL'}] ${g.id.padEnd(25)} : ${g.detail}`);
     }
-    console.log('--------------------------------------------------------------------------------');
+    console.log('----------------------------------------------------------------------------------------');
 
     const allPassed = gates.every((g) => g.passed);
-    console.log(` 최종 판정: ${allPassed ? '100% PASS (미술관급 무결성 검증 통과)' : 'FAIL (미통과 게이트 교정 필요)'}`);
-    console.log('================================================================================\n');
+    console.log(` 최종 판정: ${allPassed ? '100% PASS (G1~G6 박물관급 무결성 전수 통과)' : 'FAIL (미통과 게이트 교정 필요)'}`);
+    console.log('========================================================================================\n');
 
     if (!allPassed) {
       process.exit(1);

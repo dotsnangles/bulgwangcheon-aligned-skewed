@@ -3,7 +3,7 @@
  * 12/12 전시 제출용 6480 × 432 무손실 대표 이미지(PNG) 추출기
  *
  * Usage:
- *   node scripts/render-stills.mjs [--times=18.0,39.2,58.0,70.5,83.0,96.5] [--out-dir=renders/stills] [--r-gain=1.0] [--skip-build]
+ *   node scripts/render-stills.mjs [--times=19.6,34.8,55.0,64.5,84.5,107.6] [--out-dir=renders/stills] [--r-gain=1.0] [--skip-build]
  */
 
 import fs from 'node:fs';
@@ -20,7 +20,7 @@ import {
   startDistServer,
 } from './lib/render-common.mjs';
 
-const DEFAULT_TIMES = [18.0, 39.2, 58.0, 70.5, 83.0, 96.5];
+const DEFAULT_TIMES = [19.6, 34.8, 55.0, 64.5, 84.5, 107.6];
 const DEFAULT_OUT_DIR = 'renders/stills';
 
 function readPngDimensions(filePath) {
@@ -64,7 +64,7 @@ Usage:
   node scripts/render-stills.mjs [options]
 
 Options:
-  --times=18.0,39.2,58.0,70.5,83.0,96.5   추출할 타임스탬프 목록(초, 쉼표 구분)
+  --times=19.6,34.8,55.0,64.5,84.5,107.6  추출할 골든 프레임 타임스탬프 목록(초, 쉼표 구분)
   --out-dir=renders/stills                출력 디렉터리 (기본 renders/stills)
   --r-gain=1.0                            현장 적색기 보정 R 채널 배율 0.50..1.00
   --skip-build                            vite build 생략

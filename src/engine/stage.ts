@@ -698,55 +698,79 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
   buildGenerationArchipelago(1, GEN1_ALIGNED_CARDS, GEN1_ALIGNED_HERO_SLIDES, GEN1_SKEWED_STATIONS, 10.35, 11.25);
   buildGenerationArchipelago(2, GEN2_ALIGNED_CARDS, GEN2_ALIGNED_HERO_SLIDES, GEN2_SKEWED_STATIONS, 99.12, 98.12);
 
-  /* --- 9. Right-Edge `1.32x` Enlarged 3D Oblique History Conveyor (`44 px/s` Seamless 2x Duplicated Loop!) --- */
+  /* --- 9. Right-Edge `1.32x` Oblique History Conveyor (Temporal Hierarchy: Gen1-Only in Act I, Gen1 Echo `0.34` + Gen2 `1.0` in Act IV!) --- */
   const historyWrap = makeEl('aside', 'history-rail-wrap', world);
   const historyScene = makeEl('div', 'history-scene', historyWrap);
-  const historyList = makeEl('ol', 'history-list', historyScene);
 
-  const visitedSpecs: CardSpec[] = [
+  const gen1HistoryEntries: { spec: CardSpec; isEcho: boolean }[] = [
+    ...GEN1_ALIGNED_CARDS.slice(0, 4).map((spec) => ({ spec, isEcho: false })),
+    ...GEN1_SKEWED_STATIONS.map((st) => ({ spec: st.cards[2]!, isEcho: false })),
+  ];
+
+  // Interleave Gen 1 memory echoes (`opacity: 0.34`) with vivid Gen 2 discoveries (`opacity: 1.0`) for Act IV.3b!
+  const gen2HistoryEntries: { spec: CardSpec; isEcho: boolean }[] = [];
+  const gen1Pool: CardSpec[] = [
     ...GEN1_ALIGNED_CARDS.slice(0, 4),
     ...GEN1_SKEWED_STATIONS.map((st) => st.cards[2]!),
+  ];
+  const gen2Pool: CardSpec[] = [
     ...GEN2_ALIGNED_CARDS.slice(0, 4),
     ...GEN2_SKEWED_STATIONS.map((st) => st.cards[2]!),
   ];
-
-  let cycleStartEl: HTMLElement | null = null;
-  let cycleRepeatEl: HTMLElement | null = null;
-
-  for (let copyIdx = 0; copyIdx < 2; copyIdx++) {
-    const headLi = makeEl('li', 'history-head', historyList, 'history');
-    if (copyIdx === 0) cycleStartEl = headLi;
-    if (copyIdx === 1) cycleRepeatEl = headLi;
-
-    for (const spec of visitedSpecs) {
-      const li = makeEl('li', 'history-page', historyList);
-      const topRow = makeEl('div', 'history-page-top', li);
-      const badge = makeEl(
-        'span',
-        'history-badge',
-        topRow,
-        spec.group === 'aligned' ? 'aligned' : `0${spec.rank ?? 1} skewed`,
-      );
-      if (spec.group === 'aligned') {
-        badge.style.background = '#0000ff';
-        badge.style.color = '#ffffff';
-      } else {
-        badge.style.background = ORANGE[spec.rank ?? 1];
-        badge.style.color = '#000000';
-      }
-      makeEl('span', '', topRow, spec.metric);
-      makeEl('div', 'history-page-title', li, spec.title);
-    }
+  for (let i = 0; i < gen2Pool.length; i++) {
+    gen2HistoryEntries.push({ spec: gen2Pool[i]!, isEcho: false });
+    gen2HistoryEntries.push({ spec: gen1Pool[i % gen1Pool.length]!, isEcho: true });
   }
 
-  let historyCyclePx = 0;
-  const getHistoryCyclePx = (): number => {
-    if (historyCyclePx <= 0 && cycleStartEl && cycleRepeatEl) {
-      const measured = cycleRepeatEl.offsetTop - cycleStartEl.offsetTop;
-      historyCyclePx = measured > 200 ? measured : 1620;
+  const buildHistoryConveyor = (entries: readonly { spec: CardSpec; isEcho: boolean }[]) => {
+    const listEl = makeEl('ol', 'history-list', historyScene);
+    let startEl: HTMLElement | null = null;
+    let repeatEl: HTMLElement | null = null;
+
+    for (let copyIdx = 0; copyIdx < 2; copyIdx++) {
+      const headLi = makeEl('li', 'history-head', listEl, 'history');
+      if (copyIdx === 0) startEl = headLi;
+      if (copyIdx === 1) repeatEl = headLi;
+
+      for (const entry of entries) {
+        const { spec, isEcho } = entry;
+        const li = makeEl('li', isEcho ? 'history-page is-echo' : 'history-page', listEl);
+        const topRow = makeEl('div', 'history-page-top', li);
+        const badge = makeEl(
+          'span',
+          'history-badge',
+          topRow,
+          spec.group === 'aligned' ? 'aligned' : `0${spec.rank ?? 1} skewed`,
+        );
+        if (spec.group === 'aligned') {
+          badge.style.background = '#0000ff';
+          badge.style.color = '#ffffff';
+        } else {
+          badge.style.background = ORANGE[spec.rank ?? 1];
+          badge.style.color = '#000000';
+        }
+        makeEl('span', '', topRow, spec.metric);
+        makeEl('div', 'history-page-title', li, spec.title);
+      }
     }
-    return historyCyclePx > 0 ? historyCyclePx : 1620;
+
+    let cachedCyclePx = 0;
+    const getCyclePx = (): number => {
+      if (cachedCyclePx <= 0 && startEl && repeatEl) {
+        const measured = repeatEl.offsetTop - startEl.offsetTop;
+        cachedCyclePx = measured > 200 ? measured : entries.length * 98;
+      }
+      return cachedCyclePx > 0 ? cachedCyclePx : entries.length * 98;
+    };
+
+    return { listEl, getCyclePx };
   };
+
+  const historyBeltGen1 = buildHistoryConveyor(gen1HistoryEntries);
+  const historyBeltGen2 = buildHistoryConveyor(gen2HistoryEntries);
+  // Pre-measure both cycle heights while both `<ol>` elements are displayed (`display: flex`) before `renderAt(0)`
+  historyBeltGen1.getCyclePx();
+  historyBeltGen2.getCyclePx();
 
   /* --- 10. High-Precision 2D Silkscreen Canvas (`z-index: 6`, Strictly Below `.frag-layer`) --- */
   const canvas = makeEl('canvas', 'stage-canvas', world);
@@ -970,8 +994,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       const pressOut = 1 - span(t, 7.35, 8.0, easeInCubic);
       pressLayer.style.opacity = pressOut.toFixed(4);
 
-      // Left Pure-White Sanctuary (`X = 110..1640`) ignites immediately at `t = 0.16s`
-      const qEnter = span(t, 0.16, 0.52, easeOutExpo);
+      // Polish 2: `0.16..0.55s` Poetic Ink-Seep Query Entry & Razor `scaleX(0 -> 1)` Cobalt Rule Drawing!
+      const qEnter = span(t, 0.16, 0.55, easeInOutCubic);
       const qDock = span(t, 6.3, 7.55, easeInOutCubic);
       const wght = Math.round(lerp(280, 780, span(t, 0.25, 4.0, easeInOut) + pulse * 0.08));
       const qScale = lerp(1.0, 56 / 120, qDock);
@@ -981,14 +1005,13 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       pressHeroQuery.style.fontVariationSettings = `"wght" ${clamp(wght, 200, 900)}`;
       pressHeroQuery.style.transform = `translate3d(${(qX - 118).toFixed(1)}px, ${(qY - 216).toFixed(1)}px, 0) translateY(-50%) scale(${qScale.toFixed(4)})`;
 
-      // Patch 7.2: Immediate `t = 0.20s` full-width ignition across `X = 1142..6360`!
       const datumBridgeOp = span(t, 0.18, 0.56) * (1 - span(t, 6.3, 6.9)) * pressOut;
       if (datumBridgeOp > 0.01) {
         ctx.save();
         ctx.globalAlpha = datumBridgeOp * 0.86;
         ctx.strokeStyle = '#0000ff';
         ctx.lineWidth = 1.15;
-        const dRight = lerp(1142, 1796, span(t, 0.18, 0.68, easeOutCubic));
+        const dRight = lerp(1142, 1796, span(t, 0.18, 0.55, easeOutCubic));
         ctx.beginPath();
         ctx.moveTo(1142, 216.5);
         ctx.lineTo(dRight, 216.5);
@@ -1007,17 +1030,17 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         ctx.restore();
       }
 
-      // Voronoi & Saltern lithograph plates ignite at `t = 0.18s` across `X = 1920..6000`
-      const vOp = span(t, 0.18, 0.65) * (1 - span(t, 6.9, 7.6)) * 0.30;
+      const vOp = span(t, 0.22, 0.68) * (1 - span(t, 6.9, 7.6)) * 0.30;
       voronoiImgA.style.opacity = vOp.toFixed(3);
       voronoiImgA.style.transform = `scale(${(1.0 + t * 0.014).toFixed(4)})`;
       voronoiImgB.style.opacity = (vOp * 0.90).toFixed(3);
       voronoiImgB.style.transform = `scale(${(1.02 + t * 0.012).toFixed(4)})`;
 
-      // Cobalt Press Platen Rails (`X = 1796..6320`) ignite immediately at `t = 0.18s`!
+      // Upper & lower `#0000FF` press platen parallel rules draw razor-cleanly left->right `scaleX(0 -> 1)` across `0.16..0.55s`!
       const crushU = span(t, 5.04, 6.26, easeInOutCubic);
       const formOpen = span(t, 5.18, 5.42, easeOutExpo);
-      const platenVis = span(t, 0.18, 0.48) * (1 - span(t, 7.0, 7.6));
+      const platenVis = span(t, 0.16, 0.28) * (1 - span(t, 7.0, 7.6));
+      const ruleDrawScaleX = span(t, 0.16, 0.55, easeOutCubic);
       const pTopY = lerp(34, 154, crushU);
       const pBotY = lerp(398, 278, crushU);
 
@@ -1025,6 +1048,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       platenBot.style.opacity = platenVis.toFixed(3);
       platenTop.style.top = `${pTopY.toFixed(1)}px`;
       platenBot.style.top = `${pBotY.toFixed(1)}px`;
+      platenTop.style.transform = `scaleX(${ruleDrawScaleX.toFixed(4)})`;
+      platenBot.style.transform = `scaleX(${ruleDrawScaleX.toFixed(4)})`;
 
       // Patch 1.1: ZERO `clip-path` Hangul character slicing!
       // Before `pTopY`/`pBotY` (or central formula box) approaches within `14px` of a badge's outer edge:
@@ -1369,7 +1394,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     //    Act I.3–4 (`7.5–30.0s`, Concertina `26.0–30.0s`) & Act IV.3b (`98.0–119.2s`)
     // -----------------------------------------------------------------------
     const inAct1Arch = t >= 7.5 && t < 30.0;
-    const inAct4Arch = t >= 98.0 && t < 119.35;
+    const inAct4Arch = t >= 97.5 && t < 119.35;
     const concertinaU = inAct1Arch ? easeInOutCubic(progress(t, 26.0, 29.96)) : 0;
 
     const drawPrismHatch = (gateLeft: number, op: number) => {
@@ -1558,25 +1583,27 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       let scale = slotScale;
       let op = enter;
 
-      // Concertina Fold-Out (`26.0–30.0s`): Station 04 Front Hero glides into `FIG.04` (`x=4588, w=336`)
-      if (c.gen === 1 && concertinaU > 0.001) {
+      // Polish 3: `0.2s` earlier fade-out (`25.8..27.05s`) for Gen 1 `01~03 SKEWED` & Aligned cards so `FIG.02`/`FIG.03` unfold without ghost overlap!
+      if (c.gen === 1 && t >= 25.8) {
         const isAnchor04Front = c.stationIdx === 3 && frontFocus > 0.65;
         if (isAnchor04Front) {
-          const targetCenterX = 4588 + 336 * 0.5;
-          const targetCenterY = 30 + 244 * 0.5 + 16;
-          const curBaseCenterX = c.x + c.w * 0.5;
-          const curBaseCenterY = c.y + c.h * 0.5;
-          pxShift = lerp(pxShift, targetCenterX - curBaseCenterX, concertinaU);
-          pyShift = lerp(pyShift, targetCenterY - curBaseCenterY, concertinaU);
-          rotY = lerp(rotY, 0, easeOutCubic(concertinaU));
-          rotX = lerp(rotX, 0, easeOutCubic(concertinaU));
-          scale = lerp(slotScale, 1.03, concertinaU);
-          op *= 1 - smoothstep(0.26, 0.58, concertinaU);
+          if (concertinaU > 0.001) {
+            const targetCenterX = 4588 + 336 * 0.5;
+            const targetCenterY = 30 + 244 * 0.5 + 16;
+            const curBaseCenterX = c.x + c.w * 0.5;
+            const curBaseCenterY = c.y + c.h * 0.5;
+            pxShift = lerp(pxShift, targetCenterX - curBaseCenterX, concertinaU);
+            pyShift = lerp(pyShift, targetCenterY - curBaseCenterY, concertinaU);
+            rotY = lerp(rotY, 0, easeOutCubic(concertinaU));
+            rotX = lerp(rotX, 0, easeOutCubic(concertinaU));
+            scale = lerp(slotScale, 1.03, concertinaU);
+            op *= 1 - smoothstep(0.26, 0.58, concertinaU);
+          }
         } else {
-          const foldLocal = smoothstep(0.0, 0.58, concertinaU);
-          rotY = lerp(rotY, rotY < 0 ? -82 : 82, foldLocal);
-          pxShift += (c.x < 4588 ? -180 : 140) * foldLocal;
-          op *= 1 - foldLocal;
+          const earlyFold = easeInOutCubic(progress(t, 25.8, 27.05));
+          rotY = lerp(rotY, rotY < 0 ? -82 : 82, earlyFold);
+          pxShift += (c.x < 4588 ? -180 : 140) * earlyFold;
+          op *= 1 - earlyFold;
         }
       }
 
@@ -1633,8 +1660,8 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       const camPan = sb.gen === 1 ? camPanGen1 : camPanGen2;
       const pxShift = -camPan * ((sb.z + 60) / 120);
       let op = enter;
-      if (sb.gen === 1 && concertinaU > 0.001) {
-        op *= 1 - smoothstep(0.0, 0.45, concertinaU);
+      if (sb.gen === 1 && t >= 25.8) {
+        op *= 1 - easeInOutCubic(progress(t, 25.8, 26.85));
       }
       if (sb.gen === 2 && t >= 113.8) {
         op *= 1 - smoothstep(blizzardFrontX - 460, blizzardFrontX + 160, sb.x + 120);
@@ -1670,17 +1697,28 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       }
     }
 
-    // Patch 7.1: Constant `44 px/s` Upward Oblique Infinite Conveyor Loop (`X = 5960..6480`, ZERO freeze!)
+    // Polish 1: Temporal Hierarchy on `history` Conveyor (Act I: Gen 1 ONLY; Act IV `t >= 97.5s`: Gen 1 Echo `0.34` + Gen 2 `1.0`!)
     const histVis = inAct1Arch
-      ? span(t, 7.8, 8.5) * (1 - smoothstep(0.0, 0.45, concertinaU))
+      ? span(t, 7.8, 8.5) * (1 - easeInOutCubic(progress(t, 25.8, 26.95)))
       : inAct4Arch
-        ? span(t, 98.05, 98.65) * (1 - smoothstep(blizzardFrontX - 420, blizzardFrontX + 100, 6220))
+        ? span(t, 97.5, 98.2) * (1 - smoothstep(blizzardFrontX - 420, blizzardFrontX + 100, 6220))
         : 0;
     historyWrap.style.opacity = clamp(histVis, 0, 1).toFixed(3);
     if (histVis > 0.005) {
-      const cycH = getHistoryCyclePx();
-      const scrollPx = (t * 44.0) % cycH;
-      historyList.style.setProperty('--history-offset', `${scrollPx.toFixed(1)}px`);
+      if (inAct1Arch) {
+        historyBeltGen1.listEl.style.display = 'flex';
+        historyBeltGen2.listEl.style.display = 'none';
+        const scrollPx = (t * 44.0) % historyBeltGen1.getCyclePx();
+        historyBeltGen1.listEl.style.setProperty('--history-offset', `${scrollPx.toFixed(1)}px`);
+      } else {
+        historyBeltGen1.listEl.style.display = 'none';
+        historyBeltGen2.listEl.style.display = 'flex';
+        const scrollPx = (t * 44.0) % historyBeltGen2.getCyclePx();
+        historyBeltGen2.listEl.style.setProperty('--history-offset', `${scrollPx.toFixed(1)}px`);
+      }
+    } else {
+      historyBeltGen1.listEl.style.display = 'none';
+      historyBeltGen2.listEl.style.display = 'none';
     }
 
     if (inAct4Arch) {

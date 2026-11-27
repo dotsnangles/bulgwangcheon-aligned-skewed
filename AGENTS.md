@@ -4,44 +4,53 @@
 
 ---
 
-## 1. 조형 · 모션 DNA (2조 원작 `art-hackathon` 계승)
+## 1. 조형 · 모션 DNA (프로페셔널 아트 그레이드 정본)
 
-원작 인터랙티브 웹아트 `정렬과 사선 (Aligned / Skewed)`의 에디토리얼 문법을 절대 훼손하지 않습니다.
+원작 인터랙티브 웹아트 `정렬과 사선 (Aligned / Skewed)`의 에디토리얼·판화 문법을 미술관·비엔날레 수준으로 계승하며 절대 훼손하지 않습니다.
 
-- **배경 & 선**: 순백 바탕 `#FFFFFF`, `1px solid #000000` 잉크 선·테두리. 다크 모드·네온 글로우·그라디언트 남용 금지.
-- **타이포그래피**: 한국어 명조(`"Noto Serif KR", "AppleMyungjo", Georgia, serif`).
+- **배경 & 선**: 순백 바탕 `#FFFFFF` (`mean >= 78%`), `1px solid #000000` 카본 잉크 선·테두리. 다크 모드·네온 글로우·에어브러시 그라디언트 남용 금지.
+- **타이포그래피 (100% 자체 호스팅 가변 웹폰트)**:
+  - 한국어 본문·시어 명조: `public/fonts/NotoSerifKR-Variable.woff2` (`"Noto Serif KR"`, 200~900 가변 웨이트)
+  - 계측 수치·도판 코드 고정폭: `public/fonts/JetBrainsMono-Variable.woff2` (`"JetBrains Mono"`, `tabular-nums`)
 - **색상 체계 (엄격 고정)**:
-  - `#0000FF` : `aligned` (정렬·상위 표준 검색 결과 및 재검색 강조)
-  - `#FF9E4D`, `#FFAF66`, `#FFC080`, `#FFD09A` : `01~04 skewed` (가까이에서 멀리로 갈라지는 사선 단계)
-  - `#FF0000` : 점선 궤적, 문장 수직 절단선(CUTS), 코사인 유사도 실선망, 변방 `0.14` 하한 강조
-- **공간 언어**: 3D 원근 카드 스택 + 바닥 그림자, 우측 3D 사선 `history` 컨베이어 레일, 30m 수평 3D 나선(Helix), 3D 의미 구름(Cloud), 검색어 유사도 타원 궤도(Orbit, `scale = 0.72 + t`, `opacity = 0.14 + 0.86t`, 비소거 하한 `0.14`), `1px #000` 포커스 패널 및 구절 분해·재검색 도약.
+  - `#0000FF` : `aligned` (정렬·상위 표준 검색 결과, 실크스크린 프레스 레일 및 기원 기준선)
+  - `#FF9626`, `#FFA947`, `#FFBC6B`, `#FFCF8E` : `01~04 skewed` (가까이에서 멀리로 갈라지는 4단계 골든 앰버 사선 위계)
+  - `#FF0000` (`#E60000` / `#D90000`) : 직교 굴절 궤적, 브로드시트 기요틴 절단선(CUTS), 코사인 치수선 캘리퍼·현수선 동맥망, 변방 `0.14` 비소거 각성
+- **무크롬(Zero-UI) · 무번인(Zero-HUD) 원칙**:
+  - 송출 무대(`?raw=1`) 안에는 웹앱 버튼(`←`, `↻`), 해상도/타임코드 슬레이트(`6480×432`, `ACT I`, `BEAT`), 설명조 영문 메타 배너, 하단 자막을 **단 1건도 노출하지 않습니다** (`SCENES`, `STAGE_CAPTIONS`는 외부 프리뷰 컨트롤러 `src/studio.ts` 전용).
+- **물리 베젤 수직 안전 엔벨로프**:
+  - 수변 산책로 앙각 시선에서 상·하단 물리 베젤 립에 글자나 도판이 잘리지 않도록 모든 가시 요소(마스크 처리된 우측 `.history-rail-wrap` 제외)를 **`Y ∈ [26px, 404px]`** (검증 게이트 `[20px, 410px]`) 내부에 엄격히 배치합니다.
+- **24종 파인프레스 석판화 도판 (`public/plates/plate-01..24.webp`)**:
+  - Canvas2D 장난감 절차 도형을 배제하고, `scripts/bake-plates.mjs`(`pnpm bake:plates`)로 정제한 무경계(`border = 255`) 고해상도 석판화 도판 24종을 사용합니다 (`plate-04` 경주마 도판은 본편 미노출; 1·2세대 `Skewed` 24장 전 카드는 도판 `1:1` 비중복 배정).
 
 ---
 
 ## 2. 단일 전 폭 `6480 × 432` 캔버스 원칙
 
 - 불광천 미디어브릿지 스크린은 **`6480 × 432 px` (`15:1`, 약 30m 폭)** 단일 파노라마 캔버스입니다.
-- **3분할 복제(동일 영상 3개 나란히 배치) 절대 금지.** 모든 카드·문장·200개 조각·3D 나선·구름·궤도·비행 궤적은 `0 .. 6480px` 전체 가로축을 하나의 연속된 공간으로 사용합니다.
-- 모든 카드와 200개 분해 조각(`src/data/corpus.ts`)은 중복 없이 고유해야 합니다.
+- **3분할 복제(동일 영상 3개 나란히 배치) 절대 금지.** 모든 카드·문장·200개 조각·브로드시트 병풍·30m 수평 3D 이중나선(Helix)·5대 비대칭 성단과 순백 침묵 협곡·30m 천구 아밀러리 돔(Sphere)·태고의 바람 유선은 `0 .. 6480px` 전체 가로축을 하나의 연속된 조형 공간으로 사용합니다.
+- 모든 카드와 200개 분해 조각(`src/data/corpus.ts`)은 중복 없이 고유해야 하며, 좌권역(`ALIGNED`)·중권역·우권역(`history` 벨트) 어느 구간도 정지(Partial Freeze)하지 않고 상시 유영해야 합니다.
 
 ---
 
 ## 3. 결정론적 `window.renderAt(t)` 불변식 (최우선)
 
-Headless Chromium 병렬 워커가 임의의 프레임 순서로 `window.renderAt(t)`를 호출하여 전시용 MP4를 합성합니다. 따라서 **동일한 시각 `t`는 어떤 순서로 몇 번 호출되든 픽셀 단위로 100% 동일한 화면을 출력해야 합니다.**
+Headless Chromium 병렬 워커가 임의의 프레임 순서로 `window.renderAt(t)`를 호출하여 전시용 MP4를 합성합니다. 따라서 **동일한 시각 `t`는 어떤 순서로 몇 번 호출되든 픽셀 단위로 `0 LSB` 오차의 100% 동일한 화면을 출력해야 합니다.**
 
 - **금지**: 렌더링 로직(`src/engine/stage.ts`, `src/layouts/`, `src/data/`, `src/illustrations.ts`) 내부에서 `Math.random()`, `Date.now()`, `performance.now()`, `setTimeout`, `setInterval`, 비제어 `requestAnimationFrame`, CSS `@keyframes` / `transition`에 의존하는 시각 상태.
-- **필수**: 모든 의사난수는 `src/math.ts`의 결정론적 `hash(i)`만 사용하며, 모든 위치·투명도·색상·카메라 변환은 순수하게 입력 시각 `t`에서 계산합니다.
-- **무이음매 루프**: `t = 0.0s`와 `t = 120.0s` 직전 마지막 프레임(`t = 119.967s`)은 순백(`#FFFFFF`) 루프 워시로 완전히 일치해야 합니다(`verify-mp4.mjs`에서 `max_abs_diff <= 4 LSB` 자동 검증).
-- **Red-Tint 보정 일관성**: 현장 리허설 적색기 보정(`?rgain=0.50..1.00`)은 스테이지 루트의 SVG `feColorMatrix` 필터로 일원화되어 라이브 스튜디오 프리뷰와 Headless MP4/스틸 렌더러가 완전히 동일한 발색을 출력해야 합니다.
+- **필수**: 모든 의사난수는 `src/math.ts`의 결정론적 `hash(i)`만 사용하며, 모든 위치·투명도·색상·카메라 변환은 순수하게 입력 시각 `t`에서 계산합니다. `window.motionReady`는 모든 웹폰트(`document.fonts.ready`)와 석판화 도판(`preloadAllPlates`의 `img.decode()`) 완료 후에만 resolve됩니다.
+- **무이음매 루프**: `119.45s ~ 120.00s` 및 `0.00s ~ 0.15s` (합계 `0.70초`)는 순백(`100.00% #FFFFFF`) 호흡 구간으로 `t = 0.0s`와 `t = 119.967s`가 완전히 일치해야 합니다(`verify-artwork.mjs` `0 LSB`, `verify-mp4.mjs` `max_abs_diff <= 4 LSB` 자동 검증).
+- **화이트포인트 보존 Red-Tint 역보정 (`?rgain=0.50..1.00`)**: 현장 LED 적색기 보정은 선형 채널 감산이 아닌 스테이지 루트의 SVG `feComponentTransfer` 감마 역보정(`exponent = 1 / rgain` on `feFuncR`)으로 일원화하여, `?rgain=0.90` 적용 시에도 **`#FFFFFF` 순백 지면이 시안(Cyan) 변색 없이 정확히 `RGB(255, 255, 255)`를 유지**해야 합니다.
 
 ---
 
-## 4. 공공 하천 산책로 전시 심의 유의사항
+## 4. 공공 하천 산책로 전시 심의 및 현장 송출 유의사항
 
 - 은평구 불광천 산책로는 어린이·가족·어르신 등 전 연령 시민이 지나가는 **야외 공공 공간**입니다.
-- `src/data/corpus.ts`, `src/data/timeline.ts`, `src/illustrations.ts` 수정 시 선정적·폭력적·정치적·혐오적 표현이나 오인 소지가 있는 문구·도상을 철저히 배제합니다.
-- 모든 텍스트는 실제 교량 관람 거리에서도 품격 있고 자연스럽게 읽히는 한국어 문장을 유지합니다.
+- `src/data/corpus.ts`, `src/data/timeline.ts`, `src/illustrations.ts` 수정 시 선정적·폭력적·정치적·혐오적 표현이나 오인 소지가 있는 문구·도상을 철저히 배제하며 품격 있는 한국어 문장을 유지합니다.
+- **현장 LED 프로세서 권장 세팅**:
+  - 적색기 편향 시 `--r-gain=0.90~0.93` (또는 컨트롤러 `R-Gain 90~93%`) 권장
+  - 일몰 후 야간 상영(`17:30–21:00`) 시 하천 수면 반사 눈부심 및 백색 바탕 내 텍스트 획 블루밍 방지를 위해 **야간 휘도 `22~28%` (`900–1,200 nits`) 디밍** 권장
 
 ---
 
@@ -49,31 +58,32 @@ Headless Chromium 병렬 워커가 임의의 프레임 순서로 `window.renderA
 
 | 담당 영역 | 주요 파일 | 수정 범위 |
 | --- | --- | --- |
-| 카피 · 검색어 · 200개 조각 문구 | `src/data/corpus.ts` | 카드/조각 텍스트 및 의미 군집 |
-| 타임라인 · 씬 라벨 · 하단 자막 | `src/data/timeline.ts` | `SCENES`, `STAGE_CAPTIONS`, 기본 시간 상수 |
-| 타이포그래피 · 여백 · 카드 스타일 | `src/style.css` | 명조 크기, 테두리, 레이아웃 스타일 |
-| 아카이브 도판 일러스트 (12종) | `src/illustrations.ts` | 절차적 240×160 에디토리얼 판화 |
-| 6-모드 2D/3D 레이아웃 알고리즘 | `src/layouts/deconstruct-layout.ts` | 문서/읽기/나선/스프링/구름/궤도 좌표 |
-| 모션 엔진 & 카메라 포커스 | `src/engine/stage.ts` | `renderAt(t)`, `getFocusX(t)`, `feColorMatrix` |
-| 스튜디오 UI & 딥링크 공유 | `src/studio.ts` | 프리뷰 컨트롤, `?t&x&zoom&pause&rgain` |
-| 공식 MP4 · 스틸 · 검수 CLI | `scripts/` | `render-mp4.mjs`, `render-stills.mjs`, `verify-mp4.mjs` |
+| 다층 시학 코퍼스 · 1·2세대 카드 · 200개 조각 | `src/data/corpus.ts` | 검색어, 카드/조각 텍스트, `1:1` 고유 도판 배정, 동맥망 그래프 |
+| 4막 타임라인 · 스튜디오 전용 씬/자막 메타 | `src/data/timeline.ts` | `SCENES`, `STAGE_CAPTIONS`(스튜디오 UI 전용), 시간/BPM 상수 |
+| 자체 호스팅 웹폰트 · 파인프레스 스타일 · 헤일로 | `src/style.css` | 명조/모노 타이포, `3.5px` 순백 스트로크 헤일로, 카드/스튜디오 스타일 |
+| 파인프레스 석판화 도판 레지스트리 (24종) | `src/illustrations.ts`, `scripts/bake-plates.mjs` | `public/plates/plate-01..24.webp` 정제 및 사전 디코딩(`img.decode()`) |
+| 8-시공간 무충돌 2D/3D 레이아웃 솔버 | `src/layouts/deconstruct-layout.ts` | 브로드시트(`28px` 거터)/스펙트럼/세로단/이중나선/성단·협곡/성운/궤도/천구 돔 |
+| 결정론적 모션 엔진 & 3D 심도/반발기 | `src/engine/stage.ts` | `renderAt(t)`, `repelForeground3D()`, `getFocusX(t)`, 감마 `rgain` |
+| 외부 라이브 스튜디오 UI & 딥링크 공유 | `src/studio.ts` | 프리뷰 컨트롤, `?t&x&zoom&pause&rgain` (송출 원본 `?raw=1`과 완전 분리) |
+| 정량 작품 감리 · 공식 MP4 · 스틸 · 규격 검수 CLI | `scripts/` | `verify-artwork.mjs`, `render-mp4.mjs`, `render-stills.mjs`, `verify-mp4.mjs` |
 
-- **GitHub Pages 호환**: `vite.config.ts`의 `base: './'`를 유지하고, 모든 내부 링크/쿼리(`?raw=1&t=...`)는 루트 절대경로(`/`) 대신 상대 경로·쿼리를 사용합니다.
-- **대용량 바이너리 커밋 금지**: `renders/`, `captures/`, `dist/`, `*.mp4`, `*.mov`는 `.gitignore`에 의해 제외되며 절대로 git에 강제 추가(`git add -f`)하지 않습니다.
+- **GitHub Pages 호환**: `vite.config.ts`의 `base: './'`를 유지하고, 모든 내부 링크/자산 경로는 루트 절대경로(`/`) 대신 상대 경로를 사용합니다.
+- **대용량/임시 바이너리 커밋 금지**: `.cache/`, `renders/`, `captures/`, `dist/`, `*.mp4`, `*.mov`는 `.gitignore`에 의해 제외되며 절대로 git에 강제 추가(`git add -f`)하지 않습니다 (`public/plates/*.webp`와 서브셋 `public/fonts/*.woff2`만 정적 자산으로 추적).
 
 ---
 
-## 6. 필수 검증 게이트 (커밋 전 확인)
+## 6. 필수 검증 게이트 (커밋 및 납품 전 확인)
 
-코드나 데이터를 수정한 뒤에는 최소한 아래 게이트를 순서대로 통과해야 합니다.
+코드나 데이터를 수정한 뒤에는 반드시 아래 정량 무결성 게이트(`G1~G7`)와 클립 검수를 통과해야 합니다.
 
 ```bash
 pnpm build
+pnpm verify:artwork
 pnpm render:clip
 node scripts/verify-mp4.mjs renders/clip-preview.mp4
 ```
 
-대표 이미지 또는 전체 마스터 납품 직전에는 아래까지 검증합니다.
+대표 이미지(6대 골든 프레임) 및 전체 3,600프레임 공식 마스터 납품 직전에는 아래까지 완주합니다.
 
 ```bash
 pnpm render:stills

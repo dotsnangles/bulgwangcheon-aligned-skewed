@@ -158,6 +158,7 @@ body.raw-mode {
   width: 4524px;
   height: 3px;
   background: #0000ff;
+  transform-origin: 0% 50%;
   pointer-events: none;
 }
 
@@ -453,6 +454,7 @@ body.raw-mode {
 }
 
 .history-scene {
+  position: relative;
   perspective: 680px;
   perspective-origin: 50% 50%;
   width: 100%;
@@ -461,8 +463,11 @@ body.raw-mode {
 
 .history-list {
   --history-offset: 0px;
+  position: absolute;
+  top: 26px;
+  left: 78px;
   list-style: none;
-  margin: 26px 0 0 78px;
+  margin: 0;
   padding: 0;
   width: 342px;
   transform: rotateX(34deg) rotateY(-26deg) rotateZ(-8deg) scale(1.16) translate3d(0, calc(var(--history-offset) * -1), 0);
@@ -470,6 +475,10 @@ body.raw-mode {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.history-page.is-echo {
+  opacity: 0.34;
 }
 
 .history-head {

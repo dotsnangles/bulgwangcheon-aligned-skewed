@@ -1369,6 +1369,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       datumAnchor.style.top = '32px';
       datumAnchor.style.transform = 'none';
       datumGen2Span.style.display = 'none';
+      datumRule.style.width = '100%';
       datumRule.style.background = '#0000ff';
       datumRule.style.opacity = '1';
       datumRule.style.transform = 'scaleX(1)';
@@ -1441,6 +1442,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
           ctx.restore();
         }
       });
+      datumRule.style.width = '100%';
       datumRule.style.background = '#0000ff';
       datumRule.style.opacity = intactRatio.toFixed(3);
       datumRule.style.transform = `scaleX(${intactRatio.toFixed(3)})`;
@@ -1464,7 +1466,7 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
         ctx.restore();
       }
     } else {
-      // Exact instant 1:1 continuation from `galeBannerEl` at `t = 171.45s` (`opacity = 1.0`, `0.0px` position jump!)
+      // Single-node continuous `galeBannerEl` stays docked from `171.45s` (`0.00px` jump, `0 LSB` swap); keep `datumGen2Span` hidden for rule box layout!
       const blizzardScour = t >= 193.0 ? smoothstep(blizzardFrontX - 420, blizzardFrontX + 180, 344) : 0;
       const g2Op = 1 - blizzardScour;
       datumAnchor.style.opacity = g2Op.toFixed(3);
@@ -1472,10 +1474,12 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
       datumAnchor.style.transform = `translate3d(${(-blizzardScour * 68).toFixed(2)}px, 0, 0)`;
       for (const sp of datumGen1Spans) sp.style.display = 'none';
       datumGen2Span.style.display = 'inline-block';
-      datumGen2Span.style.opacity = '1';
+      datumGen2Span.style.opacity = '0';
       datumGen2Span.style.transform = 'none';
       const ruleInOp = smootherstep(171.65, 172.65, t);
       const ruleDraw = smootherstep(171.65, 173.45, t);
+      datumRule.style.width =
+        galeBannerEl.offsetWidth > 0 ? `${(galeBannerEl.offsetWidth * (56 / 104)).toFixed(2)}px` : '100%';
       datumRule.style.background = '#000000';
       datumRule.style.opacity = (g2Op * ruleInOp).toFixed(3);
       datumRule.style.transform = `scaleX(${ruleDraw.toFixed(4)})`;
@@ -3212,88 +3216,93 @@ export function createMotionStage(host: HTMLElement, options: MotionStageOptions
     }
 
     // -----------------------------------------------------------------------
-    // 6. ACT IV.3a (`164.0 – 171.45s`): PALEO-WIND GALE (`0.0px` SEAMLESS DOCKING AT `171.45s`!)
+    // 6. ACT IV.3a–b (`164.0 – 198.90s`): PALEO-WIND GALE & CONTINUOUS GEN-2 DOCKED BANNER
     // -----------------------------------------------------------------------
-    if (t < 164.0 || t >= 171.45) {
+    if (t < 164.0 || t >= 198.90) {
       galeBannerEl.style.opacity = '0';
       galeBannerEl.style.transform = 'translate3d(-9999px, -9999px, 0)';
     } else {
-      galeBannerEl.style.opacity = '1';
-      galeBannerEl.style.webkitTextStroke = `${(3.5 * (1 - dockGen2)).toFixed(2)}px #ffffff`;
-      galeBannerEl.style.transform = `translate3d(${galeAnchorX.toFixed(2)}px, ${galeAnchorY.toFixed(2)}px, 0) scale(${galeScale.toFixed(4)}) translate(${galeAlignPct.toFixed(3)}%, -50%)`;
+      const blizzardScourGale = t >= 193.0 ? smoothstep(blizzardFrontX - 420, blizzardFrontX + 180, 344) : 0;
+      galeBannerEl.style.opacity = (1 - blizzardScourGale).toFixed(3);
+      galeBannerEl.style.webkitTextStroke =
+        dockGen2 >= 0.9999 ? '0px transparent' : `${(3.5 * (1 - dockGen2)).toFixed(2)}px #ffffff`;
+      const curAnchorX = galeAnchorX - blizzardScourGale * 68;
+      galeBannerEl.style.transform = `translate3d(${curAnchorX.toFixed(2)}px, ${galeAnchorY.toFixed(2)}px, 0) scale(${galeScale.toFixed(4)}) translate(${galeAlignPct.toFixed(3)}%, -50%)`;
 
-      const streamEnv = 1 - smootherstep(170.85, 171.45, t);
-      ctx.save();
-      if (t >= 165.20 && t <= 170.60) {
-        const gPlateWindow = span(t, 165.20, 165.70, easeInOutCubic) * (1 - span(t, 170.00, 170.60, easeInOutCubic));
-        const loessPlate = getDecodedPlate('plate-35');
-        const ringPlate = getDecodedPlate('plate-37');
-        if (loessPlate && gPlateWindow * 0.19 >= 0.01 && galeVisualCenterX + 640 < STAGE_W) {
-          activeCanvasPlates.push('plate-35');
-          ctx.globalCompositeOperation = 'multiply';
-          ctx.globalAlpha = 0.19 * gPlateWindow;
-          ctx.drawImage(loessPlate, galeVisualCenterX + 640, 40, 960, 152);
+      if (t < 171.45) {
+        const streamEnv = 1 - smootherstep(170.85, 171.45, t);
+        ctx.save();
+        if (t >= 165.20 && t <= 170.60) {
+          const gPlateWindow = span(t, 165.20, 165.70, easeInOutCubic) * (1 - span(t, 170.00, 170.60, easeInOutCubic));
+          const loessPlate = getDecodedPlate('plate-35');
+          const ringPlate = getDecodedPlate('plate-37');
+          if (loessPlate && gPlateWindow * 0.19 >= 0.01 && galeVisualCenterX + 640 < STAGE_W) {
+            activeCanvasPlates.push('plate-35');
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.globalAlpha = 0.19 * gPlateWindow;
+            ctx.drawImage(loessPlate, galeVisualCenterX + 640, 40, 960, 152);
+          }
+          if (ringPlate && gPlateWindow * 0.17 >= 0.01 && galeVisualCenterX + 1140 < STAGE_W) {
+            activeCanvasPlates.push('plate-37');
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.globalAlpha = 0.17 * gPlateWindow;
+            ctx.drawImage(ringPlate, galeVisualCenterX + 1140, 238, 760, 152);
+          }
+          ctx.globalCompositeOperation = 'source-over';
         }
-        if (ringPlate && gPlateWindow * 0.17 >= 0.01 && galeVisualCenterX + 1140 < STAGE_W) {
-          activeCanvasPlates.push('plate-37');
-          ctx.globalCompositeOperation = 'multiply';
-          ctx.globalAlpha = 0.17 * gPlateWindow;
-          ctx.drawImage(ringPlate, galeVisualCenterX + 1140, 238, 760, 152);
+
+        for (let wIdx = 0; wIdx < 190; wIdx++) {
+          const h1 = hash(wIdx * 19 + 3);
+          const h2 = hash(wIdx * 37 + 11);
+          const wy = 32 + h1 * 368;
+          const speedLag = h2 * 0.48;
+          const uLine = clamp((uGale * 1.18 - speedLag) / (1 - speedLag), 0, 1);
+          if (uLine <= 0.005 || uLine >= 0.995) continue;
+
+          const headX = lerp(6460, -240, uLine);
+          const segLen = 320 + hash(wIdx * 7) * 820;
+          const tailX = headX + segLen;
+          const waveAmp = (hash(wIdx * 43) - 0.5) * 32;
+
+          const isCrimson = wIdx % 5 === 0;
+          ctx.strokeStyle = isCrimson ? '#e60000' : '#000000';
+          ctx.globalAlpha = (isCrimson ? 0.52 : 0.18 + h1 * 0.22) * streamEnv * Math.sin(uLine * Math.PI);
+          ctx.lineWidth = isCrimson ? 1.55 : 0.55 + (wIdx % 3) * 0.35;
+          ctx.beginPath();
+          ctx.moveTo(tailX, wy);
+          ctx.bezierCurveTo(
+            lerp(tailX, headX, 0.35),
+            clamp(wy + waveAmp, 28, 404),
+            lerp(tailX, headX, 0.7),
+            clamp(wy - waveAmp * 0.7, 28, 404),
+            headX,
+            clamp(wy + waveAmp * 0.2, 28, 404),
+          );
+          ctx.stroke();
         }
-        ctx.globalCompositeOperation = 'source-over';
-      }
 
-      for (let wIdx = 0; wIdx < 190; wIdx++) {
-        const h1 = hash(wIdx * 19 + 3);
-        const h2 = hash(wIdx * 37 + 11);
-        const wy = 32 + h1 * 368;
-        const speedLag = h2 * 0.48;
-        const uLine = clamp((uGale * 1.18 - speedLag) / (1 - speedLag), 0, 1);
-        if (uLine <= 0.005 || uLine >= 0.995) continue;
-
-        const headX = lerp(6460, -240, uLine);
-        const segLen = 320 + hash(wIdx * 7) * 820;
-        const tailX = headX + segLen;
-        const waveAmp = (hash(wIdx * 43) - 0.5) * 32;
-
-        const isCrimson = wIdx % 5 === 0;
-        ctx.strokeStyle = isCrimson ? '#e60000' : '#000000';
-        ctx.globalAlpha = (isCrimson ? 0.52 : 0.18 + h1 * 0.22) * streamEnv * Math.sin(uLine * Math.PI);
-        ctx.lineWidth = isCrimson ? 1.55 : 0.55 + (wIdx % 3) * 0.35;
-        ctx.beginPath();
-        ctx.moveTo(tailX, wy);
-        ctx.bezierCurveTo(
-          lerp(tailX, headX, 0.35),
-          clamp(wy + waveAmp, 28, 404),
-          lerp(tailX, headX, 0.7),
-          clamp(wy - waveAmp * 0.7, 28, 404),
-          headX,
-          clamp(wy + waveAmp * 0.2, 28, 404),
-        );
-        ctx.stroke();
-      }
-
-      for (let gIdx = 0; gIdx < 360; gIdx++) {
-        const hg1 = hash(gIdx * 23 + 5);
-        const hg2 = hash(gIdx * 59 + 17);
-        const lag = hg2 * 0.48;
-        const uGrain = clamp((uGale * 1.20 - lag) / (1 - lag), 0, 1);
-        if (uGrain <= 0.01 || uGrain >= 0.99) continue;
-        const px = lerp(6480, -100, uGrain);
-        const py = clamp(32 + hg1 * 368 + Math.sin(uGrain * 10 + gIdx) * 12, 28, 404);
-        if (Math.abs(px - galeVisualCenterX) < galeVisualWidth * 0.5 + 36 && Math.abs(py - galeAnchorY) < 72 * galeScale) {
-          continue;
+        for (let gIdx = 0; gIdx < 360; gIdx++) {
+          const hg1 = hash(gIdx * 23 + 5);
+          const hg2 = hash(gIdx * 59 + 17);
+          const lag = hg2 * 0.48;
+          const uGrain = clamp((uGale * 1.20 - lag) / (1 - lag), 0, 1);
+          if (uGrain <= 0.01 || uGrain >= 0.99) continue;
+          const px = lerp(6480, -100, uGrain);
+          const py = clamp(32 + hg1 * 368 + Math.sin(uGrain * 10 + gIdx) * 12, 28, 404);
+          if (Math.abs(px - galeVisualCenterX) < galeVisualWidth * 0.5 + 36 && Math.abs(py - galeAnchorY) < 72 * galeScale) {
+            continue;
+          }
+          ctx.fillStyle = gIdx % 7 === 0 ? '#e60000' : '#000000';
+          ctx.globalAlpha = (0.28 + hg1 * 0.42) * streamEnv * Math.sin(uGrain * Math.PI);
+          const r = 0.75 + (gIdx % 3) * 0.55;
+          ctx.beginPath();
+          ctx.arc(px, py, r, 0, Math.PI * 2);
+          ctx.fill();
         }
-        ctx.fillStyle = gIdx % 7 === 0 ? '#e60000' : '#000000';
-        ctx.globalAlpha = (0.28 + hg1 * 0.42) * streamEnv * Math.sin(uGrain * Math.PI);
-        const r = 0.75 + (gIdx % 3) * 0.55;
-        ctx.beginPath();
-        ctx.arc(px, py, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
+        ctx.restore();
 
-      taperCanvasEllipse(ctx, galeVisualCenterX, galeAnchorY, galeVisualWidth * 0.5 + 76, 76 * galeScale, streamEnv);
+        taperCanvasEllipse(ctx, galeVisualCenterX, galeAnchorY, galeVisualWidth * 0.5 + 76, 76 * galeScale, streamEnv);
+      }
     }
 
     // -----------------------------------------------------------------------

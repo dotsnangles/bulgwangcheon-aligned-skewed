@@ -792,7 +792,7 @@ body.raw-mode {
   line-height: 1.08;
   letter-spacing: -0.02em;
   word-spacing: normal;
-  transform-origin: 0% 50%;
+  transform-origin: 0% 0%;
   color: #000000;
   background: transparent;
   box-shadow: none;
@@ -813,7 +813,7 @@ body.raw-mode {
   -webkit-text-stroke: 3.2px #ffffff;
 }
 
-/* Act IV.3a Elemental Paleo-Wind Gale Hero Text (`104px` Bold, Exact `0% 50%` Left-Edge Docking to `datumGen2Span`) */
+/* Act IV.3a Elemental Paleo-Wind Gale Hero Text (`104px` Bold, Exact `0% 0%` Left-Edge Docking) */
 .gale-wind-banner {
   position: absolute;
   left: 0;
@@ -825,7 +825,7 @@ body.raw-mode {
   line-height: 1.08;
   letter-spacing: -0.02em;
   word-spacing: normal;
-  transform-origin: 0% 50%;
+  transform-origin: 0% 0%;
   color: #000000;
   background: transparent;
   box-shadow: none;
